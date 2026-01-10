@@ -12,15 +12,15 @@ const PORT = process.env.PORT || 5000;
 app.use(bodyParser.json({ limit: "1mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// === FIX: Explicitly allow localhost:5173 ===
+
 app.use(cors({
-  origin: [
-    "http://localhost:5173", // Vite default
-    "http://localhost:3000", // React default
-    "http://127.0.0.1:5173"  // Alternative localhost
-  ],
+  origin: "https://brain-bugz-learning-management-syst.vercel.app",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
+
+app.options("*", cors()); 
 
 app.use("/admin", adminRoutes);
 

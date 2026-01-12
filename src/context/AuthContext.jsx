@@ -179,7 +179,7 @@ const adminDeleteUser = async (uid) => {
     const idToken = await currentUser.getIdToken(/* forceRefresh */ true);
 
     // Call backend DELETE endpoint
-    const resp = await fetch(`${import.meta.env.VVITE_API_URL}/admin/delete-user/${uid}`, {
+    const resp = await fetch(`${import.meta.env.VITE_API_URL}/admin/delete-user/${uid}`, {
       method: "DELETE", // Use DELETE method
       headers: {
         "Content-Type": "application/json",

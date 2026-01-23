@@ -14,7 +14,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 app.use(cors({
-  origin: "https://pearlx-webstudio.vercel.app/",
+  origin: [
+    "https://pearlx-webstudio.vercel.app",
+    "http://localhost:5173"
+  ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true

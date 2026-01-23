@@ -14,7 +14,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 app.use(cors({
-  origin: "https://brain-bugz-learning-management-syst.vercel.app",
+  origin: "https://pearlx-webstudio.vercel.app/",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true

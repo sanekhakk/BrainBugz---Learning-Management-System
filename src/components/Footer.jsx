@@ -1,7 +1,7 @@
 // src/components/Footer.jsx - Ultra Modern Footer
 import React from "react";
 import { motion } from "framer-motion";
-import BrainBugzLogo from "../assets/BrainBugzLogo.png";
+import Logo from "../assets/logo.png"
 import { Mail, Briefcase, Github, Twitter, Linkedin, Heart } from "lucide-react";
 import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
 
@@ -88,12 +88,12 @@ const Footer = () => {
                       transition={{ duration: 3, repeat: Infinity }}
                     />
                     <img
-                      src={BrainBugzLogo}
-                      alt="BrainBugz Logo"
+                      src={Logo}
+                      alt="Pearlx Logo"
                       className="h-12 w-12 relative z-10"
                     />
                   </div>
-                  <span className="text-2xl font-bold text-white">BrainBugz</span>
+                  <span className="text-2xl font-bold text-white">Pearlx web studio</span>
                 </div>
                 <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-sm">
                   Transform your Computer Science journey with personalized mentorship from
@@ -184,7 +184,7 @@ const Footer = () => {
             className="text-sm text-gray-500"
           >
             <span className="flex items-center">
-              © {currentYear} BrainBugz. Made with{" "}
+              © {currentYear} Pearlx. Made with{" "}
               <motion.span
                 animate={{
                   scale: [1, 1.2, 1],

@@ -785,114 +785,121 @@ export default function TutorDashboard() {
           )}
 
           {activeTab === "activeClasses" && (
-            <motion.div
-              key="activeClasses"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="grid gap-6"
-            >
-              {loadingClasses ? (
-                <div className="flex justify-center py-20">
-                  <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+  <motion.div
+    key="activeClasses"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    className="grid gap-6"
+  >
+    {loadingClasses ? (
+      <div className="flex justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+      </div>
+    ) : activeClasses.length === 0 ? (
+      <div className="text-center py-20 text-gray-400">No active classes</div>
+    ) : (
+      activeClasses.map((cls) => {
+        const classLink = studentLinkMap[cls.studentId] || "";
+        const isDue = isClassDue(cls);
+
+        return (
+          <motion.div
+            key={cls.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -3 }}
+            className="p-6 rounded-2xl border backdrop-blur-xl"
+            style={{
+              background: COLORS.glassBg,
+              borderColor: COLORS.glassBorder,
+              boxShadow: SHADOWS.md,
+            }}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex-1">
+                {isDue && (
+                  <motion.span
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30 mb-2"
+                  >
+                    <AlertCircle className="w-3 h-3 mr-1" />
+                    ATTENDANCE DUE
+                  </motion.span>
+                )}
+                {cls.isRescheduled && (
+                  <div className="mb-2">
+                    <span className="inline-block px-3 py-1 rounded-lg text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                      RESCHEDULED CLASS
+                    </span>
+                    {cls.originalClassDate && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        Originally: <span className="text-yellow-400">{cls.originalClassDate}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+                <h3 className="text-xl font-bold text-white mb-1">{cls.subject}</h3>
+                <p className="text-sm text-gray-400">
+                  Student: <span className="text-cyan-400">{cls.studentName}</span>
+                </p>
+                <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                  <span className="flex items-center">
+                    <Calendar className="w-4 h-4 mr-1" />
+                    {cls.classDate}
+                  </span>
+                  <span className="flex items-center">
+                    <Clock className="w-4 h-4 mr-1" />
+                    {cls.classTime}
+                  </span>
                 </div>
-              ) : activeClasses.length === 0 ? (
-                <div className="text-center py-20 text-gray-400">No active classes</div>
+              </div>
+            </div>
+
+            <div className="flex space-x-3">
+              {classLink ? (
+                <motion.a
+                  href={classLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-semibold text-white"
+                  style={{
+                    background: GRADIENTS.primary,
+                    boxShadow: SHADOWS.md,
+                  }}
+                >
+                  <Link className="w-4 h-4 mr-2" />
+                  Join Class
+                </motion.a>
               ) : (
-                activeClasses.map((cls) => {
-                  const classLink = studentLinkMap[cls.studentId] || "";
-                  const isDue = isClassDue(cls);
-
-                  return (
-                    <motion.div
-                      key={cls.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      whileHover={{ y: -3 }}
-                      className="p-6 rounded-2xl border backdrop-blur-xl"
-                      style={{
-                        background: COLORS.glassBg,
-                        borderColor: COLORS.glassBorder,
-                        boxShadow: SHADOWS.md,
-                      }}
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1">
-                          {isDue && (
-                            <motion.span
-                              animate={{ scale: [1, 1.05, 1] }}
-                              transition={{ repeat: Infinity, duration: 2 }}
-                              className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30 mb-2"
-                            >
-                              <AlertCircle className="w-3 h-3 mr-1" />
-                              ATTENDANCE DUE
-                            </motion.span>
-                          )}
-                          {cls.isRescheduled && (
-                            <span className="inline-block px-2 py-1 rounded-lg text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 mb-2 ml-2">
-                              RESCHEDULED
-                            </span>
-                          )}
-                          <h3 className="text-xl font-bold text-white mb-1">{cls.subject}</h3>
-                          <p className="text-sm text-gray-400">
-                            Student: <span className="text-cyan-400">{cls.studentName}</span>
-                          </p>
-                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                            <span className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              {cls.classDate}
-                            </span>
-                            <span className="flex items-center">
-                              <Clock className="w-4 h-4 mr-1" />
-                              {cls.classTime}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex space-x-3">
-                        {classLink ? (
-                          <motion.a
-                            href={classLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-semibold text-white"
-                            style={{
-                              background: GRADIENTS.primary,
-                              boxShadow: SHADOWS.md,
-                            }}
-                          >
-                            <Link className="w-4 h-4 mr-2" />
-                            Join Class
-                          </motion.a>
-                        ) : (
-                          <div className="flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-semibold text-red-400 bg-red-500/10 border border-red-500/30">
-                            No Link Available
-                          </div>
-                        )}
-                        <motion.button
-                          onClick={() => {
-                            setSelectedClassToMark(cls);
-                            setShowAttendanceModal(true);
-                          }}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="px-4 py-3 rounded-xl font-semibold border text-white hover:bg-white/5 transition-all"
-                          style={{
-                            borderColor: COLORS.glassBorder,
-                          }}
-                        >
-                          Mark Attendance
-                        </motion.button>
-                      </div>
-                    </motion.div>
-                  );
-                })
+                <div className="flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-semibold text-red-400 bg-red-500/10 border border-red-500/30">
+                  No Link Available
+                </div>
               )}
-            </motion.div>
-          )}
+              <motion.button
+                onClick={() => {
+                  setSelectedClassToMark(cls);
+                  setShowAttendanceModal(true);
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-4 py-3 rounded-xl font-semibold border text-white hover:bg-white/5 transition-all"
+                style={{
+                  borderColor: COLORS.glassBorder,
+                }}
+              >
+                Mark Attendance
+              </motion.button>
+            </div>
+          </motion.div>
+        );
+      })
+    )}
+  </motion.div>
+)}
 
           {activeTab === "history" && (
             <motion.div

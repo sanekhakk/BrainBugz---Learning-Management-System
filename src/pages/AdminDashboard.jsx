@@ -1,5 +1,4 @@
-// COPY THIS COMPLETE FILE TO: src/pages/AdminDashboard.jsx
-// This replaces your entire AdminDashboard.jsx file
+// REPLACE YOUR COMPLETE AdminDashboard.jsx WITH THIS VERSION
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +14,11 @@ import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
 
 // Import the Registration and Edit panels from Part 2
 import { RegistrationPanel, EditUserPanel } from "./AdminDashboard_Part2";
+
+// Import the Class Scheduling components from Part 3
+import { StudentSelectionView, ClassSchedulingForm } from "./AdminDashboard_Part3";
+
+
 
 const AdminHeader = ({ adminProfile, activeView, setActiveView, logout }) => (
   <header className="fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-xl"
@@ -33,6 +37,7 @@ const AdminHeader = ({ adminProfile, activeView, setActiveView, logout }) => (
               { id: "list", label: "Users", icon: Users },
               { id: "classes-list", label: "Classes", icon: BookOpen },
               { id: "register", label: "Register", icon: PlusCircle },
+              { id: "schedule", label: "Schedule", icon: Calendar },
             ].map((item) => (
               <motion.button key={item.id} onClick={() => setActiveView(item.id)}
                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -247,7 +252,7 @@ const StudentClassOverview = ({ setActiveView }) => (
 );
 
 export default function AdminDashboard() {
-  const { adminRegisterUser, adminDeleteUser, adminDeleteClass, adminUpdateUser, logout, role, userId } = useAuth();
+  const { adminRegisterUser, adminDeleteUser, adminDeleteClass, adminUpdateUser, adminScheduleClass, logout, role, userId } = useAuth();
   const [allTutors, setAllTutors] = useState([]);
   const [selectedUserToEdit, setSelectedUserToEdit] = useState(null);
   const [adminProfile, setAdminProfile] = useState(null);
@@ -255,6 +260,9 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [userError, setUserError] = useState(null);
+
+  // For scheduling
+  const [selectedStudentToSchedule, setSelectedStudentToSchedule] = useState(null);
 
   const initialFormState = {
     name: "", email: "", password: "", contactNumber: "", emergencyContact: "",
@@ -321,6 +329,9 @@ export default function AdminDashboard() {
     }
   };
 
+  // Get only students for scheduling
+  const students = users.filter(u => u.role === "student");
+
   return (
     <div className="min-h-screen pt-24 px-4" style={{ backgroundColor: COLORS.bgPrimary }}>
       <div className="max-w-7xl mx-auto py-8">
@@ -350,6 +361,27 @@ export default function AdminDashboard() {
             <EditUserPanel key="edit" user={selectedUserToEdit} setActiveView={setActiveView}
               tutors={allTutors} adminUpdateUser={adminUpdateUser} />
           )}
+
+          {activeView === "schedule" && !selectedStudentToSchedule && (
+            <StudentSelectionView 
+              key="schedule-select"
+              students={students}
+              onSelectStudent={(student) => setSelectedStudentToSchedule(student)}
+              setActiveView={setActiveView}
+            />
+          )}
+
+          {activeView === "schedule" && selectedStudentToSchedule && (
+            <ClassSchedulingForm
+              key="schedule-form"
+              selectedStudent={selectedStudentToSchedule}
+              onBack={() => setSelectedStudentToSchedule(null)}
+              adminScheduleClass={adminScheduleClass}
+              setActiveView={setActiveView}
+            />
+          )}
+
+          
         </AnimatePresence>
       </div>
     </div>

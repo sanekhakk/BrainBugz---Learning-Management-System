@@ -360,6 +360,31 @@ const tutorDeleteChapterProgress = async (studentId, subject, chapter) => {
     }
 };
 
+const adminScheduleClass = async (classData) => {
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const response = await fetch(`${API_BASE_URL}/admin/schedule-class`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify(classData),
+    });
+
+    const result = await response.json();
+    
+    if (!response.ok) {
+      return { success: false, error: result.error || "Failed to schedule class" };
+    }
+
+    return result;
+  } catch (error) {
+    console.error("adminScheduleClass error:", error);
+    return { success: false, error: error.message || "Network error" };
+  }
+};
+
 
   const value = {
     userId,
@@ -378,7 +403,9 @@ const tutorDeleteChapterProgress = async (studentId, subject, chapter) => {
     adminUpdateUser,
     tutorMarkAttendance,
     tutorUpdateChapterProgress,
-    tutorDeleteChapterProgress // ADDED
+    tutorDeleteChapterProgress, // ADDED
+    adminScheduleClass,
+
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

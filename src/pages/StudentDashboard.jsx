@@ -108,10 +108,18 @@ const ClassCard = ({ cls, type, permanentClassLink }) => {
     >
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
+          {/* Show rescheduled badge */}
           {cls.isRescheduled && (
-            <span className="inline-block px-2 py-1 rounded-lg text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 mb-2">
-              RESCHEDULED
-            </span>
+            <div className="mb-2">
+              <span className="inline-block px-3 py-1 rounded-lg text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                RESCHEDULED CLASS
+              </span>
+              {cls.originalClassDate && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Originally scheduled for: <span className="text-yellow-400">{cls.originalClassDate}</span>
+                </p>
+              )}
+            </div>
           )}
           <h3 className="text-lg font-bold text-white mb-1">{cls.subject}</h3>
           <p className="text-sm text-gray-400">

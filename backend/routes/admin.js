@@ -263,4 +263,61 @@ router.delete("/class/:classId", verifyIdToken, requireAdmin, async (req, res) =
         return res.status(500).json({ success: false, error: err.message || "Server error during class deletion." });
     }
 });
+
+router.post("/schedule-class", verifyIdToken, requireAdmin, async (req, res) => {
+  try {
+    const {
+      studentId,
+      studentName,
+      tutorId,
+      tutorName,
+      subject,
+      classDate,
+      classTime,
+      isRescheduled,
+      originalClassDate
+    } = req.body;
+
+    // Validation
+    if (!studentId || !tutorId || !subject || !classDate || !classTime) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Missing required fields: studentId, tutorId, subject, classDate, classTime" 
+      });
+    }
+
+    if (isRescheduled && !originalClassDate) {
+      return res.status(400).json({
+        success: false,
+        error: "Original class date is required for rescheduled classes"
+      });
+    }
+
+    // Create the class document
+    const classData = {
+      studentId,
+      studentName,
+      tutorId,
+      tutorName,
+      subject,
+      classDate,
+      classTime,
+      status: "scheduled",
+      isRescheduled: isRescheduled || false,
+      originalClassDate: isRescheduled ? originalClassDate : "",
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    const docRef = await firestore.collection("classes").add(classData);
+
+    return res.status(200).json({ 
+      success: true, 
+      message: `Class scheduled successfully for ${studentName}`,
+      classId: docRef.id 
+    });
+  } catch (err) {
+    console.error("schedule-class error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Server error" });
+  }
+});
 module.exports = router;

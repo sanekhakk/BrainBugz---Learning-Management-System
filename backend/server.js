@@ -12,7 +12,6 @@ const PORT = process.env.PORT || 5000;
 app.use(bodyParser.json({ limit: "1mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
 app.use(cors({
   origin: [
     "https://pearlx-webstudio.vercel.app",

@@ -363,7 +363,7 @@ const tutorDeleteChapterProgress = async (studentId, subject, chapter) => {
 const adminScheduleClass = async (classData) => {
   try {
     const idToken = await auth.currentUser.getIdToken();
-    const response = await fetch(`${API_BASE_URL}/admin/schedule-class`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/schedule-class`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

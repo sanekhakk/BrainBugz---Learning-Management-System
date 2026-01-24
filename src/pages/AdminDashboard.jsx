@@ -18,7 +18,8 @@ import { RegistrationPanel, EditUserPanel } from "./AdminDashboard_Part2";
 // Import the Class Scheduling components from Part 3
 import { StudentSelectionView, ClassSchedulingForm } from "./AdminDashboard_Part3";
 
-
+// Import the Classes Overview from Part 4
+import { ClassesOverview } from "./AdminDashboard_Part4";
 
 const AdminHeader = ({ adminProfile, activeView, setActiveView, logout }) => (
   <header className="fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-xl"
@@ -235,22 +236,6 @@ function UserList({ users, isLoadingUsers, userError, setActiveView, adminDelete
   );
 }
 
-// Simplified Classes Overview for now - you can expand this
-const StudentClassOverview = ({ setActiveView }) => (
-  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-    className="p-8 rounded-2xl border backdrop-blur-xl text-center"
-    style={{ background: COLORS.glassBg, borderColor: COLORS.glassBorder }}>
-    <BookOpen className="w-16 h-16 mx-auto mb-4 text-cyan-400" />
-    <h2 className="text-2xl font-bold text-white mb-2">Classes Management</h2>
-    <p className="text-gray-400 mb-6">View and manage all scheduled classes</p>
-    <motion.button onClick={() => setActiveView("list")} whileHover={{ scale: 1.05 }}
-      className="px-6 py-3 rounded-xl font-semibold text-white"
-      style={{ background: GRADIENTS.primary }}>
-      Back to Users
-    </motion.button>
-  </motion.div>
-);
-
 export default function AdminDashboard() {
   const { adminRegisterUser, adminDeleteUser, adminDeleteClass, adminUpdateUser, adminScheduleClass, logout, role, userId } = useAuth();
   const [allTutors, setAllTutors] = useState([]);
@@ -347,7 +332,7 @@ export default function AdminDashboard() {
           )}
 
           {activeView === "classes-list" && (
-            <StudentClassOverview key="classes" setActiveView={setActiveView} />
+            <ClassesOverview key="classes" setActiveView={setActiveView} adminDeleteClass={adminDeleteClass} />
           )}
 
           {activeView === "register" && (
@@ -380,8 +365,6 @@ export default function AdminDashboard() {
               setActiveView={setActiveView}
             />
           )}
-
-          
         </AnimatePresence>
       </div>
     </div>

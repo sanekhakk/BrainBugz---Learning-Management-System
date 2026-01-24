@@ -126,7 +126,7 @@ const NavBar = () => {
                     boxShadow: SHADOWS.md,
                   }}
                 >
-                  Login
+                  Academy login
                 </button>
               ) : (
                 <button
@@ -220,7 +220,7 @@ const NavBar = () => {
                       boxShadow: SHADOWS.glow,
                     }}
                   >
-                    Login
+                    Academy login
                   </button>
                 ) : (
                   <button

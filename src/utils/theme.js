@@ -5,8 +5,8 @@ export const COLORS = {
   bgPrimary: "#081023",
   bgSecondary: "#0a1628",
   bgTertiary: "#0d1b2e",
-  
-  // Accent Colors
+
+  // Accent Colors (light blue replaced)
   accentCyan: "#38BDF8",
   accentCyanDark: "#0EA5E9",
   accentGold: "#FCD34D",
@@ -14,7 +14,7 @@ export const COLORS = {
   accentPurple: "#A78BFA",
   accentGreen: "#34D399",
   accentRed: "#F87171",
-  
+
   // Neutral Colors
   white: "#FFFFFF",
   gray50: "#F9FAFB",
@@ -27,7 +27,7 @@ export const COLORS = {
   gray700: "#374151",
   gray800: "#1F2937",
   gray900: "#111827",
-  
+
   // Glass Effects
   glassBg: "rgba(255, 255, 255, 0.03)",
   glassBorder: "rgba(255, 255, 255, 0.08)",
@@ -39,7 +39,7 @@ export const GRADIENTS = {
   secondary: "linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%)",
   purple: "linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%)",
   dark: "linear-gradient(180deg, #0a1628 0%, #081023 100%)",
-  glow: "radial-gradient(circle at center, rgba(56, 189, 248, 0.1) 0%, transparent 70%)",
+  glow: "radial-gradient(circle at center, rgba(195, 182, 174, 0.12) 0%, transparent 70%)",
 };
 
 export const SHADOWS = {
@@ -47,7 +47,7 @@ export const SHADOWS = {
   md: "0 4px 16px rgba(0, 0, 0, 0.2)",
   lg: "0 8px 32px rgba(0, 0, 0, 0.3)",
   xl: "0 16px 48px rgba(0, 0, 0, 0.4)",
-  glow: "0 0 40px rgba(56, 189, 248, 0.3)",
+  glow: "0 0 40px rgba(195, 182, 174, 0.35)",
   glowGold: "0 0 40px rgba(252, 211, 77, 0.3)",
   inner: "inset 0 2px 8px rgba(0, 0, 0, 0.2)",
 };
@@ -57,7 +57,7 @@ export const ANIMATIONS = {
   fast: "150ms",
   normal: "300ms",
   slow: "500ms",
-  
+
   // Easing Functions
   easeOut: "cubic-bezier(0.16, 1, 0.3, 1)",
   easeIn: "cubic-bezier(0.7, 0, 0.84, 0)",
@@ -81,15 +81,15 @@ export const TYPOGRAPHY = {
     mono: "'JetBrains Mono', 'Fira Code', monospace",
   },
   fontSize: {
-    xs: "0.75rem",      // 12px
-    sm: "0.875rem",     // 14px
-    base: "1rem",       // 16px
-    lg: "1.125rem",     // 18px
-    xl: "1.25rem",      // 20px
-    "2xl": "1.5rem",    // 24px
-    "3xl": "1.875rem",  // 30px
-    "4xl": "2.25rem",   // 36px
-    "5xl": "3rem",      // 48px
+    xs: "0.75rem",
+    sm: "0.875rem",
+    base: "1rem",
+    lg: "1.125rem",
+    xl: "1.25rem",
+    "2xl": "1.5rem",
+    "3xl": "1.875rem",
+    "4xl": "2.25rem",
+    "5xl": "3rem",
   },
   fontWeight: {
     light: 300,
@@ -103,11 +103,11 @@ export const TYPOGRAPHY = {
 
 export const BORDERS = {
   radius: {
-    sm: "0.375rem",   // 6px
-    md: "0.5rem",     // 8px
-    lg: "0.75rem",    // 12px
-    xl: "1rem",       // 16px
-    "2xl": "1.5rem",  // 24px
+    sm: "0.375rem",
+    md: "0.5rem",
+    lg: "0.75rem",
+    xl: "1rem",
+    "2xl": "1.5rem",
     full: "9999px",
   },
   width: {

@@ -251,7 +251,7 @@ export default function AdminDashboard() {
 
   const initialFormState = {
     name: "", email: "", password: "", contactNumber: "", emergencyContact: "",
-    classLevel: "", subjects: [], qualifications: "", hourlyRate: "", availability: "",
+    classLevel: "", subjects: [], qualifications: "", hourlyRate: "", availability: "", timezone: "Asia/Kolkata", 
   };
 
   const [form, setForm] = useState(initialFormState);

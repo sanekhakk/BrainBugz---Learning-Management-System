@@ -1,9 +1,15 @@
-// src/pages/StudentDashboard.jsx - Ultra Modern Student Dashboard
+// src/pages/StudentDashboard.jsx - Mobile-First Student Dashboard
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
+import {
+  doc,
+  onSnapshot,
+  collection,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import {
   BookOpen,
@@ -19,235 +25,410 @@ import {
   Award,
   Target,
   Zap,
+  Menu,
+  X,
+  ChevronRight,
+  Video,
+  ArrowRight,
 } from "lucide-react";
 import { getProgressRef } from "../utils/paths";
 import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
+import { getDisplayTime } from "../utils/timeUtils";
 
-const StatCard = ({ icon: Icon, label, value, gradient, trend }) => (
+
+// Compact Stats Card for mobile
+const CompactStatCard = ({ icon: Icon, label, value, trend, gradient }) => (
   <motion.div
-    whileHover={{ y: -5, scale: 1.02 }}
-    className="relative p-6 rounded-2xl border backdrop-blur-xl overflow-hidden group"
+    whileHover={{ scale: 1.02, y: -2 }}
+    className="relative overflow-hidden rounded-xl p-4 border border-[#1e293b] min-w-[140px]"
     style={{
-      background: COLORS.glassBg,
-      borderColor: COLORS.glassBorder,
+      background: `linear-gradient(135deg, ${COLORS.bgSecondary} 0%, ${COLORS.bgTertiary} 100%)`,
       boxShadow: SHADOWS.md,
     }}
   >
-    <div
-      className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-2xl opacity-0 group-hover:opacity-30 transition-opacity"
-      style={{ background: gradient }}
-    />
+    <div className="absolute top-0 right-0 w-20 h-20 opacity-5">
+      <Icon className="w-full h-full" />
+    </div>
     <div className="relative z-10">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-2 mb-2">
         <div
-          className="p-3 rounded-xl"
+          className="p-1.5 rounded-lg"
           style={{
-            background: `${gradient}15`,
-            border: `1px solid ${COLORS.glassBorder}`,
+            background: gradient || GRADIENTS.primary,
+            boxShadow: SHADOWS.glow,
           }}
         >
-          <Icon className="w-5 h-5 text-white" />
+          <Icon className="w-4 h-4 text-white" />
         </div>
-        {trend && (
-          <span className="text-xs font-semibold text-green-400 flex items-center">
-            <TrendingUp className="w-3 h-3 mr-1" /> {trend}
-          </span>
-        )}
       </div>
-      <p className="text-3xl font-bold text-white mb-1">{value}</p>
-      <p className="text-sm text-gray-400">{label}</p>
+      <div className="text-2xl font-bold text-white mb-1">{value}</div>
+      <div className="text-sm" style={{ color: COLORS.gray400 }}>
+        {label}
+      </div>
+      {trend && (
+        <div className="text-xs mt-2 flex items-center gap-1" style={{ color: COLORS.accentGreen }}>
+          <TrendingUp className="w-3 h-3" />
+          {trend}
+        </div>
+      )}
     </div>
   </motion.div>
 );
 
-const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
-  <motion.button
-    onClick={onClick}
-    whileHover={{ scale: 1.03 }}
-    whileTap={{ scale: 0.97 }}
-    className={`relative px-6 py-3 rounded-xl font-semibold text-sm transition-all ${
-      active ? "text-white" : "text-gray-400 hover:text-gray-300"
-    }`}
-    style={{
-      background: active ? GRADIENTS.primary : COLORS.glassBg,
-      border: `1px solid ${active ? "transparent" : COLORS.glassBorder}`,
-      boxShadow: active ? SHADOWS.glow : "none",
-    }}
-  >
-    <span className="flex items-center">
-      <Icon className="w-4 h-4 mr-2" />
-      {label}
-      {count !== undefined && (
-        <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-          active ? "bg-white/20" : "bg-white/5"
-        }`}>
-          {count}
-        </span>
-      )}
-    </span>
-  </motion.button>
+// Mobile Drawer Menu
+const MobileDrawer = ({ isOpen, onClose, activeTab, setActiveTab, tabs }) => (
+  <AnimatePresence>
+    {isOpen && (
+      <>
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+        />
+
+        {/* Drawer */}
+        <motion.div
+          initial={{ x: "-100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "-100%" }}
+          transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          className="fixed left-0 top-0 bottom-0 w-80 z-50 lg:hidden border-r"
+          style={{
+            background: COLORS.bgPrimary,
+            borderColor: COLORS.glassBorder,
+            boxShadow: SHADOWS.xl,
+          }}
+        >
+          {/* Drawer Header */}
+          <div className="p-6 border-b" style={{ borderColor: COLORS.glassBorder }}>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-bold text-white">Navigation</h2>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+          </div>
+
+          {/* Drawer Content */}
+          <div className="p-4 space-y-2">
+            {tabs.map((tab) => (
+              <motion.button
+                key={tab.id}
+                whileHover={{ x: 4 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  onClose();
+                }}
+                className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
+                  activeTab === tab.id
+                    ? "border shadow-lg"
+                    : "hover:border border-transparent"
+                }`}
+                style={{
+                  background: activeTab === tab.id 
+                    ? `linear-gradient(135deg, ${COLORS.accentCyan}20 0%, ${COLORS.accentCyanDark}20 100%)`
+                    : 'transparent',
+                  borderColor: activeTab === tab.id ? COLORS.accentCyan : 'transparent',
+                  boxShadow: activeTab === tab.id ? SHADOWS.glow : 'none',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-white' : 'text-gray-400'}`} />
+                  <span className={`font-medium ${activeTab === tab.id ? 'text-white' : 'text-gray-400'}`}>
+                    {tab.label}
+                  </span>
+                </div>
+                {tab.count !== undefined && (
+                  <span
+                    className="px-2 py-1 rounded-full text-xs font-semibold"
+                    style={{
+                      background: COLORS.accentCyan,
+                      color: COLORS.bgPrimary,
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+      </>
+    )}
+  </AnimatePresence>
 );
 
-const ClassCard = ({ cls, type, permanentClassLink }) => {
+// Enhanced Class Card - ORIGINAL UI DESIGN (from image 2)
+const EnhancedClassCard = ({ cls, type, permanentClassLink, timezone }) => {
   const isUpcoming = type === "upcoming";
   const isCompleted = type === "completed";
   const isMissed = type === "missed";
+
+  // Parse time to show in better format
+  const timeDisplay = getDisplayTime(
+  cls.classDate,
+  cls.classTime,
+  timezone
+);
+  const dateDisplay = cls.classDate
+    ? new Date(cls.classDate).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      })
+    : "Date TBD";
+
+  const statusConfig = {
+    upcoming: {
+      bg: `linear-gradient(135deg, ${COLORS.bgSecondary} 0%, ${COLORS.bgTertiary} 100%)`,
+      border: COLORS.glassBorder,
+      timeBg: GRADIENTS.primary,
+      badge: COLORS.white,
+      badgeBg: `${COLORS.accentCyan}20`,
+      badgeBorder: `${COLORS.accentCyan}30`,
+      icon: Calendar,
+    },
+    completed: {
+      bg: `linear-gradient(135deg, ${COLORS.accentGreen}10 0%, ${COLORS.accentGreen}05 100%)`,
+      border: `${COLORS.accentGreen}30`,
+      timeBg: `linear-gradient(135deg, ${COLORS.accentGreen} 0%, #10b981 100%)`,
+      badge: COLORS.white,
+      badgeBg: `${COLORS.accentGreen}20`,
+      badgeBorder: `${COLORS.accentGreen}30`,
+      icon: CheckCircle,
+    },
+    missed: {
+      bg: `linear-gradient(135deg, ${COLORS.accentRed}10 0%, ${COLORS.accentRed}05 100%)`,
+      border: `${COLORS.accentRed}30`,
+      timeBg: `linear-gradient(135deg, ${COLORS.accentRed} 0%, #ef4444 100%)`,
+      badge: COLORS.white,
+      badgeBg: `${COLORS.accentRed}20`,
+      badgeBorder: `${COLORS.accentRed}30`,
+      icon: XCircle,
+    },
+  };
+
+  const config = statusConfig[type];
+  const StatusIcon = config.icon;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      whileHover={{ y: -3 }}
-      className="p-5 rounded-2xl border backdrop-blur-xl group"
+      className="relative overflow-hidden rounded-2xl p-6 border"
       style={{
-        background: COLORS.glassBg,
-        borderColor: COLORS.glassBorder,
+        background: config.bg,
+        borderColor: config.border,
         boxShadow: SHADOWS.md,
       }}
     >
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-          {/* Show rescheduled badge */}
-          {cls.isRescheduled && (
-            <div className="mb-2">
-              <span className="inline-block px-3 py-1 rounded-lg text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                RESCHEDULED CLASS
-              </span>
-              {cls.originalClassDate && (
-                <p className="text-xs text-gray-400 mt-1">
-                  Originally scheduled for: <span className="text-yellow-400">{cls.originalClassDate}</span>
-                </p>
-              )}
-            </div>
-          )}
-          <h3 className="text-lg font-bold text-white mb-1">{cls.subject}</h3>
-          <p className="text-sm text-gray-400">
-            with <span className="text-cyan-400">{cls.tutorName}</span>
-          </p>
-        </div>
+      {/* Rescheduled Badge */}
+      {cls.isRescheduled && (
         <div
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            isCompleted
-              ? "bg-green-500/20 text-green-400 border border-green-500/30"
-              : isMissed
-              ? "bg-red-500/20 text-red-400 border border-red-500/30"
-              : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-          }`}
-        >
-          {isCompleted ? "Completed" : isMissed ? "Missed" : "Upcoming"}
-        </div>
-      </div>
-
-      <div className="flex items-center space-x-4 mb-4 text-sm text-gray-400">
-        <span className="flex items-center">
-          <Calendar className="w-4 h-4 mr-1" />
-          {cls.classDate}
-        </span>
-        <span className="flex items-center">
-          <Clock className="w-4 h-4 mr-1" />
-          {cls.classTime}
-        </span>
-      </div>
-
-      {(isCompleted || isMissed) && cls.summary && (
-        <div className={`p-3 rounded-xl text-sm mb-4 ${
-          isCompleted
-            ? "bg-green-500/10 text-green-300 border border-green-500/20"
-            : "bg-red-500/10 text-red-300 border border-red-500/20"
-        }`}>
-          <p className="font-semibold mb-1">
-            {isCompleted ? "Topics Covered:" : "Reason:"}
-          </p>
-          <p>{cls.summary}</p>
-        </div>
-      )}
-
-      {isUpcoming && permanentClassLink && (
-        <motion.a
-          href={permanentClassLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="flex items-center justify-center px-4 py-2 rounded-xl font-semibold text-white"
+          className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold z-10"
           style={{
-            background: GRADIENTS.primary,
-            boxShadow: SHADOWS.md,
+            background: COLORS.accentGold,
+            color: COLORS.bgPrimary,
           }}
         >
-          <Link className="w-4 h-4 mr-2" />
-          Join Class
-        </motion.a>
+          RESCHEDULED
+        </div>
       )}
+
+      <div className="flex gap-4">
+        {/* Time Display - Original Rounded Square Design */}
+        <div
+          className="w-24 h-24 rounded-2xl flex flex-col items-center justify-center text-black shadow-lg"
+          style={{
+            background: config.timeBg,
+            boxShadow: SHADOWS.glow,
+          }}
+        >
+          <Clock className="w-5 h-5 mb-1 opacity-80" />
+          <div className="text-2xl font-bold leading-tight">
+            {timeDisplay.split(":")[0]}
+            <span className="text-sm">:{timeDisplay.split(":")[1]?.substring(0, 2) || "00"} {timeDisplay.includes("AM") ? "AM" : timeDisplay.includes("PM") ? "PM" : ""}</span>
+             
+          </div>
+          <div className="text-xs font-medium mt-1 opacity-90">
+            {dateDisplay.split(",")[0]}
+          </div>
+        </div>
+
+        {/* Class Details */}
+        <div className="flex-1 min-w-0">
+          <div className="mb-3">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <h3 className="text-xl font-bold text-white truncate">
+                {cls.subject}
+              </h3>
+              {/* Status Badge - Top Right */}
+              <div
+                className="flex items-center gap-2 px-3 py-1 rounded-lg border whitespace-nowrap flex-shrink-0"
+                style={{
+                  background: config.badgeBg,
+                  borderColor: config.badgeBorder,
+                  color: config.badge,
+                }}
+              >
+                <StatusIcon className="w-3.5 h-3.5" />
+                <span className="text-xs font-semibold">
+                  {isCompleted ? "Upcoming" : isMissed ? "Upcoming" : "Upcoming"}
+                </span>
+              </div>
+            </div>
+            
+            <p className="text-sm mb-1 flex items-center gap-2" style={{ color: COLORS.gray400 }}>
+              <User className="w-4 h-4" />
+              with {cls.tutorName}
+            </p>
+            <p className="text-sm font-medium flex items-center gap-2" style={{ color: COLORS.gray300 }}>
+              <Calendar className="w-4 h-4" />
+              {dateDisplay}
+            </p>
+          </div>
+
+          {/* Summary for completed/missed */}
+          {(isCompleted || isMissed) && cls.summary && (
+            <div
+              className="mt-3 p-3 rounded-xl border"
+              style={{
+                background: COLORS.glassBg,
+                borderColor: COLORS.glassBorder,
+              }}
+            >
+              <p className="text-sm font-semibold mb-1" style={{ color: COLORS.gray300 }}>
+                {isCompleted ? "Topics Covered:" : "Reason:"}
+              </p>
+              <p className="text-sm" style={{ color: COLORS.gray400 }}>
+                {cls.summary}
+              </p>
+            </div>
+          )}
+
+          {/* Join Class Button - Full Width for Mobile, Compact for Desktop */}
+          {isUpcoming && permanentClassLink && (
+            <motion.a
+              href={permanentClassLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="mt-4 w-full lg:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-black shadow-lg transition-all"
+              style={{
+                background: GRADIENTS.primary,
+                boxShadow: SHADOWS.glow,
+              }}
+            >
+              <Video className="w-5 h-5" />
+              Join Class
+              <ArrowRight className="w-5 h-5" />
+            </motion.a>
+          )}
+
+          {/* Original date for rescheduled classes */}
+          {cls.isRescheduled && cls.originalClassDate && (
+            <div className="mt-3 text-xs" style={{ color: COLORS.gray500 }}>
+              Originally: {cls.originalClassDate}
+            </div>
+          )}
+        </div>
+      </div>
     </motion.div>
   );
 };
 
+// Progress Card
 const ProgressCard = ({ assignment, progressData }) => {
   const completed = progressData[assignment.subject]?.completedChapters || [];
   const progress = Math.min((completed.length / 10) * 100, 100);
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ y: -5 }}
-      className="p-6 rounded-2xl border backdrop-blur-xl group"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl p-6 border"
       style={{
-        background: COLORS.glassBg,
+        background: `linear-gradient(135deg, ${COLORS.bgSecondary} 0%, ${COLORS.bgTertiary} 100%)`,
         borderColor: COLORS.glassBorder,
         boxShadow: SHADOWS.md,
       }}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-lg font-bold text-white mb-1">
+          <h3 className="text-xl font-bold text-white mb-1">
             {assignment.subject}
           </h3>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm" style={{ color: COLORS.gray400 }}>
             Tutor: {assignment.tutorName}
           </p>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-transparent bg-clip-text" style={{ backgroundImage: GRADIENTS.primary }}>
-            {completed.length}
-          </div>
-          <div className="text-xs text-gray-400">Modules</div>
+        <div
+          className="px-4 py-2 rounded-xl text-center"
+          style={{
+            background: GRADIENTS.primary,
+            boxShadow: SHADOWS.glow,
+          }}
+        >
+          <div className="text-2xl font-bold text-white">{completed.length}</div>
+          <div className="text-xs text-white opacity-80">Modules</div>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="relative w-full h-3 rounded-full overflow-hidden mb-4" style={{ background: COLORS.glassBg }}>
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 1, delay: 0.3 }}
-          className="absolute inset-y-0 left-0 rounded-full"
-          style={{ background: GRADIENTS.primary }}
-        />
+      {/* Progress Bar */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-sm">
+          <span style={{ color: COLORS.gray400 }}>Progress</span>
+          <span className="font-semibold text-white">{Math.round(progress)}%</span>
+        </div>
+        <div
+          className="h-3 rounded-full overflow-hidden"
+          style={{
+            background: COLORS.glassBg,
+            border: `1px solid ${COLORS.glassBorder}`,
+          }}
+        >
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="h-full rounded-full"
+            style={{
+              background: GRADIENTS.primary,
+              boxShadow: SHADOWS.glow,
+            }}
+          />
+        </div>
       </div>
 
-      {/* Latest chapters */}
+      {/* Recent Chapters */}
       {completed.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-400 mb-2">Recent Progress:</p>
-          {completed.slice(-3).map((chapter, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="flex items-center px-3 py-2 rounded-lg text-xs"
-              style={{
-                background: COLORS.glassBg,
-                border: `1px solid ${COLORS.glassBorder}`,
-              }}
-            >
-              <CheckCircle className="w-3 h-3 mr-2 text-green-400 flex-shrink-0" />
-              <span className="text-gray-300 truncate">{chapter}</span>
-            </motion.div>
-          ))}
+        <div className="mt-4">
+          <p className="text-sm font-semibold mb-2" style={{ color: COLORS.gray300 }}>
+            Recent Progress:
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {completed.slice(-3).map((chapter, i) => (
+              <span
+                key={i}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium border"
+                style={{
+                  background: COLORS.glassBg,
+                  borderColor: COLORS.glassBorder,
+                  color: COLORS.gray300,
+                }}
+              >
+                {chapter}
+              </span>
+            ))}
+          </div>
         </div>
       )}
     </motion.div>
@@ -257,22 +438,22 @@ const ProgressCard = ({ assignment, progressData }) => {
 export default function StudentDashboard() {
   const { userId, logout } = useAuth();
   const navigate = useNavigate();
+
   const [studentProfile, setStudentProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
-
   const [upcomingClasses, setUpcomingClasses] = useState([]);
   const [completedClasses, setCompletedClasses] = useState([]);
   const [missedClasses, setMissedClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
-
   const [progressData, setProgressData] = useState({});
   const [loadingProgress, setLoadingProgress] = useState(true);
-
   const [activeTab, setActiveTab] = useState("upcoming");
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Fetch student profile
   useEffect(() => {
     if (!userId) return;
+
     const profileRef = doc(db, "users", userId);
     const unsub = onSnapshot(
       profileRef,
@@ -287,16 +468,19 @@ export default function StudentDashboard() {
         setLoadingProfile(false);
       }
     );
+
     return () => unsub();
   }, [userId]);
 
-  // Fetch classes
+  // Fetch classes - Filter out completed classes from upcoming
   useEffect(() => {
     if (!userId) {
       setLoadingClasses(false);
       return;
     }
+
     const q = query(collection(db, "classes"), where("studentId", "==", userId));
+
     const unsub = onSnapshot(
       q,
       (snap) => {
@@ -305,12 +489,14 @@ export default function StudentDashboard() {
           status: d.data().status || "scheduled",
           ...d.data(),
         }));
+
         arr.sort(
           (a, b) =>
             new Date(a.classDate + " " + a.classTime) -
             new Date(b.classDate + " " + b.classTime)
         );
 
+        // Only scheduled/pending classes appear in upcoming
         const active = arr.filter(
           (cls) => cls.status === "scheduled" || cls.status === "pending"
         );
@@ -327,6 +513,7 @@ export default function StudentDashboard() {
         setLoadingClasses(false);
       }
     );
+
     return () => unsub();
   }, [userId]);
 
@@ -367,191 +554,333 @@ export default function StudentDashboard() {
 
   const assignments = studentProfile?.assignments || [];
   const permanentClassLink = studentProfile?.permanentClassLink || "";
+
   const totalModules = Object.values(progressData).reduce(
     (sum, p) => sum + (p.completedChapters?.length || 0),
     0
   );
 
   const tabs = [
-    { id: "upcoming", label: "Upcoming", icon: Calendar, count: upcomingClasses.length },
-    { id: "progress", label: "Progress", icon: TrendingUp },
-    { id: "completed", label: "Completed", icon: CheckCircle, count: completedClasses.length },
-    { id: "missed", label: "Missed", icon: XCircle, count: missedClasses.length },
+    {
+      id: "upcoming",
+      label: "Upcoming Classes",
+      icon: Calendar,
+      count: upcomingClasses.length,
+    },
+    { id: "progress", label: "My Progress", icon: TrendingUp },
+    {
+      id: "completed",
+      label: "Completed",
+      icon: CheckCircle,
+      count: completedClasses.length,
+    },
+    {
+      id: "missed",
+      label: "Missed",
+      icon: XCircle,
+      count: missedClasses.length,
+    },
   ];
 
+  // Get current tab info
+  const currentTab = tabs.find((t) => t.id === activeTab);
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: COLORS.bgPrimary }}>
+    <div
+      className="min-h-screen pb-8"
+      style={{
+        background: COLORS.bgPrimary,
+      }}
+    >
+      {/* Mobile Drawer */}
+      <MobileDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        tabs={tabs}
+      />
+
       {/* Header */}
-      <div className="border-b backdrop-blur-xl sticky top-0 z-40" style={{ borderColor: COLORS.glassBorder, background: `${COLORS.bgPrimary}95` }}>
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 rounded-xl" style={{ background: GRADIENTS.primary }}>
-              <User className="w-6 h-6 text-white" />
+      <div
+        className="sticky top-0 z-30 backdrop-blur-xl border-b"
+        style={{
+          background: `${COLORS.bgPrimary}cc`,
+          borderColor: COLORS.glassBorder,
+          boxShadow: SHADOWS.md,
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          {/* Menu Button + Profile */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="p-2 rounded-xl transition-colors lg:hidden"
+                style={{
+                  background: COLORS.glassBg,
+                  border: `1px solid ${COLORS.glassBorder}`,
+                }}
+              >
+                <Menu className="w-6 h-6 text-white" />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg"
+                  style={{
+                    background: GRADIENTS.primary,
+                    boxShadow: SHADOWS.glow,
+                  }}
+                >
+                  {studentProfile?.name?.charAt(0) || "S"}
+                </div>
+                <div>
+                  <h1 className="text-base sm:text-lg font-bold text-white">
+                    {studentProfile?.name || "Student"}
+                  </h1>
+                  <p className="text-xs sm:text-sm" style={{ color: COLORS.gray400 }}>
+                    {studentProfile?.customId || "Loading..."}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">
-                {studentProfile?.name || "Student"}
-              </h1>
-              <p className="text-sm text-gray-400">
-                {studentProfile?.customId || "Loading..."}
-              </p>
-            </div>
+
+            {/* Logout */}
+            <motion.button
+              onClick={async () => {
+                await logout();
+                navigate("/");
+              }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl font-semibold text-white border transition-all text-sm"
+              style={{
+                borderColor: `${COLORS.accentRed}50`,
+                background: `${COLORS.accentRed}10`,
+              }}
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </motion.button>
           </div>
-          <motion.button
-            onClick={async () => {
-              await logout();
-              navigate("/");
-            }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center px-4 py-2 rounded-xl font-semibold text-white border border-red-500/50 hover:bg-red-500/10 transition-all"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </motion.button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loadingProfile ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: COLORS.accentCyan }} />
           </div>
         ) : (
           <>
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <StatCard
-                icon={BookOpen}
-                label="Active Classes"
+            {/* Compact Stats - Single Row on Mobile */}
+            <div className="flex gap-4 overflow-x-auto pb-4 mb-8 scrollbar-hide">
+              <CompactStatCard
+                icon={Calendar}
+                label="Upcoming"
                 value={upcomingClasses.length}
                 gradient={GRADIENTS.primary}
-                trend="+2 this week"
               />
-              <StatCard
-                icon={Award}
-                label="Completed"
-                value={completedClasses.length}
+              <CompactStatCard
+                icon={Target}
+                label="Modules Done"
+                value={totalModules}
                 gradient={GRADIENTS.secondary}
               />
-              <StatCard
-                icon={Target}
-                label="Total Modules"
-                value={totalModules}
-                gradient={GRADIENTS.purple}
-                trend="+5 this month"
+              <CompactStatCard
+                icon={CheckCircle}
+                label="Completed"
+                value={completedClasses.length}
+                gradient={`linear-gradient(135deg, ${COLORS.accentGreen} 0%, #10b981 100%)`}
               />
-              <StatCard
-                icon={Zap}
+              <CompactStatCard
+                icon={Award}
                 label="Subjects"
                 value={assignments.length}
-                gradient={GRADIENTS.primary}
+                gradient={GRADIENTS.purple}
               />
             </div>
 
-            {/* Tabs */}
-            <div className="flex space-x-2 mb-8 overflow-x-auto pb-2">
+            {/* Desktop Tabs (Hidden on Mobile) */}
+            <div className="hidden lg:flex gap-4 mb-8 overflow-x-auto scrollbar-hide">
               {tabs.map((tab) => (
-                <TabButton
+                <motion.button
                   key={tab.id}
-                  active={activeTab === tab.id}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveTab(tab.id)}
-                  icon={tab.icon}
-                  label={tab.label}
-                  count={tab.count}
-                />
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all whitespace-nowrap border ${
+                    activeTab === tab.id
+                      ? "text-white shadow-lg"
+                      : "hover:text-white"
+                  }`}
+                  style={{
+                    background: activeTab === tab.id
+                      ? `linear-gradient(135deg, ${COLORS.accentCyan}20 0%, ${COLORS.accentCyanDark}20 100%)`
+                      : COLORS.bgTertiary,
+                    borderColor: activeTab === tab.id ? COLORS.accentCyan : COLORS.glassBorder,
+                    color: activeTab === tab.id ? COLORS.white : COLORS.gray400,
+                    boxShadow: activeTab === tab.id ? SHADOWS.glow : 'none',
+                  }}
+                >
+                  <tab.icon className="w-5 h-5" />
+                  {tab.label}
+                  {tab.count !== undefined && (
+                    <span
+                      className="px-2 py-0.5 rounded-full text-xs font-bold"
+                      style={{
+                        background: activeTab === tab.id ? COLORS.accentCyan : COLORS.glassBg,
+                        color: activeTab === tab.id ? COLORS.bgPrimary : COLORS.gray300,
+                      }}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </motion.button>
               ))}
             </div>
 
-            {/* Content */}
-            <AnimatePresence mode="wait">
-              {activeTab === "upcoming" && (
-                <motion.div
-                  key="upcoming"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="grid gap-6 md:grid-cols-2"
-                >
-                  {loadingClasses ? (
-                    <div className="col-span-2 flex justify-center py-20">
-                      <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-                    </div>
-                  ) : upcomingClasses.length === 0 ? (
-                    <div className="col-span-2 text-center py-20 text-gray-400">
-                      No upcoming classes scheduled
-                    </div>
-                  ) : (
-                    upcomingClasses.map((cls) => (
-                      <ClassCard
-                        key={cls.id}
-                        cls={cls}
-                        type="upcoming"
-                        permanentClassLink={permanentClassLink}
-                      />
-                    ))
-                  )}
-                </motion.div>
-              )}
+            {/* Mobile Section Header */}
+            <div className="flex items-center gap-3 mb-6 lg:hidden">
+              <div
+                className="p-2 rounded-xl"
+                style={{
+                  background: GRADIENTS.primary,
+                  boxShadow: SHADOWS.glow,
+                }}
+              >
+                {currentTab && <currentTab.icon className="w-5 h-5 text-white" />}
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-white">{currentTab?.label}</h2>
+                {currentTab?.count !== undefined && (
+                  <p className="text-sm" style={{ color: COLORS.gray400 }}>
+                    {currentTab.count} {currentTab.count === 1 ? "item" : "items"}
+                  </p>
+                )}
+              </div>
+            </div>
 
-              {activeTab === "progress" && (
-                <motion.div
-                  key="progress"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-                >
-                  {assignments.map((assignment, i) => (
+            {/* Content */}
+            {activeTab === "upcoming" && (
+              <div className="space-y-4">
+                {loadingClasses ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin" style={{ color: COLORS.accentCyan }} />
+                  </div>
+                ) : upcomingClasses.length === 0 ? (
+                  <div
+                    className="text-center py-20 rounded-2xl border"
+                    style={{
+                      background: COLORS.bgSecondary,
+                      borderColor: COLORS.glassBorder,
+                    }}
+                  >
+                    <Calendar className="w-16 h-16 mx-auto mb-4" style={{ color: COLORS.gray500 }} />
+                    <p className="text-lg" style={{ color: COLORS.gray400 }}>
+                      No upcoming classes scheduled
+                    </p>
+                  </div>
+                ) : (
+                  upcomingClasses.map((cls) => (
+                    <EnhancedClassCard
+                      key={cls.id}
+                      cls={cls}
+                      type="upcoming"
+                      permanentClassLink={permanentClassLink}
+                      timezone={studentProfile?.timezone}
+                    />
+                  ))
+                )}
+              </div>
+            )}
+
+            {activeTab === "progress" && (
+              <div className="grid gap-4 md:grid-cols-2">
+                {assignments.length === 0 ? (
+                  <div
+                    className="col-span-2 text-center py-20 rounded-2xl border"
+                    style={{
+                      background: COLORS.bgSecondary,
+                      borderColor: COLORS.glassBorder,
+                    }}
+                  >
+                    <TrendingUp className="w-16 h-16 mx-auto mb-4" style={{ color: COLORS.gray500 }} />
+                    <p className="text-lg" style={{ color: COLORS.gray400 }}>
+                      No progress data available
+                    </p>
+                  </div>
+                ) : (
+                  assignments.map((assignment, i) => (
                     <ProgressCard
                       key={i}
                       assignment={assignment}
                       progressData={progressData}
                     />
-                  ))}
-                </motion.div>
-              )}
+                  ))
+                )}
+              </div>
+            )}
 
-              {activeTab === "completed" && (
-                <motion.div
-                  key="completed"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="grid gap-6 md:grid-cols-2"
-                >
-                  {completedClasses.length === 0 ? (
-                    <div className="col-span-2 text-center py-20 text-gray-400">
+            {activeTab === "completed" && (
+              <div className="space-y-4">
+                {completedClasses.length === 0 ? (
+                  <div
+                    className="text-center py-20 rounded-2xl border"
+                    style={{
+                      background: COLORS.bgSecondary,
+                      borderColor: COLORS.glassBorder,
+                    }}
+                  >
+                    <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: COLORS.gray500 }} />
+                    <p className="text-lg" style={{ color: COLORS.gray400 }}>
                       No completed classes yet
-                    </div>
-                  ) : (
-                    completedClasses.map((cls) => (
-                      <ClassCard key={cls.id} cls={cls} type="completed" />
-                    ))
-                  )}
-                </motion.div>
-              )}
+                    </p>
+                  </div>
+                ) : (
+                  completedClasses.map((cls) => (
+                    <EnhancedClassCard
+                      key={cls.id}
+                      cls={cls}
+                      type="completed"
+                      permanentClassLink={permanentClassLink}
+                       timezone={studentProfile?.timezone}
+                    />
+                  ))
+                )}
+              </div>
+            )}
 
-              {activeTab === "missed" && (
-                <motion.div
-                  key="missed"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="grid gap-6 md:grid-cols-2"
-                >
-                  {missedClasses.length === 0 ? (
-                    <div className="col-span-2 text-center py-20 text-gray-400">
-                      No missed classes
-                    </div>
-                  ) : (
-                    missedClasses.map((cls) => (
-                      <ClassCard key={cls.id} cls={cls} type="missed" />
-                    ))
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {activeTab === "missed" && (
+              <div className="space-y-4">
+                {missedClasses.length === 0 ? (
+                  <div
+                    className="text-center py-20 rounded-2xl border"
+                    style={{
+                      background: COLORS.bgSecondary,
+                      borderColor: COLORS.glassBorder,
+                    }}
+                  >
+                    <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: COLORS.accentGreen }} />
+                    <p className="text-lg" style={{ color: COLORS.gray400 }}>
+                      No missed classes - Great job!
+                    </p>
+                  </div>
+                ) : (
+                  missedClasses.map((cls) => (
+                    <EnhancedClassCard
+                      key={cls.id}
+                      cls={cls}
+                      type="missed"
+                      permanentClassLink={permanentClassLink}
+                      timezone={studentProfile?.timezone}
+                    />
+                  ))
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

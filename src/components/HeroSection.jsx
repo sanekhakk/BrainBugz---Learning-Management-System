@@ -150,29 +150,17 @@ const HeroSection = () => {
 
         
 
-        <p className="text-xl md:text-2xl text-gray-300 mb-6">
+        <p className="text-sm md:text-2xl text-gray-300  ml-10 mr-10 mb-6">
           Building modern websites & shaping future developers
         </p>
 
-        {/* Subtitle */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="text-2xl md:text-3xl font-light mb-6"
-        >
-          <span className="text-cyan-400 font-medium">
-            Design. Develop. Deploy.
-          </span>{" "}
-          <span className="text-white italic">Learn Along the Way.</span>
-        </motion.p>
-
+    
         {/* Description */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="text-base md:text-lg text-gray-400 mb-12 max-w-3xl mx-auto"
+          className="text-sm  md:text-lg text-gray-400 mb-12 max-w-3xl mx-auto"
         >
           We craft high-performance websites for startups and brands, and offer
           structured Computer Science classes guided by real-world development
@@ -190,7 +178,7 @@ const HeroSection = () => {
             href="https://wa.link/ctfbjv"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="group px-8 py-4 rounded-full font-bold text-lg text-white shadow-xl flex items-center"
+            className="group px-8 py-4 rounded-full font-bold text-lg text-black shadow-xl flex items-center"
             style={{
               background: GRADIENTS.primary,
               boxShadow: SHADOWS.glow,

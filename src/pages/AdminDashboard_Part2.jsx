@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PlusCircle, Loader2, XCircle, X } from "lucide-react";
 import { InputField, SelectField } from "../components/FormFields";
 import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
+import { TIMEZONES } from "../utils/timeUtils";
 
 // ====================================================================
 // REGISTRATION PANEL
@@ -202,6 +203,7 @@ export function RegistrationPanel({
           <InputField label="Email" name="email" value={form.email} onChange={handleFormChange} type="email" required />
           <InputField label="Temp password" name="password" value={form.password} onChange={handleFormChange} type="password" required />
           <InputField label="Contact number" name="contactNumber" value={form.contactNumber} onChange={handleFormChange} required />
+          <SelectField label="Timezone" name="timezone" value={form.timezone || "Asia/Kolkata"} onChange={handleFormChange} options={TIMEZONES} required />
 
           {regRole === "student" && (
             <>
@@ -340,6 +342,7 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
   const [form, setForm] = useState({
     name, email, contactNumber, emergencyContact, classLevel, qualifications,
     hourlyRate, permanentClassLink, syllabus,
+    timezone: user.timezone || "Asia/Kolkata", 
     tutorSubjectsString: role === "tutor" ? subjects.join(", ") : "",
   });
 
@@ -468,6 +471,14 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
           {role === "student" && (
             <>
               <InputField label="Class / Grade" name="classLevel" value={form.classLevel} onChange={handleFormChange} required />
+              <SelectField
+  label="Timezone"
+  name="timezone"
+  value={form.timezone}
+  onChange={handleFormChange}
+  options={TIMEZONES}
+  required
+/>
               <InputField label="Emergency Contact" name="emergencyContact" value={form.emergencyContact} onChange={handleFormChange} required />
               <InputField label="Permanent Class Link" name="permanentClassLink" value={form.permanentClassLink} onChange={handleFormChange} type="url" required />
               <InputField label="Syllabus" name="syllabus" value={form.syllabus} onChange={handleFormChange} />
@@ -477,6 +488,14 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
           {role === "tutor" && (
             <>
               <InputField label="Qualifications" name="qualifications" value={form.qualifications} onChange={handleFormChange} required />
+              <SelectField
+  label="Timezone"
+  name="timezone"
+  value={form.timezone}
+  onChange={handleFormChange}
+  options={TIMEZONES}
+  required
+/>
               <InputField label="Hourly Rate" name="hourlyRate" value={form.hourlyRate} onChange={handleFormChange} required />
               <InputField label="Subjects Taught" name="tutorSubjectsString" value={form.tutorSubjectsString} onChange={handleFormChange} required />
             </>

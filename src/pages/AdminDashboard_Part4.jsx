@@ -23,10 +23,12 @@ import {
 import { collection, onSnapshot, query, orderBy, where } from "firebase/firestore";
 import { db } from "../firebase";
 import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
+import { convertTo12Hour } from "../utils/timeUtils";
 
-// ====================================================================
+
+
 // STAT CARD FOR CLASSES OVERVIEW
-// ====================================================================
+
 const ClassStatCard = ({ icon: Icon, label, value, gradient }) => (
   <motion.div
     whileHover={{ y: -5, scale: 1.02 }}
@@ -148,7 +150,8 @@ const ClassCard = ({ cls, onDelete, isDeleting }) => {
         </span>
         <span className="flex items-center">
           <Clock className="w-4 h-4 mr-1" />
-          {cls.classTime}
+          {convertTo12Hour(cls.classTime)}
+
         </span>
       </div>
 

@@ -33,8 +33,9 @@ router.post("/create-user", verifyIdToken, requireAdmin, async (req, res) => {
         mediumOfCommunication,
         assignments,
         // NEW FIELD FOR STUDENT
-        permanentClassLink
+        permanentClassLink,
         // studentId is now removed from req.body and auto-generated
+        timezone 
     } = req.body;
 
     if (!email || !password || !name || !role) {
@@ -87,7 +88,8 @@ router.post("/create-user", verifyIdToken, requireAdmin, async (req, res) => {
       // NEW PERMANENT CLASS LINK FIELD
       permanentClassLink: permanentClassLink || "",
       // END NEW FIELDS
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      timezone: timezone || "Asia/Kolkata",
     };
 
     await firestore.collection("users").doc(uid).set(profile);
@@ -107,7 +109,9 @@ router.post("/create-user", verifyIdToken, requireAdmin, async (req, res) => {
       subjects: role === 'tutor' ? (subjects || []) : [], 
       // NEW PERMANENT CLASS LINK FIELD
       permanentClassLink: permanentClassLink || "",
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      timezone: timezone || "Asia/Kolkata",
+
     };
     await firestore.collection("userSummaries").doc(uid).set(summary);
 
@@ -140,7 +144,8 @@ router.put("/update-user/:uid", verifyIdToken, requireAdmin, async (req, res) =>
     mediumOfCommunication,
     assignments, // For Student
     permanentClassLink,
-    role // Role should not be changed, but include it for reference
+    role, // Role should not be changed, but include it for reference
+    timezone
   } = req.body;
 
   if (!uid) {
@@ -156,11 +161,12 @@ router.put("/update-user/:uid", verifyIdToken, requireAdmin, async (req, res) =>
       emergencyContact: emergencyContact || "",
       qualifications: qualifications || "",
       hourlyRate: hourlyRate || "",
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      timezone: timezone || "Asia/Kolkata",
     };
     
     // 2. Role-specific updates
-    let summaryUpdates = { ...profileUpdates, email, role };
+    let summaryUpdates = { ...profileUpdates, email, role, timezone: timezone || "Asia/Kolkata", };
     let tutorUids = [];
 
     if (role === 'student') {

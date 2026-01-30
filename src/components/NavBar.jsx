@@ -120,7 +120,7 @@ const NavBar = () => {
               {role === "guest" ? (
                 <button
                   onClick={() => handleLoginClick("student")}
-                  className="px-5 py-2 rounded-full text-sm font-bold text-white"
+                  className="px-5 py-2 rounded-full text-sm font-bold text-black"
                   style={{
                     background: GRADIENTS.primary,
                     boxShadow: SHADOWS.md,
@@ -214,7 +214,7 @@ const NavBar = () => {
                 {role === "guest" ? (
                   <button
                     onClick={() => handleLoginClick("student")}
-                    className="w-full py-3 rounded-xl text-white font-bold"
+                    className="w-full py-3 rounded-xl text-black font-bold"
                     style={{
                       background: GRADIENTS.primary,
                       boxShadow: SHADOWS.glow,

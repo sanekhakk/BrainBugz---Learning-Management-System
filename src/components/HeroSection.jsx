@@ -18,7 +18,7 @@ const HeroSection = () => {
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Content */}
       <motion.div
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center"

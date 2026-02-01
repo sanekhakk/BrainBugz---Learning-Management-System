@@ -1,106 +1,24 @@
 // src/components/HeroSection.jsx
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import PearlxLogo from "../assets/PearlxLogo.png"
 import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
 import {
   Sparkles,
-  ArrowRight,
-  Code2,
   Laptop,
   GraduationCap,
 } from "lucide-react";
 
-/* Floating Particle */
-const FloatingParticle = ({ delay, duration, x, y }) => (
-  <motion.div
-    className="absolute w-1 h-1 bg-cyan-400 rounded-full"
-    initial={{ opacity: 0, x, y }}
-    animate={{
-      opacity: [0, 0.8, 0],
-      x: [x, x + Math.random() * 100 - 50],
-      y: [y, y - 200],
-    }}
-    transition={{
-      duration,
-      delay,
-      repeat: Infinity,
-      ease: "easeOut",
-    }}
-  />
-);
-
-/* Animated Grid */
-const AnimatedGrid = () => (
-  <div className="absolute inset-0 overflow-hidden opacity-20">
-    <div
-      className="absolute inset-0"
-      style={{
-        backgroundImage: `
-          linear-gradient(${COLORS.accentCyan}20 1px, transparent 1px),
-          linear-gradient(90deg, ${COLORS.accentCyan}20 1px, transparent 1px)
-        `,
-        backgroundSize: "100px 100px",
-        animation: "gridMove 20s linear infinite",
-      }}
-    />
-  </div>
-);
-
 const HeroSection = () => {
   const { openLoginModal } = useAuth();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const { scrollY } = useScroll();
 
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
 
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({
-        x: (e.clientX - window.innerWidth / 2) / 50,
-        y: (e.clientY - window.innerHeight / 2) / 50,
-      });
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-      {/* Background */}
-      <div className="absolute inset-0 z-0">
-        <motion.div
-          className="absolute -top-48 -left-48 w-96 h-96 rounded-full opacity-30 blur-3xl"
-          style={{
-            background: GRADIENTS.primary,
-            x: mousePosition.x * 2,
-            y: mousePosition.y * 2,
-          }}
-        />
-        <motion.div
-          className="absolute -bottom-48 -right-48 w-96 h-96 rounded-full opacity-30 blur-3xl"
-          style={{
-            background: GRADIENTS.secondary,
-            x: mousePosition.x * -2,
-            y: mousePosition.y * -2,
-          }}
-        />
-
-        <AnimatedGrid />
-
-        {[...Array(15)].map((_, i) => (
-          <FloatingParticle
-            key={i}
-            delay={i * 0.3}
-            duration={3 + Math.random() * 2}
-            x={Math.random() * window.innerWidth}
-            y={window.innerHeight}
-          />
-        ))}
-      </div>
-
       {/* Content */}
       <motion.div
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center"
@@ -143,24 +61,21 @@ const HeroSection = () => {
             <img
               src={PearlxLogo}
               alt="Pearlx Web Studio"
-              className="h-20 md:h-44  relative z-10"
+              className="h-20 md:h-44 relative z-10"
             />
           </motion.div>
         </motion.div>
 
-        
-
-        <p className="text-lg md:text-2xl text-gray-300  mx-15 mb-6 ">
-          Building modern websites <br></br> Shaping future developers
+        <p className="text-lg md:text-2xl text-gray-300 mx-15 mb-6">
+          Building modern websites <br /> Shaping future developers
         </p>
 
-    
         {/* Description */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="text-sm   md:text-lg text-gray-400 mb-12 max-w-3xl md:mx-auto mx-10"
+          className="text-sm md:text-lg text-gray-400 mb-12 max-w-3xl md:mx-auto mx-10"
         >
           We craft high-performance websites for startups and brands, and offer
           structured Computer Science classes guided by real-world development
@@ -236,14 +151,6 @@ const HeroSection = () => {
           ))}
         </motion.div>
       </motion.div>
-      
-
-      <style>{`
-        @keyframes gridMove {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(100px); }
-        }
-      `}</style>
     </section>
   );
 };

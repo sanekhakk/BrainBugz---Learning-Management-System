@@ -245,24 +245,22 @@ const EnhancedClassCard = ({ cls, type, permanentClassLink, timezone }) => {
       <div className="flex gap-4">
         {/* Time Display - Original Rounded Square Design */}
         <div
-          className="w-24 h-24 rounded-2xl flex flex-col items-center justify-center text-black shadow-lg"
+          className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center text-black shadow-lg"
           style={{
             background: config.timeBg,
             boxShadow: SHADOWS.glow,
           }}
         >
           <Clock className="w-5 h-5 mb-1 opacity-80" />
-          <div className="text-2xl font-bold leading-tight">
+          <div className="text-lg font-bold leading-tight">
             {timeDisplay.split(":")[0]}
-            <span className="text-sm">
+            <span className="text-sm font-bold">
               :{timeDisplay.split(":")[1]?.split(" ")[0] || "00"} 
               {" "}
               {timeDisplay.split(" ")[1] || ""}
             </span>
           </div>
-          <div className="text-xs font-medium mt-1 opacity-90">
-            {dateDisplay.split(",")[0]}
-          </div>
+          
         </div>
 
         {/* Class Details */}
@@ -324,9 +322,9 @@ const EnhancedClassCard = ({ cls, type, permanentClassLink, timezone }) => {
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="mt-4 w-full lg:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-black shadow-lg transition-all"
+              className="mt-4 w-50 lg:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-black shadow-lg transition-all"
               style={{
-                background: GRADIENTS.primary,
+                background: COLORS.accentGreen,
                 boxShadow: SHADOWS.glow,
               }}
             >

@@ -143,15 +143,15 @@ const HeroSection = () => {
             <img
               src={PearlxLogo}
               alt="Pearlx Web Studio"
-              className="h-36 md:h-44  relative z-10"
+              className="h-20 md:h-44  relative z-10"
             />
           </motion.div>
         </motion.div>
 
         
 
-        <p className="text-sm md:text-2xl text-gray-300  ml-10 mr-10 mb-6">
-          Building modern websites & shaping future developers
+        <p className="text-lg md:text-2xl text-gray-300  mx-15 mb-6 ">
+          Building modern websites <br></br> Shaping future developers
         </p>
 
     
@@ -160,7 +160,7 @@ const HeroSection = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="text-sm  md:text-lg text-gray-400 mb-12 max-w-3xl mx-auto"
+          className="text-sm   md:text-lg text-gray-400 mb-12 max-w-3xl md:mx-auto mx-10"
         >
           We craft high-performance websites for startups and brands, and offer
           structured Computer Science classes guided by real-world development

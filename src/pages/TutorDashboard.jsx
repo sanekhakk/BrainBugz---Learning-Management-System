@@ -785,18 +785,13 @@ export default function TutorDashboard() {
   const missedClasses = classes.filter((cls) => cls.status === "missed");
 
   const isClassDue = (cls) => {
-    const dateParts = cls.classDate.split("-").map(Number);
-    const timeParts = cls.classTime.split(":").map(Number);
-    const classDateTime = new Date(
-      dateParts[0],
-      dateParts[1] - 1,
-      dateParts[2],
-      timeParts[0],
-      timeParts[1]
-    );
-    if (isNaN(classDateTime.getTime())) return false;
-    return now.getTime() > classDateTime.getTime();
-  };
+  // Create the IST date object correctly
+  const istDateTimeString = `${cls.classDate}T${cls.classTime}:00+05:30`;
+  const classDate = new Date(istDateTimeString);
+  
+  if (isNaN(classDate.getTime())) return false;
+  return new Date() > classDate; 
+};
 
   const tabs = [
     { id: "students", label: "Students", icon: Users, count: studentsWithProgress.length },

@@ -88,6 +88,7 @@ export function convertISTToUserTimezone(dateStr, timeStr, userTimezone) {
  * @returns {string} - Time in 12-hour format (e.g., "2:30 PM")
  */
 export function getDisplayTime(dateStr, timeStr, userTimezone) {
+  console.log("Converting for timezone:", userTimezone);
   // If no timezone or timezone is IST, just convert to 12-hour format
   if (!userTimezone || userTimezone === "Asia/Kolkata") {
     return convertTo12Hour(timeStr);

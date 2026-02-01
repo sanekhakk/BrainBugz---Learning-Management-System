@@ -254,8 +254,11 @@ const EnhancedClassCard = ({ cls, type, permanentClassLink, timezone }) => {
           <Clock className="w-5 h-5 mb-1 opacity-80" />
           <div className="text-2xl font-bold leading-tight">
             {timeDisplay.split(":")[0]}
-            <span className="text-sm">:{timeDisplay.split(":")[1]?.substring(0, 2) || "00"} {timeDisplay.includes("AM") ? "AM" : timeDisplay.includes("PM") ? "PM" : ""}</span>
-             
+            <span className="text-sm">
+              :{timeDisplay.split(":")[1]?.split(" ")[0] || "00"} 
+              {" "}
+              {timeDisplay.split(" ")[1] || ""}
+            </span>
           </div>
           <div className="text-xs font-medium mt-1 opacity-90">
             {dateDisplay.split(",")[0]}
@@ -454,7 +457,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (!userId) return;
 
-    const profileRef = doc(db, "users", userId);
+    const profileRef = doc(db, "userSummaries", userId);
     const unsub = onSnapshot(
       profileRef,
       (snap) => {

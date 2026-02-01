@@ -70,17 +70,6 @@ const HeroSection = () => {
           Building modern websites <br /> Shaping future developers
         </p>
 
-        {/* Description */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="text-sm md:text-lg text-gray-400 mb-12 max-w-3xl md:mx-auto mx-5"
-        >
-          We craft high-performance websites for startups and brands, and offer
-          structured Computer Science classes guided by real-world development
-          experience.
-        </motion.p>
 
         {/* CTAs */}
         <motion.div

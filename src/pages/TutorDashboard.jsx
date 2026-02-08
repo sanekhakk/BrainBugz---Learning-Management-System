@@ -372,7 +372,6 @@ const ProgressUpdateModal = ({
             className="w-full py-3 rounded-xl font-bold text-white disabled:opacity-50"
             style={{
               background: GRADIENTS.primary,
-              boxShadow: SHADOWS.md,
             }}
           >
             {isLoading ? <Loader2 className="w-5 h-5 mx-auto animate-spin" /> : "Mark Chapter Completed"}
@@ -439,7 +438,6 @@ const StudentCard = ({ student, tutorId, openProgressModal }) => {
       style={{
         background: `linear-gradient(135deg, ${COLORS.bgSecondary} 0%, ${COLORS.bgTertiary} 100%)`,
         borderColor: COLORS.glassBorder,
-        boxShadow: SHADOWS.md,
       }}
     >
       <div className="flex items-center justify-between mb-4">
@@ -809,7 +807,6 @@ export default function TutorDashboard() {
         style={{
           background: `${COLORS.bgPrimary}cc`,
           borderColor: COLORS.glassBorder,
-          boxShadow: SHADOWS.md,
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -831,7 +828,6 @@ export default function TutorDashboard() {
                   className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg"
                   style={{
                     background: GRADIENTS.primary,
-                    boxShadow: SHADOWS.glow,
                   }}
                 >
                   {tutorData?.name?.charAt(0) || "T"}
@@ -875,7 +871,7 @@ export default function TutorDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="flex gap-4 overflow-x-auto pb-4 mb-8 scrollbar-hide">
           <StatCard
             icon={Users}
             label="My Students"
@@ -893,12 +889,6 @@ export default function TutorDashboard() {
             label="Completed"
             value={completedClasses.length}
             gradient={`linear-gradient(135deg, ${COLORS.accentGreen} 0%, #10b981 100%)`}
-          />
-          <StatCard
-            icon={Target}
-            label="Success Rate"
-            value="98%"
-            gradient={GRADIENTS.purple}
           />
         </div>
 
@@ -1023,7 +1013,6 @@ export default function TutorDashboard() {
                       style={{
                         background: `linear-gradient(135deg, ${COLORS.bgSecondary} 0%, ${COLORS.bgTertiary} 100%)`,
                         borderColor: COLORS.glassBorder,
-                        boxShadow: SHADOWS.md,
                       }}
                     >
                       {/* Due Badge */}
@@ -1059,20 +1048,15 @@ export default function TutorDashboard() {
                           className="flex-shrink-0 w-24 h-24 rounded-2xl flex flex-col items-center justify-center text-white shadow-lg"
                           style={{
                             background: GRADIENTS.primary,
-                            boxShadow: SHADOWS.glow,
                           }}
                         >
                           <Clock className="w-5 h-5 mb-1 opacity-80" />
                           <div className="text-2xl font-bold leading-tight">
                             {timeDisplay.split(":")[0]}
-                            <span className="text-sm">:{timeDisplay.split(":")[1]?.substring(0, 2) || "00"}</span>
+                            <span className="text-sm">:{timeDisplay.split(":")[1]?.substring(0, 2) || "00"} {timeDisplay.includes("AM") ? "AM" : timeDisplay.includes("PM") ? "PM" : ""}</span>
+                            
                           </div>
-                          <div className="text-xs opacity-90 mt-1">
-                            {timeDisplay.includes("AM") ? "AM" : timeDisplay.includes("PM") ? "PM" : ""}
-                          </div>
-                          <div className="text-xs font-medium mt-1 opacity-90">
-                            {dateDisplay.split(",")[0]}
-                          </div>
+                          
                         </div>
 
                         {/* Class Details */}
@@ -1103,7 +1087,6 @@ export default function TutorDashboard() {
                                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-white shadow-lg transition-all"
                                 style={{
                                   background: GRADIENTS.primary,
-                                  boxShadow: SHADOWS.glow,
                                 }}
                               >
                                 <Video className="w-4 h-4" />

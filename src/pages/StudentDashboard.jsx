@@ -248,7 +248,6 @@ const EnhancedClassCard = ({ cls, type, permanentClassLink, timezone }) => {
           className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center text-black shadow-lg"
           style={{
             background: config.timeBg,
-            boxShadow: SHADOWS.glow,
           }}
         >
           <Clock className="w-5 h-5 mb-1 opacity-80" />
@@ -325,7 +324,6 @@ const EnhancedClassCard = ({ cls, type, permanentClassLink, timezone }) => {
               className="mt-4 w-50 lg:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-black shadow-lg transition-all"
               style={{
                 background: COLORS.accentGreen,
-                boxShadow: SHADOWS.glow,
               }}
             >
               <Video className="w-5 h-5" />

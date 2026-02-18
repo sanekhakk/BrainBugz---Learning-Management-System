@@ -1045,7 +1045,7 @@ export default function TutorDashboard() {
                       <div className="flex gap-4">
                         {/* Time Display */}
                         <div
-                          className="flex-shrink-0 w-24 h-24 rounded-2xl flex flex-col items-center justify-center text-white shadow-lg"
+                          className="flex-shrink-0 w-24 h-24 rounded-2xl flex flex-col items-center justify-center  text-black shadow-lg"
                           style={{
                             background: GRADIENTS.primary,
                           }}

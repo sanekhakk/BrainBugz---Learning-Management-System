@@ -245,13 +245,13 @@ const EnhancedClassCard = ({ cls, type, permanentClassLink, timezone }) => {
       <div className="flex gap-4">
         {/* Time Display - Original Rounded Square Design */}
         <div
-          className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center text-black shadow-lg"
+          className="w-24 h-24 rounded-2xl flex flex-col items-center justify-center font-bold text-black shadow-lg"
           style={{
             background: config.timeBg,
           }}
         >
           <Clock className="w-5 h-5 mb-1 opacity-80" />
-          <div className="text-lg font-bold leading-tight">
+          <div className="text-2xl font-bold leading-tight">
             {timeDisplay.split(":")[0]}
             <span className="text-sm font-bold">
               :{timeDisplay.split(":")[1]?.split(" ")[0] || "00"} 

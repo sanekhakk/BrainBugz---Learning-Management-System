@@ -1,31 +1,90 @@
 /* src/index.css */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,300;1,9..144,400;1,9..144,700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Inter', sans-serif; /* Cleaner than Poppins for professional dashboards */
+  font-family: 'DM Sans', sans-serif;
+  background-color: #FAF8F3;
+  color: #0D1B2A;
   -webkit-font-smoothing: antialiased;
-  background-color: #081023;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  
 }
 
-/* Custom Scrollbar for a premium feel */
-::-webkit-scrollbar {
-  width: 6px;
+.font-display { font-family: 'Fraunces', Georgia, serif; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #FAF8F3; }
+::-webkit-scrollbar-thumb { background: rgba(13,27,42,0.15); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(13,27,42,0.25); }
+
+::selection { background: rgba(79,70,229,0.15); color: #0D1B2A; }
+
+/* Marquee */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+.marquee-inner { animation: marquee 22s linear infinite; }
+.marquee-inner:hover { animation-play-state: paused; }
+
+/* Diagonal clip paths */
+.clip-diagonal-down {
+  clip-path: polygon(0 0, 100% 0, 100% 88%, 0 100%);
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+.clip-diagonal-up {
+  clip-path: polygon(0 6%, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Tilt card */
+.tilt-card {
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+.tilt-card:hover {
+  transform: perspective(800px) rotateY(-4deg) rotateX(2deg) translateY(-6px);
+}
+
+/* Underline draw */
+.underline-draw {
+  position: relative;
+}
+.underline-draw::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4F46E5, #7C3AED);
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.underline-draw:hover::after { width: 100%; }
+
+/* Grain overlay */
+.grain::before {
+  content: '';
+  position: fixed;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 9999;
 }
 
 .dashboard-container {
   width: 100%;
-  max-width: 1600px; /* Increased from 1280px for better ultrawide usage */
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 1.5rem;
 }

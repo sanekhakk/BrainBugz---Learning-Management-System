@@ -17,7 +17,10 @@ import {
 import { collection, query, where, onSnapshot, addDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { InputField, SelectField } from "../components/FormFields";
-import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
+import { DARK as D } from "../utils/theme";
+const COLORS = { glassBg: D.surfaceAlt, glassBorder: D.border };
+const GRADIENTS = { primary: D.gradPrimary, secondary: D.gradSecondary, purple: "linear-gradient(135deg,#8B5CF6,#7C3AED)" };
+const SHADOWS = { md: D.shadowMd, lg: D.shadowLg, xl: D.shadowXl, glow: D.shadowGlow };
 
 // ====================================================================
 // STUDENT SELECTION VIEW

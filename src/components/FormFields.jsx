@@ -1,70 +1,72 @@
 // src/components/FormFields.jsx
 import React from "react";
 import { ChevronDown } from "lucide-react";
+import { DARK as D } from "../utils/theme";
 
-// ADDED readOnly and disabled to props and JSX element
-export const InputField = ({ label, name, value, onChange, type = 'text', required = false, placeholder = '', readOnly = false, disabled = false }) => (
+const inputBase = {
+  background: D.surfaceAlt,
+  border: `1px solid ${D.border}`,
+  color: D.textPrimary,
+  borderRadius: "0.75rem",
+};
+
+export const InputField = ({
+  label, name, value, onChange, type = "text",
+  required = false, placeholder = "", readOnly = false, disabled = false
+}) => (
   <div>
-    <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor={name}>
-      {label} {required && <span className="text-red-400">*</span>}
+    <label className="block text-sm font-medium mb-1.5" style={{ color: D.textSecondary }} htmlFor={name}>
+      {label} {required && <span style={{ color: D.red }}>*</span>}
     </label>
     <input
-      type={type}
-      id={name}
-      name={name}
-      required={required}
-      value={value}
-      onChange={onChange}
-      readOnly={readOnly} // <-- FIX: Prop passed down
-      disabled={disabled} // <-- FIX: Prop passed down
+      type={type} id={name} name={name} required={required}
+      value={value} onChange={onChange} readOnly={readOnly} disabled={disabled}
       placeholder={placeholder}
-      // ENHANCEMENT: Smoother look, better focus effect
-      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 transition-all duration-200 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:shadow-lg focus:shadow-cyan-500/20 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed"
+      className="w-full px-4 py-2.5 text-sm outline-none transition-all"
+      style={{ ...inputBase, opacity: disabled ? 0.5 : 1, cursor: disabled ? "not-allowed" : "text" }}
+      onFocus={e => { e.currentTarget.style.borderColor = D.indigo; e.currentTarget.style.boxShadow = D.shadowGlow; }}
+      onBlur={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = "none"; }}
     />
   </div>
 );
 
-export const TextareaField = ({ label, name, value, onChange, required = false, placeholder = '', rows = 3 }) => (
+export const TextareaField = ({
+  label, name, value, onChange, required = false, placeholder = "", rows = 3
+}) => (
   <div>
-    <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor={name}>
-      {label} {required && <span className="text-red-400">*</span>}
+    <label className="block text-sm font-medium mb-1.5" style={{ color: D.textSecondary }} htmlFor={name}>
+      {label} {required && <span style={{ color: D.red }}>*</span>}
     </label>
     <textarea
-      id={name}
-      name={name}
-      required={required}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      rows={rows}
-      // ENHANCEMENT: Smoother look, better focus effect
-      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 transition-all duration-200 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:shadow-lg focus:shadow-cyan-500/20"
+      id={name} name={name} required={required}
+      value={value} onChange={onChange} placeholder={placeholder} rows={rows}
+      className="w-full px-4 py-2.5 text-sm outline-none transition-all resize-none"
+      style={inputBase}
+      onFocus={e => { e.currentTarget.style.borderColor = D.indigo; e.currentTarget.style.boxShadow = D.shadowGlow; }}
+      onBlur={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = "none"; }}
     />
   </div>
 );
 
 export const SelectField = ({ label, name, value, onChange, options = [], required = false }) => (
   <div className="relative">
-    <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor={name}>
-      {label} {required && <span className="text-red-400">*</span>}
+    <label className="block text-sm font-medium mb-1.5" style={{ color: D.textSecondary }} htmlFor={name}>
+      {label} {required && <span style={{ color: D.red }}>*</span>}
     </label>
     <select
-      id={name}
-      name={name}
-      required={required}
-      value={value}
-      onChange={onChange}
-      // ENHANCEMENT: Smoother look, better focus effect
-      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 transition-all duration-200 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:shadow-lg focus:shadow-cyan-500/20 appearance-none pr-8"
+      id={name} name={name} required={required} value={value} onChange={onChange}
+      className="w-full px-4 py-2.5 text-sm outline-none transition-all appearance-none pr-10"
+      style={inputBase}
+      onFocus={e => { e.currentTarget.style.borderColor = D.indigo; }}
+      onBlur={e => { e.currentTarget.style.borderColor = D.border; }}
     >
       {(!value || value === "") && <option value="" disabled>Select an option</option>}
       {options.map(opt => (
-        <option key={opt.value ?? opt} value={opt.value ?? opt}>
+        <option key={opt.value ?? opt} value={opt.value ?? opt} style={{ background: D.surface }}>
           {opt.label ?? opt}
         </option>
       ))}
     </select>
-    {/* Corrected position of chevron icon */}
-    <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-[32px] pointer-events-none" /> 
+    <ChevronDown className="w-4 h-4 absolute right-3 top-[38px] pointer-events-none" style={{ color: D.textMuted }} />
   </div>
 );

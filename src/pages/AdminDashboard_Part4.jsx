@@ -22,7 +22,10 @@ import {
 } from "lucide-react";
 import { collection, onSnapshot, query, orderBy, where } from "firebase/firestore";
 import { db } from "../firebase";
-import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
+import { DARK as D } from "../utils/theme";
+const COLORS = { glassBg: D.surfaceAlt, glassBorder: D.border };
+const GRADIENTS = { primary: D.gradPrimary, secondary: D.gradSecondary, purple: "linear-gradient(135deg,#8B5CF6,#7C3AED)" };
+const SHADOWS = { md: D.shadowMd, lg: D.shadowLg, xl: D.shadowXl, glow: D.shadowGlow };
 import { convertTo12Hour } from "../utils/timeUtils";
 
 

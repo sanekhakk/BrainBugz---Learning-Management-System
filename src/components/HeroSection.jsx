@@ -1,145 +1,345 @@
 // src/components/HeroSection.jsx
-import React from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useAuth } from "../context/AuthContext";
-import PearlxLogo from "../assets/PearlxLogo.png"
-import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
-import {
-  Sparkles,
-  Laptop,
-  GraduationCap,
-} from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { COLORS, SHADOWS } from "../utils/theme";
+import { GraduationCap, Laptop, Star, Users, ArrowRight, ChevronRight } from "lucide-react";
+import PearlxLogo from "../assets/PearlxLogo.png";
+import image1 from "../assets/heroimage1.png";
+import image2 from "../assets/heroimage2.png";
+import image3 from "../assets/heroimage3.png";
+
+const STUDENT_IMGS = [
+  image3,image2,image1
+];
+
+const subjects = ["Python", "Java", "CBSE CS", "ICSE CS", "Web Dev", "DSA", "IGCSE"];
 
 const HeroSection = () => {
-  const { openLoginModal } = useAuth();
+  const [subjectIdx, setSubjectIdx] = useState(0);
+  const containerRef = useRef(null);
   const { scrollY } = useScroll();
+  const imgY = useTransform(scrollY, [0, 500], [0, 60]);
 
-  const y = useTransform(scrollY, [0, 500], [0, 150]);
-  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
+  useEffect(() => {
+    const t = setInterval(() => setSubjectIdx(i => (i + 1) % subjects.length), 2200);
+    return () => clearInterval(t);
+  }, []);
+
+  const stats = [
+    { n: "50+", label: "Students taught" },
+    { n: "4.9★", label: "Average rating" },
+    { n: "100%", label: "Board coverage" },
+  ];
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-10">
-      {/* Content */}
-      <motion.div
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center"
-        style={{ y, opacity }}
-      >
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center space-x-2 px-5 py-2 rounded-full border backdrop-blur-xl mb-8"
-          style={{
-            background: COLORS.glassBg,
-            borderColor: COLORS.glassBorder,
-            boxShadow: SHADOWS.md,
-          }}
-        >
-          <Sparkles className="w-4 h-4 text-amber-400" />
-          <span className="text-xs font-medium text-gray-300 tracking-[0.2em] uppercase">
-            Web Studio & Tech Academy
-          </span>
-        </motion.div>
+    <section
+      ref={containerRef}
+      className="relative min-h-screen flex items-center overflow-hidden pt-20"
+      style={{ background: "linear-gradient(160deg, #F9F7F4 0%, #F0EDE7 50%, #F9F7F4 100%)" }}
+    >
+      {/* Noise texture overlay */}
+      <div className="absolute inset-0 opacity-30 pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E")`,
+        }} />
 
-        {/* Logo */}
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="flex justify-center mb-8"
-        >
-          <motion.div
-            animate={{ y: [0, -12, 0] }}
-            transition={{ duration: 4, repeat: Infinity }}
-            className="relative"
-          >
-            <div
-              className="absolute inset-0 rounded-full blur-3xl opacity-50"
-              style={{ background: GRADIENTS.primary }}
-            />
-            <img
-              src={PearlxLogo}
-              alt="Pearlx Web Studio"
-              className="h-20 md:h-44 relative z-10"
-            />
-          </motion.div>
-        </motion.div>
+      {/* Subtle radial glow — gold */}
+      <div className="absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 65%)" }} />
+      <div className="absolute -bottom-20 -left-20 w-[500px] h-[500px] rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(14,14,14,0.04) 0%, transparent 70%)" }} />
 
-        <p className="text-lg md:text-2xl text-gray-300 mx-10 mb-6">
-          Building modern websites <br /> Shaping future developers
-        </p>
+      {/* Fine horizontal rule lines — editorial detail */}
+      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: "rgba(201,168,76,0.2)" }} />
 
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full py-16">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
 
-        {/* CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.7 }}
-          className="flex flex-col sm:flex-row justify-center items-center gap-6"
-        >
-          <motion.a
-            href="https://wa.link/ctfbjv"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="group px-8 py-4 rounded-full font-bold text-lg text-black shadow-xl flex items-center"
-            style={{
-              background: GRADIENTS.primary,
-              boxShadow: SHADOWS.glow,
-            }}
-          >
-            Get a Website Built
-            <Laptop className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </motion.a>
-
-          <motion.a
-            href="https://wa.link/5pk793"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-8 py-4 rounded-full backdrop-blur-xl border font-semibold text-lg text-white flex items-center"
-            style={{
-              background: COLORS.glassBg,
-              borderColor: COLORS.glassBorder,
-            }}
-          >
-            Join CS Classes
-            <GraduationCap className="ml-2 w-5 h-5" />
-          </motion.a>
-        </motion.div>
-
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1 }}
-          className="grid grid-cols-3 gap-8 mt-20 max-w-2xl mx-auto"
-        >
-          {[
-            { value: "10+", label: "Web Projects" },
-            { value: "50+", label: "Students Trained" },
-            { value: "100%", label: "Custom Built" },
-          ].map((stat, i) => (
-            <div
-              key={i}
-              className="p-4 rounded-2xl backdrop-blur-xl border"
+          {/* ── LEFT COLUMN ── */}
+          <div className="relative z-10">
+            {/* Eyebrow tag */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-xs font-semibold mb-7 border"
               style={{
-                background: COLORS.glassBg,
-                borderColor: COLORS.glassBorder,
+                background: "rgba(201,168,76,0.08)",
+                borderColor: "rgba(201,168,76,0.25)",
+                color: COLORS.goldDeep,
+                letterSpacing: "0.05em",
               }}
             >
-              <div
-                className="text-3xl font-bold text-transparent bg-clip-text"
-                style={{ backgroundImage: GRADIENTS.primary }}
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: COLORS.gold }} />
+              Online Tuition · CBSE · ICSE · IGCSE
+            </motion.div>
+
+            {/* Main headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="font-display leading-[1.03] font-bold mb-6"
+              style={{
+                color: COLORS.ink,
+                letterSpacing: "-0.035em",
+                fontSize: "clamp(2.8rem, 5.5vw, 4.2rem)",
+                fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
+              }}
+            >
+              Learn{" "}
+              <em style={{ color: COLORS.gold, fontStyle: "italic" }}>CS</em>
+              <br />
+              from{" "}
+              <span className="relative inline-block">
+                real
+                <svg className="absolute -bottom-1 left-0 w-full" height="6" viewBox="0 0 120 6" preserveAspectRatio="none">
+                  <path d="M2 4 Q30 1 60 3.5 Q90 6 118 2.5" stroke="#C9A84C" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                </svg>
+              </span>
+              {" "}developers
+            </motion.h1>
+
+            {/* Rotating subject pill */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-center gap-3 mb-7"
+            >
+              <span className="text-sm font-medium" style={{ color: COLORS.textMuted }}>Currently teaching →</span>
+              <div className="relative overflow-hidden h-8 flex items-center">
+                <AnimatePresence mode="wait">
+                  <motion.span key={subjectIdx}
+                    initial={{ y: 18, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -18, opacity: 0 }}
+                    transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide"
+                    style={{
+                      background: "linear-gradient(135deg, #C9A84C 0%, #E2BA5F 100%)",
+                      color: "#0E0E0E",
+                      boxShadow: "0 2px 12px rgba(201,168,76,0.35)",
+                      letterSpacing: "0.03em",
+                    }}
+                  >
+                    {subjects[subjectIdx]}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
+            </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="text-base leading-relaxed mb-9 max-w-md"
+              style={{ color: COLORS.textSecondary, lineHeight: 1.8 }}
+            >
+              School CS tuition for CBSE, ICSE & IGCSE students — and coding courses for beginners.
+              Taught by developers who build production software.
+            </motion.p>
+
+            {/* CTA buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="flex flex-wrap gap-3 mb-11"
+            >
+              <motion.a
+                href="https://wa.link/5pk793"
+                whileHover={{ scale: 1.03, boxShadow: "0 8px 30px rgba(201,168,76,0.4)" }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-sm font-bold tracking-wide"
+                style={{
+                  background: "linear-gradient(135deg, #C9A84C 0%, #A07830 100%)",
+                  color: "#0E0E0E",
+                  boxShadow: "0 4px 20px rgba(201,168,76,0.3)",
+                  letterSpacing: "0.03em",
+                }}
               >
-                {stat.value}
+                <GraduationCap className="w-4 h-4" />
+                Join CS Classes
+              </motion.a>
+              <motion.a
+                href="https://wa.link/ctfbjv"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-sm font-bold tracking-wide border"
+                style={{
+                  color: COLORS.ink,
+                  borderColor: COLORS.borderStrong,
+                  background: "rgba(255,255,255,0.7)",
+                  backdropFilter: "blur(8px)",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                <Laptop className="w-4 h-4" />
+                Get a Website Built
+              </motion.a>
+            </motion.div>
+
+            {/* Stats row */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.65 }}
+              className="flex items-center gap-8 flex-wrap"
+            >
+              {stats.map((s, i) => (
+                <div key={i} className="text-center">
+                  <div className="font-bold text-2xl"
+                    style={{
+                      color: COLORS.ink,
+                      fontFamily: "'Cormorant Garamond', Georgia, serif",
+                      letterSpacing: "-0.02em",
+                    }}>
+                    {s.n}
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: COLORS.textMuted, letterSpacing: "0.04em" }}>{s.label}</div>
+                </div>
+              ))}
+              <div className="w-px h-10 hidden sm:block" style={{ background: COLORS.smoke }} />
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  {["#C9A84C","#8E9AAB","#3D3D3D","#B87333"].map((c, i) => (
+                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold"
+                      style={{ background: c, color: i === 2 ? "#fff" : "#0E0E0E" }}>
+                      {["A","R","S","K"][i]}
+                    </div>
+                  ))}
+                </div>
+                <span className="text-xs" style={{ color: COLORS.textMuted, letterSpacing: "0.03em" }}>Students enrolled</span>
               </div>
-              <div className="text-sm text-gray-400 mt-1">
-                {stat.label}
+            </motion.div>
+          </div>
+
+          {/* ── RIGHT COLUMN — Image Collage ── */}
+          <motion.div
+            className="relative h-[540px] hidden lg:block"
+            style={{ y: imgY }}
+          >
+            {/* Decorative frame — editorial touch */}
+            <div className="absolute -top-3 -right-3 w-64 h-80 rounded-3xl border"
+              style={{ borderColor: "rgba(201,168,76,0.2)", top: "12px", right: "-12px" }} />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, rotate: -3 }}
+              animate={{ opacity: 1, scale: 1, rotate: -2 }}
+              transition={{ delay: 0.3, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute left-8 top-0 w-64 h-80 rounded-3xl overflow-hidden"
+              style={{ boxShadow: SHADOWS.float }}
+            >
+              <img src={STUDENT_IMGS[0]} alt="Student learning" className="w-full h-full object-cover" />
+              <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 50%, rgba(14,14,14,0.5) 100%)" }} />
+              <div className="absolute bottom-4 left-4">
+                <p className="text-white text-sm font-semibold italic"
+                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "1rem" }}>
+                  Class in session
+                </p>
               </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, rotate: 4 }}
+              animate={{ opacity: 1, scale: 1, rotate: 3 }}
+              transition={{ delay: 0.5, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute right-0 top-16 w-52 h-64 rounded-3xl overflow-hidden"
+              style={{ boxShadow: SHADOWS.float }}
+            >
+              <img src={STUDENT_IMGS[1]} alt="Group study" className="w-full h-full object-cover" />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
+              animate={{ opacity: 1, scale: 1, rotate: -1 }}
+              transition={{ delay: 0.7, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute left-20 bottom-0 w-56 h-48 rounded-3xl overflow-hidden"
+              style={{ boxShadow: SHADOWS.float }}
+            >
+              <img src={STUDENT_IMGS[2]} alt="Learning" className="w-full h-full object-cover" />
+            </motion.div>
+
+            {/* Floating badge — rating */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 0.9, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
+              className="absolute z-20"
+              style={{ top: "10%", right: "8%" }}
+            >
+              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border"
+                style={{ background: COLORS.white, borderColor: COLORS.borderGold, boxShadow: SHADOWS.lg }}>
+                <div className="flex">
+                  {[1,2,3,4,5].map(i => (
+                    <Star key={i} className="w-3 h-3 fill-current" style={{ color: COLORS.gold }} />
+                  ))}
+                </div>
+                <span className="text-xs font-bold" style={{ color: COLORS.ink }}>4.9 Rating</span>
+              </div>
+            </motion.div>
+
+            {/* Floating badge — live class */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 1.1, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
+              className="absolute z-20"
+              style={{ bottom: "28%", right: "5%" }}
+            >
+              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl"
+                style={{ background: COLORS.ink, boxShadow: SHADOWS.lg }}>
+                <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#5A8A6A" }} />
+                <span className="text-xs font-bold text-white tracking-wide">Live Class Now</span>
+              </div>
+            </motion.div>
+
+            {/* Floating badge — students */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 1.3, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
+              className="absolute z-20"
+              style={{ bottom: "8%", right: "30%" }}
+            >
+              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border"
+                style={{ background: COLORS.white, borderColor: COLORS.border, boxShadow: SHADOWS.md }}>
+                <Users className="w-3.5 h-3.5" style={{ color: COLORS.gold }} />
+                <span className="text-xs font-bold" style={{ color: COLORS.ink }}>50+ Students</span>
+              </div>
+            </motion.div>
+
+            {/* Dot grid */}
+            <div className="absolute -top-6 -left-4 grid grid-cols-5 gap-2 opacity-25">
+              {[...Array(25)].map((_, i) => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: COLORS.gold }} />
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Subject marquee ticker */}
+      <div className="absolute bottom-0 left-0 right-0 py-3 border-t overflow-hidden"
+        style={{ background: COLORS.ink, borderColor: "rgba(201,168,76,0.2)" }}>
+        <style>{`
+          @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+          .marquee-inner { display: flex; animation: marquee 30s linear infinite; width: max-content; }
+        `}</style>
+        <div className="marquee-inner flex gap-8 whitespace-nowrap">
+          {[...Array(2)].map((_, rep) => (
+            <div key={rep} className="flex gap-8">
+              {["Python", "Java", "CBSE Board", "ICSE Board", "IGCSE", "Web Development", "Data Structures", "Computer Applications", "SQL & DBMS", "React & Node", "Algorithms", "IT Fundamentals"].map((s, i) => (
+                <span key={i} className="text-sm font-medium flex items-center gap-3" style={{ color: "rgba(255,255,255,0.45)", letterSpacing: "0.04em" }}>
+                  <span className="w-1 h-1 rounded-full inline-block" style={{ background: COLORS.gold }} />
+                  {s}
+                </span>
+              ))}
             </div>
           ))}
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </section>
   );
 };

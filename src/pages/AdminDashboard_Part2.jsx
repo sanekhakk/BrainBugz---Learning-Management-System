@@ -5,7 +5,10 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlusCircle, Loader2, XCircle, X } from "lucide-react";
 import { InputField, SelectField } from "../components/FormFields";
-import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
+import { DARK as D } from "../utils/theme";
+const COLORS = { glassBg: D.surfaceAlt, glassBorder: D.border };
+const GRADIENTS = { primary: D.gradPrimary };
+const SHADOWS = { md: D.shadowMd, lg: D.shadowLg, glow: D.shadowGlow };
 import { TIMEZONES } from "../utils/timeUtils";
 
 // ====================================================================

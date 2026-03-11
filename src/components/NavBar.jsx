@@ -150,17 +150,43 @@ const NavBar = () => {
                 </Link>
               ))}
             </div>
-            <a href="https://wa.link/5pk793"
-              className="block w-full text-center py-3.5 rounded-xl text-sm font-bold tracking-wide"
-              style={{
-                background: "linear-gradient(135deg, #C9A84C 0%, #A07830 100%)",
-                color: "#0E0E0E",
-                letterSpacing: "0.03em",
-              }}
-              onClick={() => setIsOpen(false)}
-            >
-              Start Learning →
-            </a>
+            {/* Auth buttons for mobile */}
+            <div className="flex flex-col gap-2.5 pt-1 border-t mb-0" style={{ borderColor: "rgba(201,168,76,0.15)", paddingTop: "1rem" }}>
+              {role === "guest" ? (
+                <>
+                  <button
+                    onClick={() => { openLoginModal("student"); setIsOpen(false); }}
+                    className="w-full text-center py-3 rounded-xl text-sm font-semibold border transition-all"
+                    style={{
+                      color: COLORS.ink,
+                      borderColor: COLORS.borderMed,
+                      background: "transparent",
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    Log in
+                  </button>
+                  <a href="https://wa.link/5pk793"
+                    className="block w-full text-center py-3.5 rounded-xl text-sm font-bold tracking-wide"
+                    style={{
+                      background: "linear-gradient(135deg, #C9A84C 0%, #A07830 100%)",
+                      color: "#0E0E0E",
+                      letterSpacing: "0.03em",
+                    }}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Start Learning →
+                  </a>
+                </>
+              ) : (
+                <button onClick={() => { logout(); setIsOpen(false); }}
+                  className="w-full text-center py-3 rounded-xl text-sm font-medium border"
+                  style={{ color: COLORS.textMuted, borderColor: COLORS.borderMed }}
+                >
+                  Logout ({role})
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

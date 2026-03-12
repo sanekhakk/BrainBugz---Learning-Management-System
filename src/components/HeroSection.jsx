@@ -7,10 +7,41 @@ import PearlxLogo from "../assets/PearlxLogo.png";
 import image1 from "../assets/heroimage1.png";
 import image2 from "../assets/heroimage2.png";
 import image3 from "../assets/heroimage3.png";
+import image4 from "../assets/heroimage4.png";
+import image5 from "../assets/heroimage5.png";
+import image6 from "../assets/heroimage6.png";
 
-const STUDENT_IMGS = [
-  image3,image2,image1
-];
+// All 6 images in the pool
+const ALL_IMAGES = [image1, image2, image3, image4, image5, image6];
+
+// Pick 3 unique random indices from the pool, avoiding conflicts with current indices
+function getNextIndex(currentIndexes, slotIndex, pool) {
+  const others = currentIndexes.filter((_, i) => i !== slotIndex);
+  const available = pool.map((_, i) => i).filter(i => !others.includes(i));
+  const filtered = available.filter(i => i !== currentIndexes[slotIndex]);
+  const pick = filtered.length > 0 ? filtered : available;
+  return pick[Math.floor(Math.random() * pick.length)];
+}
+
+// Hook: manages 3 image slots, each rotating at its own interval
+function useRotatingImages(allImages, intervals = [3000, 4000, 5000]) {
+  const [indexes, setIndexes] = useState([0, 1, 2]);
+
+  useEffect(() => {
+    const timers = intervals.map((ms, slot) =>
+      setInterval(() => {
+        setIndexes(prev => {
+          const next = [...prev];
+          next[slot] = getNextIndex(prev, slot, allImages);
+          return next;
+        });
+      }, ms)
+    );
+    return () => timers.forEach(clearInterval);
+  }, []);
+
+  return indexes.map(i => allImages[i]);
+}
 
 const subjects = ["Python", "Java", "CBSE CS", "ICSE CS", "Web Dev", "DSA", "IGCSE"];
 
@@ -19,6 +50,9 @@ const HeroSection = () => {
   const containerRef = useRef(null);
   const { scrollY } = useScroll();
   const imgY = useTransform(scrollY, [0, 500], [0, 60]);
+
+  // 3 slots rotating at 2s, 3s, 4s
+  const [img0, img1, img2] = useRotatingImages(ALL_IMAGES, [3000,5000,7000]);
 
   useEffect(() => {
     const t = setInterval(() => setSubjectIdx(i => (i + 1) % subjects.length), 2200);
@@ -215,7 +249,7 @@ const HeroSection = () => {
             </motion.div>
           </div>
 
-          {/* ── RIGHT COLUMN — Image Collage ── */}
+          {/* ── RIGHT COLUMN — Rotating Image Collage ── */}
           <motion.div
             className="relative h-[540px] hidden lg:block"
             style={{ y: imgY }}
@@ -224,16 +258,25 @@ const HeroSection = () => {
             <div className="absolute -top-3 -right-3 w-64 h-80 rounded-3xl border"
               style={{ borderColor: "rgba(201,168,76,0.2)", top: "12px", right: "-12px" }} />
 
+            {/* Slot 0 — large left card, rotates every 2s */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotate: -3 }}
-              animate={{ opacity: 1, scale: 1, rotate: -2 }}
+              
               transition={{ delay: 0.3, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="absolute left-8 top-0 w-64 h-80 rounded-3xl overflow-hidden"
               style={{ boxShadow: SHADOWS.float }}
             >
-              <img src={STUDENT_IMGS[0]} alt="Student learning" className="w-full h-full object-cover" />
-              <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 50%, rgba(14,14,14,0.5) 100%)" }} />
-              <div className="absolute bottom-4 left-4">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={img0}
+                  src={img0}
+                  alt="Student learning"
+                  className="w-full h-full object-cover absolute inset-0"
+                 
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </AnimatePresence>
+              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent 50%, rgba(14,14,14,0.5) 100%)" }} />
+              <div className="absolute bottom-4 left-4 z-10">
                 <p className="text-white text-sm font-semibold italic"
                   style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "1rem" }}>
                   Class in session
@@ -241,24 +284,41 @@ const HeroSection = () => {
               </div>
             </motion.div>
 
+            {/* Slot 1 — top right card, rotates every 3s */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotate: 4 }}
-              animate={{ opacity: 1, scale: 1, rotate: 3 }}
+              
               transition={{ delay: 0.5, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="absolute right-0 top-16 w-52 h-64 rounded-3xl overflow-hidden"
               style={{ boxShadow: SHADOWS.float }}
             >
-              <img src={STUDENT_IMGS[1]} alt="Group study" className="w-full h-full object-cover" />
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={img1}
+                  src={img1}
+                  alt="Group study"
+                  className="w-full h-full object-cover absolute inset-0"
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </AnimatePresence>
             </motion.div>
 
+            {/* Slot 2 — bottom card, rotates every 4s */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
-              animate={{ opacity: 1, scale: 1, rotate: -1 }}
+              
               transition={{ delay: 0.7, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="absolute left-20 bottom-0 w-56 h-48 rounded-3xl overflow-hidden"
               style={{ boxShadow: SHADOWS.float }}
             >
-              <img src={STUDENT_IMGS[2]} alt="Learning" className="w-full h-full object-cover" />
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={img2}
+                  src={img2}
+                  alt="Learning"
+                  className="w-full h-full object-cover absolute inset-0"
+                  
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </AnimatePresence>
             </motion.div>
 
             {/* Floating badge — rating */}

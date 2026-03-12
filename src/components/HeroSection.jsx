@@ -52,7 +52,7 @@ const HeroSection = () => {
   const imgY = useTransform(scrollY, [0, 500], [0, 60]);
 
   // 3 slots rotating at 2s, 3s, 4s
-  const [img0, img1, img2] = useRotatingImages(ALL_IMAGES, [3000,5000,7000]);
+  const [img0, img1, img2] = useRotatingImages(ALL_IMAGES, [4000, 6000, 8000]);
 
   useEffect(() => {
     const t = setInterval(() => setSubjectIdx(i => (i + 1) % subjects.length), 2200);
@@ -68,7 +68,7 @@ const HeroSection = () => {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-screen flex items-center overflow-hidden pt-20"
+      className="relative min-h-screen flex items-start lg:items-center overflow-hidden pt-20"
       style={{ background: "linear-gradient(160deg, #F9F7F4 0%, #F0EDE7 50%, #F9F7F4 100%)" }}
     >
       {/* Noise texture overlay */}
@@ -86,8 +86,8 @@ const HeroSection = () => {
       {/* Fine horizontal rule lines — editorial detail */}
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background: "rgba(201,168,76,0.2)" }} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full py-16">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full pt-8 pb-20 lg:py-16">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
 
           {/* ── LEFT COLUMN ── */}
           <div className="relative z-10">
@@ -251,19 +251,23 @@ const HeroSection = () => {
 
           {/* ── RIGHT COLUMN — Rotating Image Collage ── */}
           <motion.div
-            className="relative h-[540px] hidden lg:block"
-            style={{ y: imgY }}
+            className="relative w-full mb-16 lg:mb-0"
+            style={{ y: imgY, height: "min(540px, 80vw)" }}
           >
-            {/* Decorative frame — editorial touch */}
-            <div className="absolute -top-3 -right-3 w-64 h-80 rounded-3xl border"
-              style={{ borderColor: "rgba(201,168,76,0.2)", top: "12px", right: "-12px" }} />
+            {/* Decorative frame */}
+            <div className="absolute rounded-3xl border hidden lg:block"
+              style={{ borderColor: "rgba(201,168,76,0.2)", top: "12px", right: "-12px", width: "42%", height: "58%" }} />
 
-            {/* Slot 0 — large left card, rotates every 2s */}
+            {/* Slot 0 — large left card */}
             <motion.div
-              
               transition={{ delay: 0.3, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute left-8 top-0 w-64 h-80 rounded-3xl overflow-hidden"
-              style={{ boxShadow: SHADOWS.float }}
+              className="absolute rounded-3xl overflow-hidden"
+              style={{
+                boxShadow: SHADOWS.float,
+                left: "4%", top: "0%",
+                width: "48%", height: "58%",
+                rotate: -2,
+              }}
             >
               <AnimatePresence mode="wait">
                 <motion.img
@@ -271,25 +275,31 @@ const HeroSection = () => {
                   src={img0}
                   alt="Student learning"
                   className="w-full h-full object-cover absolute inset-0"
-                 
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                 />
               </AnimatePresence>
               <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent 50%, rgba(14,14,14,0.5) 100%)" }} />
               <div className="absolute bottom-4 left-4 z-10">
-                <p className="text-white text-sm font-semibold italic"
-                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "1rem" }}>
+                <p className="text-white font-semibold italic"
+                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(0.75rem, 2vw, 1rem)" }}>
                   Class in session
                 </p>
               </div>
             </motion.div>
 
-            {/* Slot 1 — top right card, rotates every 3s */}
+            {/* Slot 1 — top right card */}
             <motion.div
-              
               transition={{ delay: 0.5, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute right-0 top-16 w-52 h-64 rounded-3xl overflow-hidden"
-              style={{ boxShadow: SHADOWS.float }}
+              className="absolute rounded-3xl overflow-hidden"
+              style={{
+                boxShadow: SHADOWS.float,
+                right: "0%", top: "8%",
+                width: "42%", height: "46%",
+                rotate: 3,
+              }}
             >
               <AnimatePresence mode="wait">
                 <motion.img
@@ -297,17 +307,24 @@ const HeroSection = () => {
                   src={img1}
                   alt="Group study"
                   className="w-full h-full object-cover absolute inset-0"
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                 />
               </AnimatePresence>
             </motion.div>
 
-            {/* Slot 2 — bottom card, rotates every 4s */}
+            {/* Slot 2 — bottom card */}
             <motion.div
-              
               transition={{ delay: 0.7, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute left-20 bottom-0 w-56 h-48 rounded-3xl overflow-hidden"
-              style={{ boxShadow: SHADOWS.float }}
+              className="absolute rounded-3xl overflow-hidden"
+              style={{
+                boxShadow: SHADOWS.float,
+                left: "14%", bottom: "0%",
+                width: "44%", height: "36%",
+                rotate: -1,
+              }}
             >
               <AnimatePresence mode="wait">
                 <motion.img
@@ -315,7 +332,9 @@ const HeroSection = () => {
                   src={img2}
                   alt="Learning"
                   className="w-full h-full object-cover absolute inset-0"
-                  
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                 />
               </AnimatePresence>
@@ -327,13 +346,13 @@ const HeroSection = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ delay: 0.9, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
               className="absolute z-20"
-              style={{ top: "10%", right: "8%" }}
+              style={{ top: "6%", right: "4%" }}
             >
-              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border"
+              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl border"
                 style={{ background: COLORS.white, borderColor: COLORS.borderGold, boxShadow: SHADOWS.lg }}>
                 <div className="flex">
                   {[1,2,3,4,5].map(i => (
-                    <Star key={i} className="w-3 h-3 fill-current" style={{ color: COLORS.gold }} />
+                    <Star key={i} className="w-2.5 h-2.5 fill-current" style={{ color: COLORS.gold }} />
                   ))}
                 </div>
                 <span className="text-xs font-bold" style={{ color: COLORS.ink }}>4.9 Rating</span>
@@ -346,12 +365,12 @@ const HeroSection = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ delay: 1.1, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
               className="absolute z-20"
-              style={{ bottom: "28%", right: "5%" }}
+              style={{ bottom: "30%", right: "2%" }}
             >
-              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl"
+              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl"
                 style={{ background: COLORS.ink, boxShadow: SHADOWS.lg }}>
-                <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#5A8A6A" }} />
-                <span className="text-xs font-bold text-white tracking-wide">Live Class Now</span>
+                <span className="w-2 h-2 rounded-full animate-pulse flex-shrink-0" style={{ background: "#5A8A6A" }} />
+                <span className="text-xs font-bold text-white tracking-wide whitespace-nowrap">Live Class Now</span>
               </div>
             </motion.div>
 
@@ -361,17 +380,17 @@ const HeroSection = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ delay: 1.3, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
               className="absolute z-20"
-              style={{ bottom: "8%", right: "30%" }}
+              style={{ bottom: "4%", right: "26%" }}
             >
-              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border"
+              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl border"
                 style={{ background: COLORS.white, borderColor: COLORS.border, boxShadow: SHADOWS.md }}>
-                <Users className="w-3.5 h-3.5" style={{ color: COLORS.gold }} />
-                <span className="text-xs font-bold" style={{ color: COLORS.ink }}>50+ Students</span>
+                <Users className="w-3 h-3 flex-shrink-0" style={{ color: COLORS.gold }} />
+                <span className="text-xs font-bold whitespace-nowrap" style={{ color: COLORS.ink }}>50+ Students</span>
               </div>
             </motion.div>
 
             {/* Dot grid */}
-            <div className="absolute -top-6 -left-4 grid grid-cols-5 gap-2 opacity-25">
+            <div className="absolute -top-6 -left-4 grid grid-cols-5 gap-2 opacity-25 hidden sm:grid">
               {[...Array(25)].map((_, i) => (
                 <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: COLORS.gold }} />
               ))}

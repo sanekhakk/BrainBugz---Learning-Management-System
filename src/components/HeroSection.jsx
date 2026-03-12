@@ -170,7 +170,7 @@ const HeroSection = () => {
               className="text-base leading-relaxed mb-9 max-w-md"
               style={{ color: COLORS.textSecondary, lineHeight: 1.8 }}
             >
-              School CS tuition for CBSE, ICSE & IGCSE students — and coding courses for beginners.
+              Computer Science tuition for CBSE, ICSE & IGCSE students — and coding courses for beginners.
               Taught by developers who build production software.
             </motion.p>
 

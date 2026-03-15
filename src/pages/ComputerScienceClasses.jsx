@@ -65,6 +65,20 @@ const ComputerScienceClasses = () => (
         >
           <GraduationCap className="w-4 h-4" /> Join on WhatsApp <ArrowRight className="w-4 h-4" />
         </motion.a>
+        <motion.a href="https://wa.link/5pk793"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          className="inline-flex items-center gap-2 mt-3 ml-3 px-7 py-3.5 rounded-2xl text-sm font-bold border"
+          style={{
+            background: "rgba(255,255,255,0.08)",
+            color: "rgba(255,255,255,0.85)",
+            borderColor: "rgba(255,255,255,0.2)",
+            letterSpacing: "0.03em",
+          }}
+        >
+          Book a Free Demo →
+        </motion.a>
       </div>
 
       {/* Boards */}

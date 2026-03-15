@@ -212,6 +212,21 @@ const HeroSection = () => {
                 <Laptop className="w-4 h-4" />
                 Get a Website Built
               </motion.a>
+              <motion.a
+                href="https://wa.link/5pk793"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-sm font-bold tracking-wide border"
+                style={{
+                  color: COLORS.goldDeep,
+                  borderColor: "rgba(201,168,76,0.4)",
+                  background: COLORS.goldLight,
+                  letterSpacing: "0.03em",
+                }}
+              >
+                <ChevronRight className="w-4 h-4" />
+                Book a Free Demo
+              </motion.a>
             </motion.div>
 
             {/* Stats row */}

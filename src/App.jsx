@@ -22,6 +22,7 @@ import TutorDashboard from "./pages/TutorDashboard";
 
 import ComputerScienceClasses from "./pages/ComputerScienceClasses";
 import WebDevelopmentServices from "./pages/WebDevelopmentServices";
+import Pricing from "./pages/Pricing";
 
 function GuestHome() {
   return (
@@ -64,6 +65,7 @@ function MainApp() {
           <Route path="/services" element={<Services />} />
           <Route path="/services/education" element={<ComputerScienceClasses />} />
           <Route path="/services/web-development" element={<WebDevelopmentServices />} />
+          <Route path="/pricing" element={<Pricing />} />
         </Routes>
       </main>
       <Footer />

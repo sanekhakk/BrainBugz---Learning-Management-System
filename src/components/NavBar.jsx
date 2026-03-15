@@ -23,6 +23,7 @@ const NavBar = () => {
     { label: "CS Classes", to: "/services/education" },
     { label: "Web Dev", to: "/services/web-development" },
     { label: "Services", to: "/services" },
+    { label: "Pricing", to: "/pricing" },
   ];
 
   return (
@@ -150,7 +151,6 @@ const NavBar = () => {
                 </Link>
               ))}
             </div>
-            {/* Auth buttons for mobile */}
             <div className="flex flex-col gap-2.5 pt-1 border-t mb-0" style={{ borderColor: "rgba(201,168,76,0.15)", paddingTop: "1rem" }}>
               {role === "guest" ? (
                 <>

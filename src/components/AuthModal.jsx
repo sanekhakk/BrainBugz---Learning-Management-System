@@ -3,9 +3,6 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { X, LogIn, Loader2, Mail, Lock, AlertCircle, CheckCircle2, GraduationCap } from "lucide-react";
-import { DARK } from "../utils/theme";
-
-const D = DARK;
 
 const AuthModal = () => {
   const { showLoginModal, modalRole, closeLoginModal, loginUser, sendPasswordReset } = useAuth();
@@ -22,8 +19,6 @@ const AuthModal = () => {
     if (!showLoginModal) setResetMode(false);
   }, [showLoginModal]);
 
-  if (!showLoginModal) return null;
-
   const handleLogin = async (e) => {
     e.preventDefault(); setError(null); setLoading(true);
     const res = await loginUser(email, password);
@@ -35,172 +30,149 @@ const AuthModal = () => {
     e.preventDefault(); setError(null); setLoading(true);
     const res = await sendPasswordReset(email);
     setLoading(false);
-    if (res.success) { setSuccess(res.message); setTimeout(() => setResetMode(false), 3000); }
-    else setError(res.error);
+    if (res.success) { 
+      setSuccess(res.message); 
+      setTimeout(() => setResetMode(false), 3000); 
+    } else {
+      setError(res.error);
+    }
   };
 
   const subtitle = modalRole === "tutor" ? "Access your teaching dashboard" : "Continue your learning journey";
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-        style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
-        onClick={closeLoginModal}
-      >
+      {showLoginModal && (
         <motion.div
-          initial={{ scale: 0.92, y: 24, opacity: 0 }}
-          animate={{ scale: 1, y: 0, opacity: 1 }}
-          exit={{ scale: 0.92, y: 24, opacity: 0 }}
-          transition={{ type: "spring", damping: 26, stiffness: 320 }}
-          className="relative w-full max-w-md"
-          onClick={e => e.stopPropagation()}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{ background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(12px)" }}
+          onClick={closeLoginModal}
         >
-          <div
-            className="relative rounded-3xl overflow-hidden"
-            style={{
-              background: D.surface,
-              border: `1px solid ${D.borderMed}`,
-              boxShadow: D.shadowXl,
-            }}
+          <motion.div
+            initial={{ scale: 0.9, y: 30, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.9, y: 30, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative w-full max-w-md"
+            onClick={e => e.stopPropagation()}
           >
-            {/* Top accent bar */}
-            <div className="h-1 w-full" style={{ background: D.gradPrimary }} />
+            <div className="relative rounded-[2rem] overflow-hidden bg-white shadow-[0_20px_60px_rgba(0,0,0,0.2)] border border-slate-100">
+              
+              {/* Top gradient accent bar */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-cyan-500 to-emerald-500 z-20" />
 
-            <div className="p-8">
-              {/* Close */}
-              <motion.button
-                onClick={e => { e.stopPropagation(); closeLoginModal(); }}
-                whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
-                className="absolute top-6 right-6 p-2 rounded-full transition-colors"
-                style={{ background: "rgba(255,255,255,0.05)", color: D.textSecondary }}
-                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
-                onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
-              >
-                <X className="w-4 h-4" />
-              </motion.button>
-
-              {/* Header */}
-              <div className="text-center mb-8">
-                <div
-                  className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5"
-                  style={{ background: D.indigoMuted, border: `1px solid ${D.borderMed}` }}
-                >
-                  <GraduationCap className="w-8 h-8" style={{ color: D.indigo }} />
-                </div>
-                <h2 className="text-2xl font-bold mb-2" style={{ color: D.textPrimary }}>
-                  {resetMode ? "Reset Password" : "Welcome back"}
-                </h2>
-                <p className="text-sm" style={{ color: D.textMuted }}>
-                  {resetMode ? "Enter your email to receive a reset link" : subtitle}
-                </p>
+              {/* ── LIVE MODAL BACKGROUND EFFECTS ── */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+                <motion.div animate={{ rotate: 360, scale: [1, 1.2, 1] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="absolute -top-20 -right-20 w-64 h-64 bg-cyan-100 rounded-full mix-blend-multiply filter blur-[60px] opacity-60" />
+                <motion.div animate={{ rotate: -360, scale: [1, 1.3, 1] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                  className="absolute -bottom-20 -left-20 w-64 h-64 bg-emerald-100 rounded-full mix-blend-multiply filter blur-[60px] opacity-60" />
+                <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px]" />
               </div>
 
-              {/* Messages */}
-              <AnimatePresence>
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                    className="flex items-start gap-3 p-4 mb-5 rounded-2xl"
-                    style={{ background: D.redMuted, border: `1px solid ${D.red}30` }}
-                  >
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: D.red }} />
-                    <p className="text-sm" style={{ color: D.red }}>{error}</p>
-                  </motion.div>
-                )}
-                {success && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                    className="flex items-start gap-3 p-4 mb-5 rounded-2xl"
-                    style={{ background: D.greenMuted, border: `1px solid ${D.green}30` }}
-                  >
-                    <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: D.green }} />
-                    <p className="text-sm" style={{ color: D.green }}>{success}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <div className="p-8 relative z-10">
+                {/* Close Button */}
+                <motion.button
+                  onClick={e => { e.stopPropagation(); closeLoginModal(); }}
+                  whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
+                  className="absolute top-6 right-6 p-2 rounded-full bg-slate-50 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </motion.button>
 
-              {/* Form */}
-              <form onSubmit={resetMode ? handleReset : handleLogin} className="space-y-4">
-                {/* Email */}
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: D.textSecondary }}>
-                    Email address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: D.textMuted }} />
-                    <input
-                      type="email" required value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="w-full pl-11 pr-4 py-3 rounded-xl text-sm outline-none transition-all"
-                      style={{
-                        background: D.surfaceAlt,
-                        border: `1px solid ${D.border}`,
-                        color: D.textPrimary,
-                      }}
-                      onFocus={e => e.currentTarget.style.borderColor = D.indigo}
-                      onBlur={e => e.currentTarget.style.borderColor = D.border}
-                    />
+                {/* Header */}
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 bg-gradient-to-br from-cyan-50 to-emerald-50 border border-emerald-100 shadow-sm">
+                    {resetMode ? (
+                      <Lock className="w-8 h-8 text-cyan-600" />
+                    ) : (
+                      <GraduationCap className="w-8 h-8 text-emerald-600" />
+                    )}
                   </div>
+                  <h2 className="text-2xl font-extrabold mb-2 text-slate-900 tracking-tight">
+                    {resetMode ? "Reset Password" : "Welcome back"}
+                  </h2>
+                  <p className="text-sm font-medium text-slate-500">
+                    {resetMode ? "Enter your email to receive a reset link" : subtitle}
+                  </p>
                 </div>
 
-                {/* Password */}
-                {!resetMode && (
+                {/* Status Messages */}
+                <AnimatePresence>
+                  {error && (
+                    <motion.div initial={{ opacity: 0, y: -10, height: 0 }} animate={{ opacity: 1, y: 0, height: "auto" }} exit={{ opacity: 0, y: -10, height: 0 }}
+                      className="flex items-start gap-3 p-4 mb-5 rounded-2xl bg-red-50 border border-red-100 overflow-hidden"
+                    >
+                      <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500" />
+                      <p className="text-sm font-semibold text-red-700">{error}</p>
+                    </motion.div>
+                  )}
+                  {success && (
+                    <motion.div initial={{ opacity: 0, y: -10, height: 0 }} animate={{ opacity: 1, y: 0, height: "auto" }} exit={{ opacity: 0, y: -10, height: 0 }}
+                      className="flex items-start gap-3 p-4 mb-5 rounded-2xl bg-emerald-50 border border-emerald-100 overflow-hidden"
+                    >
+                      <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-500" />
+                      <p className="text-sm font-semibold text-emerald-700">{success}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Form */}
+                <form onSubmit={resetMode ? handleReset : handleLogin} className="space-y-5">
+                  {/* Email Input */}
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: D.textSecondary }}>
-                      Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: D.textMuted }} />
+                    <label className="block text-sm font-bold mb-2 text-slate-700">Email address</label>
+                    <div className="relative group">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
                       <input
-                        type="password" required value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full pl-11 pr-4 py-3 rounded-xl text-sm outline-none transition-all"
-                        style={{
-                          background: D.surfaceAlt,
-                          border: `1px solid ${D.border}`,
-                          color: D.textPrimary,
-                        }}
-                        onFocus={e => e.currentTarget.style.borderColor = D.indigo}
-                        onBlur={e => e.currentTarget.style.borderColor = D.border}
+                        type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="w-full pl-12 pr-4 py-3.5 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none transition-all focus:bg-white focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10"
                       />
                     </div>
                   </div>
-                )}
 
-                {/* Submit */}
-                <motion.button
-                  type="submit" disabled={loading}
-                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  className="w-full py-3.5 rounded-xl font-semibold text-white text-sm mt-2 flex items-center justify-center gap-2"
-                  style={{ background: D.gradPrimary, boxShadow: D.shadowGlow }}
-                >
-                  {loading
-                    ? <Loader2 className="w-4 h-4 animate-spin" />
-                    : resetMode ? "Send Reset Link" : "Log In"
-                  }
-                </motion.button>
-              </form>
+                  {/* Password Input */}
+                  {!resetMode && (
+                    <div>
+                      <label className="block text-sm font-bold mb-2 text-slate-700">Password</label>
+                      <div className="relative group">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
+                        <input
+                          type="password" required value={password} onChange={e => setPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full pl-12 pr-4 py-3.5 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none transition-all focus:bg-white focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10"
+                        />
+                      </div>
+                    </div>
+                  )}
 
-              {/* Footer toggle */}
-              <div className="mt-5 text-center">
-                <button
-                  onClick={() => { setResetMode(!resetMode); setError(null); setSuccess(null); }}
-                  className="text-sm font-medium transition-colors"
-                  style={{ color: D.indigo }}
-                  onMouseEnter={e => e.currentTarget.style.color = D.cyan}
-                  onMouseLeave={e => e.currentTarget.style.color = D.indigo}
-                >
-                  {resetMode ? "← Back to login" : "Forgot password?"}
-                </button>
+                  {/* Submit Button */}
+                  <motion.button
+                    type="submit" disabled={loading}
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    className="w-full py-4 rounded-xl font-bold text-white text-sm mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-emerald-500 shadow-[0_8px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_12px_25px_rgba(16,185,129,0.4)] transition-shadow"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : resetMode ? "Send Reset Link" : "Log In"}
+                  </motion.button>
+                </form>
+
+                {/* Footer Toggle */}
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={() => { setResetMode(!resetMode); setError(null); setSuccess(null); }}
+                    className="text-sm font-bold text-slate-500 hover:text-cyan-600 transition-colors"
+                  >
+                    {resetMode ? "← Back to login" : "Forgot your password?"}
+                  </button>
+                </div>
+
               </div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      )}
     </AnimatePresence>
   );
 };

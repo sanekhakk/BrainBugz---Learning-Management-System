@@ -1,16 +1,23 @@
 // src/components/NavBar.jsx
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Menu, X } from "lucide-react";
-import { COLORS, SHADOWS } from "../utils/theme";
+import { Menu, X, Sparkles } from "lucide-react";
 import PearlxLogo from "../assets/logo.png";
+
+const navLinks = [
+  { label: "Home", to: "/" },
+  { label: "Classes", to: "/services/education" },
+  { label: "Web Dev", to: "/services/web-development" },
+  { label: "Pricing", to: "/pricing" },
+];
 
 const NavBar = () => {
   const { role = "guest", logout, openLoginModal } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 40);
@@ -18,107 +25,138 @@ const NavBar = () => {
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  const navLinks = [
-    { label: "Home", to: "/" },
-    { label: "CS Classes", to: "/services/education" },
-    { label: "Web Dev", to: "/services/web-development" },
-    { label: "Services", to: "/services" },
-    { label: "Pricing", to: "/pricing" },
-  ];
+  useEffect(() => setIsOpen(false), [location.pathname]);
 
   return (
     <>
       <motion.nav
         initial={{ y: -70, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
         className="fixed top-0 left-0 right-0 z-50 px-4 py-3"
       >
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto relative">
+          {/* Neon underline on scroll */}
+          <AnimatePresence>
+            {scrolled && (
+              <motion.div
+                initial={{ opacity: 0, scaleX: 0 }}
+                animate={{ opacity: 1, scaleX: 1 }}
+                exit={{ opacity: 0, scaleX: 0 }}
+                className="absolute -bottom-px left-12 right-12 h-px"
+                style={{ background: "linear-gradient(90deg, transparent, #10B981, #0EA5E9, transparent)", filter: "blur(1px)" }}
+              />
+            )}
+          </AnimatePresence>
+
           <div
-            className="flex items-center justify-between px-5 py-3 rounded-2xl transition-all duration-400"
+            className="flex items-center justify-between px-6 py-3 rounded-2xl relative overflow-hidden"
             style={{
-              background: scrolled ? "rgba(249,247,244,0.95)" : "rgba(249,247,244,0.75)",
+              background: scrolled ? "rgba(10,14,28,0.88)" : "rgba(10,14,28,0.96)",
               backdropFilter: "blur(24px)",
               WebkitBackdropFilter: "blur(24px)",
-              boxShadow: scrolled ? `${SHADOWS.md}, inset 0 1px 0 rgba(255,255,255,0.8)` : "none",
-              border: `1px solid ${scrolled ? "rgba(201,168,76,0.18)" : COLORS.border}`,
+              boxShadow: scrolled ? "0 24px 48px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.07)" : "0 12px 32px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.06)",
+              transition: "all 0.35s ease",
             }}
           >
+            {/* Animated top shimmer */}
+            <motion.div
+              animate={{ x: ["-100%", "200%"] }}
+              transition={{ duration: 4, repeat: Infinity, repeatDelay: 3, ease: "easeInOut" }}
+              className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(16,185,129,0.6), rgba(14,165,233,0.6), transparent)" }}
+            />
+
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="relative">
-                <img src={PearlxLogo} alt="Pearlx" className="h-8 w-8 rounded-xl object-cover" />
-              </div>
-              <span style={{
-                color: COLORS.ink,
-                fontWeight: 700,
-                fontSize: "1.1rem",
-                fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
-                letterSpacing: "0.02em",
-              }}>
+            <Link to="/" className="flex items-center gap-3 z-10">
+              <img src={PearlxLogo} alt="Pearlx" className="h-10 w-auto object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,255,255,0.25))" }} />
+              <span className="text-white font-extrabold text-xl tracking-wide hidden sm:block" style={{ letterSpacing: "-0.01em" }}>
                 Pearlx
               </span>
             </Link>
 
             {/* Desktop links */}
-            <div className="hidden md:flex items-center gap-1">
-              {navLinks.map(link => (
-                <Link key={link.label} to={link.to}
-                  className="relative px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200 group"
-                  style={{ color: COLORS.textSecondary, letterSpacing: "0.02em" }}
-                  onMouseEnter={e => e.currentTarget.style.color = COLORS.ink}
-                  onMouseLeave={e => e.currentTarget.style.color = COLORS.textSecondary}
-                >
-                  {link.label}
-                  <span className="absolute bottom-1 left-4 right-4 h-px scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left"
-                    style={{ background: COLORS.gold }} />
-                </Link>
-              ))}
+            <div className="hidden md:flex items-center gap-1 z-10">
+              {navLinks.map(link => {
+                const isActive = location.pathname === link.to;
+                return (
+                  <Link
+                    key={link.label}
+                    to={link.to}
+                    className="relative px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-200 group"
+                    style={{ color: isActive ? "#fff" : "rgba(255,255,255,0.6)" }}
+                  >
+                    {isActive && (
+                      <motion.span
+                        layoutId="nav-active"
+                        className="absolute inset-0 rounded-xl"
+                        style={{ background: "rgba(255,255,255,0.08)" }}
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                      />
+                    )}
+                    {link.label}
+                    <span
+                      className="absolute bottom-1 left-1/2 -translate-x-1/2 h-[2px] rounded-full transition-all duration-300"
+                      style={{
+                        background: "linear-gradient(90deg, #10B981, #0EA5E9)",
+                        width: isActive ? "60%" : "0%",
+                        filter: "blur(0.5px)",
+                        boxShadow: isActive ? "0 0 8px rgba(16,185,129,0.7)" : "none",
+                      }}
+                    />
+                  </Link>
+                );
+              })}
             </div>
 
-            {/* Right */}
-            <div className="hidden md:flex items-center gap-3">
+            {/* CTA right */}
+            <div className="hidden md:flex items-center gap-4 z-10">
               {role === "guest" ? (
                 <>
                   <button
                     onClick={() => openLoginModal("student")}
-                    className="text-sm font-medium transition-colors px-3 py-2"
-                    style={{ color: COLORS.textSecondary, letterSpacing: "0.02em" }}
-                    onMouseEnter={e => e.currentTarget.style.color = COLORS.ink}
-                    onMouseLeave={e => e.currentTarget.style.color = COLORS.textSecondary}
+                    className="text-sm font-semibold transition-colors"
+                    style={{ color: "rgba(255,255,255,0.55)" }}
+                    onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+                    onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.55)")}
                   >
                     Log in
                   </button>
-                  <motion.a href="https://wa.link/5pk793"
-                    whileHover={{ scale: 1.03, boxShadow: "0 6px 20px rgba(201,168,76,0.35)" }}
-                    whileTap={{ scale: 0.97 }}
-                    className="px-5 py-2.5 rounded-xl text-sm font-bold tracking-wide"
-                    style={{
-                      background: "linear-gradient(135deg, #C9A84C 0%, #A07830 100%)",
-                      color: "#0E0E0E",
-                      boxShadow: "0 2px 12px rgba(201,168,76,0.25)",
-                      letterSpacing: "0.03em",
-                    }}
+                  <motion.a
+                    href="https://wa.link/5pk793"
+                    whileHover={{ scale: 1.05, boxShadow: "0 0 24px rgba(16,185,129,0.5)" }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-slate-900"
+                    style={{ background: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)", boxShadow: "0 4px 16px rgba(16,185,129,0.3)" }}
                   >
-                    Start Learning →
+                    <Sparkles className="w-4 h-4" /> Start Free Trial
                   </motion.a>
                 </>
               ) : (
-                <button onClick={logout}
-                  className="px-4 py-2 rounded-xl text-sm font-medium border"
-                  style={{ color: COLORS.textMuted, borderColor: COLORS.borderMed }}
+                <button
+                  onClick={logout}
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold border transition-colors"
+                  style={{ borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)" }}
                 >
-                  Logout ({role})
+                  Dashboard
                 </button>
               )}
             </div>
 
             {/* Mobile toggle */}
-            <button onClick={() => setIsOpen(!isOpen)} className="md:hidden p-2 rounded-xl"
-              style={{ background: COLORS.bgSecondary, color: COLORS.ink }}>
-              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+            <motion.button
+              onClick={() => setIsOpen(!isOpen)}
+              whileTap={{ scale: 0.9 }}
+              className="md:hidden p-2 rounded-xl z-10"
+              style={{ background: "rgba(255,255,255,0.08)", color: "#fff" }}
+            >
+              <AnimatePresence mode="wait">
+                {isOpen
+                  ? <motion.span key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}><X className="w-5 h-5" /></motion.span>
+                  : <motion.span key="m" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}><Menu className="w-5 h-5" /></motion.span>
+                }
+              </AnimatePresence>
+            </motion.button>
           </div>
         </div>
       </motion.nav>
@@ -127,65 +165,55 @@ const NavBar = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.97 }}
+            initial={{ opacity: 0, y: -16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.97 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed top-20 left-4 right-4 z-40 rounded-2xl p-5"
-            style={{
-              background: "rgba(249,247,244,0.98)",
-              border: `1px solid rgba(201,168,76,0.2)`,
-              boxShadow: SHADOWS.xl,
-              backdropFilter: "blur(20px)",
-            }}
+            exit={{ opacity: 0, y: -16, scale: 0.96 }}
+            transition={{ type: "spring", damping: 28, stiffness: 350 }}
+            className="fixed top-24 left-4 right-4 z-40 rounded-2xl p-6 shadow-2xl"
+            style={{ background: "rgba(10,14,28,0.97)", backdropFilter: "blur(24px)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
-            <div className="space-y-1 mb-5">
-              {navLinks.map(link => (
-                <Link key={link.label} to={link.to} onClick={() => setIsOpen(false)}
-                  className="block px-4 py-3 rounded-xl text-sm font-medium transition-colors"
-                  style={{ color: COLORS.textSecondary, letterSpacing: "0.02em" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = COLORS.goldLight; e.currentTarget.style.color = COLORS.goldDeep; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = COLORS.textSecondary; }}
+            {/* Top accent */}
+            <div className="absolute top-0 left-0 right-0 h-px rounded-t-2xl"
+              style={{ background: "linear-gradient(90deg, transparent, #10B981, #0EA5E9, transparent)" }} />
+
+            <div className="space-y-1 mb-6">
+              {navLinks.map((link, i) => (
+                <motion.div
+                  key={link.label}
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.06 }}
                 >
-                  {link.label}
-                </Link>
+                  <Link
+                    to={link.to}
+                    onClick={() => setIsOpen(false)}
+                    className="block px-4 py-3 rounded-xl text-base font-semibold transition-all duration-200"
+                    style={{
+                      color: location.pathname === link.to ? "#fff" : "rgba(255,255,255,0.6)",
+                      background: location.pathname === link.to ? "rgba(255,255,255,0.08)" : "transparent",
+                    }}
+                  >
+                    {link.label}
+                  </Link>
+                </motion.div>
               ))}
             </div>
-            <div className="flex flex-col gap-2.5 pt-1 border-t mb-0" style={{ borderColor: "rgba(201,168,76,0.15)", paddingTop: "1rem" }}>
-              {role === "guest" ? (
-                <>
-                  <button
-                    onClick={() => { openLoginModal("student"); setIsOpen(false); }}
-                    className="w-full text-center py-3 rounded-xl text-sm font-semibold border transition-all"
-                    style={{
-                      color: COLORS.ink,
-                      borderColor: COLORS.borderMed,
-                      background: "transparent",
-                      letterSpacing: "0.02em",
-                    }}
-                  >
-                    Log in
-                  </button>
-                  <a href="https://wa.link/5pk793"
-                    className="block w-full text-center py-3.5 rounded-xl text-sm font-bold tracking-wide"
-                    style={{
-                      background: "linear-gradient(135deg, #C9A84C 0%, #A07830 100%)",
-                      color: "#0E0E0E",
-                      letterSpacing: "0.03em",
-                    }}
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Start Learning →
-                  </a>
-                </>
-              ) : (
-                <button onClick={() => { logout(); setIsOpen(false); }}
-                  className="w-full text-center py-3 rounded-xl text-sm font-medium border"
-                  style={{ color: COLORS.textMuted, borderColor: COLORS.borderMed }}
-                >
-                  Logout ({role})
-                </button>
-              )}
+
+            <div className="pt-4 border-t flex flex-col gap-3" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+              <button
+                onClick={() => { openLoginModal("student"); setIsOpen(false); }}
+                className="w-full py-3 rounded-xl font-bold border"
+                style={{ color: "rgba(255,255,255,0.7)", borderColor: "rgba(255,255,255,0.15)" }}
+              >
+                Log in
+              </button>
+              <a
+                href="https://wa.link/5pk793"
+                className="w-full text-center py-3 rounded-xl font-bold text-slate-900"
+                style={{ background: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)" }}
+              >
+                Start Free Trial 🚀
+              </a>
             </div>
           </motion.div>
         )}

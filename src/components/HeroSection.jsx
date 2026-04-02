@@ -1,439 +1,310 @@
 // src/components/HeroSection.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { COLORS, SHADOWS } from "../utils/theme";
-import { GraduationCap, Laptop, Star, Users, ArrowRight, ChevronRight } from "lucide-react";
-import PearlxLogo from "../assets/PearlxLogo.png";
-import image1 from "../assets/heroimage1.png";
-import image2 from "../assets/heroimage2.png";
-import image3 from "../assets/heroimage3.png";
-import image4 from "../assets/heroimage4.png";
-import image5 from "../assets/heroimage5.png";
-import image6 from "../assets/heroimage6.png";
+import { MonitorPlay, Sparkles, ArrowRight } from "lucide-react";
+import kid2 from "../assets/kids/KID2.webp"
 
-// All 6 images in the pool
-const ALL_IMAGES = [image1, image2, image3, image4, image5, image6];
+const BLOCK_SNIPPETS = [
+  { emoji: "🔁", label: "repeat 10 times", color: "#10B981", x: "8%", y: "22%" },
+  { emoji: "❓", label: "if touching edge?", color: "#0EA5E9", x: "72%", y: "15%" },
+  { emoji: "📢", label: 'say "Hello!"', color: "#6366F1", x: "80%", y: "60%" },
+  { emoji: "🖱️", label: "when flag clicked", color: "#10B981", x: "5%", y: "68%" },
+  { emoji: "➡️", label: "move 10 steps", color: "#0EA5E9", x: "60%", y: "80%" },
+  { emoji: "⚡", label: "if / else block", color: "#6366F1", x: "35%", y: "88%" },
+];
 
-// Pick 3 unique random indices from the pool, avoiding conflicts with current indices
-function getNextIndex(currentIndexes, slotIndex, pool) {
-  const others = currentIndexes.filter((_, i) => i !== slotIndex);
-  const available = pool.map((_, i) => i).filter(i => !others.includes(i));
-  const filtered = available.filter(i => i !== currentIndexes[slotIndex]);
-  const pick = filtered.length > 0 ? filtered : available;
-  return pick[Math.floor(Math.random() * pick.length)];
-}
+const CYCLING_PHRASES = [
+  "Start with block coding 🧱",
+  "Build real logic 🧠",
+  "Create Scratch games 🎮",
+  "Excel in school CS 📚",
+  "Transition to Python 🐍",
+];
 
-// Hook: manages 3 image slots, each rotating at its own interval
-function useRotatingImages(allImages, intervals = [3000, 4000, 5000]) {
-  const [indexes, setIndexes] = useState([0, 1, 2]);
+const STATS = [
+  { value: "500+", label: "Students Taught" },
+  { value: "3", label: "Structured Categories" },
+  { value: "132", label: "Lessons" },
+];
 
-  useEffect(() => {
-    const timers = intervals.map((ms, slot) =>
-      setInterval(() => {
-        setIndexes(prev => {
-          const next = [...prev];
-          next[slot] = getNextIndex(prev, slot, allImages);
-          return next;
-        });
-      }, ms)
-    );
-    return () => timers.forEach(clearInterval);
-  }, []);
-
-  return indexes.map(i => allImages[i]);
-}
-
-const subjects = ["Python", "Java", "CBSE CS", "ICSE CS", "Web Dev", "DSA", "IGCSE"];
+// Shared noise/grain SVG overlay
+const GrainOverlay = () => (
+  <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.04] z-0" style={{ mixBlendMode: "overlay" }}>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+      <feColorMatrix type="saturate" values="0" />
+    </filter>
+    <rect width="100%" height="100%" filter="url(#grain)" />
+  </svg>
+);
 
 const HeroSection = () => {
-  const [subjectIdx, setSubjectIdx] = useState(0);
+  const [phraseIdx, setPhraseIdx] = useState(0);
   const containerRef = useRef(null);
   const { scrollY } = useScroll();
-  const imgY = useTransform(scrollY, [0, 500], [0, 60]);
-
-  // 3 slots rotating at 2s, 3s, 4s
-  const [img0, img1, img2] = useRotatingImages(ALL_IMAGES, [4000, 6000, 8000]);
+  const contentY = useTransform(scrollY, [0, 400], [0, -60]);
+  const bgY = useTransform(scrollY, [0, 600], [0, 120]);
 
   useEffect(() => {
-    const t = setInterval(() => setSubjectIdx(i => (i + 1) % subjects.length), 2200);
+    const t = setInterval(() => setPhraseIdx(i => (i + 1) % CYCLING_PHRASES.length), 2800);
     return () => clearInterval(t);
   }, []);
 
-  const stats = [
-    { n: "50+", label: "Students taught" },
-    { n: "4.9★", label: "Average rating" },
-    { n: "100%", label: "Board coverage" },
-  ];
+  const particles = useMemo(() =>
+    Array.from({ length: 28 }).map((_, i) => ({
+      id: i,
+      size: Math.random() * 14 + 4,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      duration: 12 + Math.random() * 18,
+      delay: Math.random() * 6,
+      color: i % 3 === 0 ? "#10B981" : i % 3 === 1 ? "#0EA5E9" : "#6366F1",
+      blur: Math.random() * 5 + 3,
+    })), []);
 
   return (
-    <section
-      ref={containerRef}
-      className="relative min-h-screen flex items-start lg:items-center overflow-hidden pt-20"
-      style={{ background: "linear-gradient(160deg, #F9F7F4 0%, #F0EDE7 50%, #F9F7F4 100%)" }}
-    >
-      {/* Noise texture overlay */}
-      <div className="absolute inset-0 opacity-30 pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E")`,
-        }} />
+    <section ref={containerRef} className="relative min-h-screen flex items-center overflow-hidden pt-20 bg-white">
+      <GrainOverlay />
 
-      {/* Subtle radial glow — gold */}
-      <div className="absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 65%)" }} />
-      <div className="absolute -bottom-20 -left-20 w-[500px] h-[500px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(14,14,14,0.04) 0%, transparent 70%)" }} />
+      {/* ── LAYERED BACKGROUND ── */}
+      <motion.div style={{ y: bgY }} className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Ambient gradient orbs */}
+        <motion.div
+          animate={{ rotate: 360, scale: [1, 1.12, 1] }}
+          transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-[15%] -right-[8%] w-[65vw] h-[65vw] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(14,165,233,0.18) 0%, transparent 70%)", filter: "blur(40px)" }}
+        />
+        <motion.div
+          animate={{ rotate: -360, scale: [1, 1.18, 1] }}
+          transition={{ duration: 38, repeat: Infinity, ease: "linear" }}
+          className="absolute top-[25%] -left-[12%] w-[55vw] h-[55vw] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(16,185,129,0.18) 0%, transparent 70%)", filter: "blur(40px)" }}
+        />
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], opacity: [0.12, 0.2, 0.12] }}
+          transition={{ duration: 22, repeat: Infinity }}
+          className="absolute bottom-[-5%] left-[35%] w-[40vw] h-[40vw] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)", filter: "blur(50px)" }}
+        />
 
-      {/* Fine horizontal rule lines — editorial detail */}
-      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: "rgba(201,168,76,0.2)" }} />
+        {/* Floating particles */}
+        {particles.map((p) => (
+          <motion.div
+            key={p.id}
+            className="absolute rounded-full"
+            style={{ width: p.size, height: p.size, left: p.left, top: p.top, backgroundColor: p.color, filter: `blur(${p.blur}px)` }}
+            animate={{ y: [0, -120, 0], x: [0, (p.id % 2 === 0 ? 1 : -1) * (Math.random() * 40 + 10), 0], opacity: [0.08, 0.28, 0.08] }}
+            transition={{ duration: p.duration, repeat: Infinity, delay: p.delay, ease: "easeInOut" }}
+          />
+        ))}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full pt-8 pb-20 lg:py-16">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+        {/* Grid pattern */}
+        <div className="absolute inset-0 opacity-[0.025]"
+          style={{ backgroundImage: "linear-gradient(#0F172A 1px, transparent 1px), linear-gradient(90deg, #0F172A 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
 
-          {/* ── LEFT COLUMN ── */}
-          <div className="relative z-10">
-            {/* Eyebrow tag */}
+        {/* Floating code blocks */}
+        {BLOCK_SNIPPETS.map((b, i) => (
+          <motion.div
+            key={i}
+            className="absolute flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold shadow-xl border hidden lg:flex"
+            style={{ color: b.color, left: b.x, top: b.y, background: "rgba(255,255,255,0.75)", backdropFilter: "blur(14px)", borderColor: `${b.color}25`, zIndex: 5 }}
+            animate={{ y: [0, -24 + (i * 4) % 12, 0], rotate: [0, i % 2 === 0 ? 4 : -3, 0], scale: [1, 1.02, 1] }}
+            transition={{ duration: 10 + i * 1.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.7 }}
+          >
+            <span className="text-lg">{b.emoji}</span>
+            <span style={{ color: "#0F172A", opacity: 0.75 }}>{b.label}</span>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      <motion.div style={{ y: contentY }} className="max-w-7xl mx-auto px-6 w-full py-20 relative z-20">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+
+          {/* ── LEFT: Content ── */}
+          <div className="relative">
+            {/* Live badge */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-xs font-semibold mb-7 border"
-              style={{
-                background: "rgba(201,168,76,0.08)",
-                borderColor: "rgba(201,168,76,0.25)",
-                color: COLORS.goldDeep,
-                letterSpacing: "0.05em",
-              }}
+              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-xs font-bold mb-8 bg-white border border-slate-200 text-slate-700 shadow-sm"
             >
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: COLORS.gold }} />
-              Online Tuition · CBSE · ICSE · IGCSE
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
+              Coding for Kids · Academic CS Tuition
             </motion.div>
 
-            {/* Main headline */}
+            {/* Headline */}
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="font-display leading-[1.03] font-bold mb-6"
-              style={{
-                color: COLORS.ink,
-                letterSpacing: "-0.035em",
-                fontSize: "clamp(2.8rem, 5.5vw, 4.2rem)",
-                fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
-              }}
+              transition={{ delay: 0.1, duration: 0.7 }}
+              className="font-extrabold leading-[1.05] mb-6 tracking-tight"
+              style={{ fontSize: "clamp(2.8rem, 5.5vw, 4.5rem)", color: "#0F172A" }}
             >
-              Learn{" "}
-              <em style={{ color: COLORS.gold, fontStyle: "italic" }}>CS</em>
+              Master logic.{" "}
               <br />
-              from{" "}
-              <span className="relative inline-block">
-                real
-                <svg className="absolute -bottom-1 left-0 w-full" height="6" viewBox="0 0 120 6" preserveAspectRatio="none">
-                  <path d="M2 4 Q30 1 60 3.5 Q90 6 118 2.5" stroke="#C9A84C" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                </svg>
+              <span
+                className="relative inline-block"
+                style={{ background: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
+              >
+                Create with code.
+                {/* Underline glow */}
+                <motion.span
+                  animate={{ scaleX: [0.6, 1, 0.6], opacity: [0.4, 0.7, 0.4] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                  className="absolute -bottom-2 left-0 right-0 h-1 rounded-full"
+                  style={{ background: "linear-gradient(90deg, #0EA5E9, #10B981)", filter: "blur(4px)" }}
+                />
               </span>
-              {" "}developers
             </motion.h1>
 
-            {/* Rotating subject pill */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="flex items-center gap-3 mb-7"
-            >
-              <span className="text-sm font-medium" style={{ color: COLORS.textMuted }}>Currently teaching →</span>
-              <div className="relative overflow-hidden h-8 flex items-center">
+            {/* Cycling phrase */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="flex items-center gap-3 mb-8">
+              <div className="relative overflow-hidden h-10 flex items-center">
                 <AnimatePresence mode="wait">
-                  <motion.span key={subjectIdx}
-                    initial={{ y: 18, opacity: 0 }}
+                  <motion.span
+                    key={phraseIdx}
+                    initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -18, opacity: 0 }}
-                    transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide"
-                    style={{
-                      background: "linear-gradient(135deg, #C9A84C 0%, #E2BA5F 100%)",
-                      color: "#0E0E0E",
-                      boxShadow: "0 2px 12px rgba(201,168,76,0.35)",
-                      letterSpacing: "0.03em",
-                    }}
+                    exit={{ y: -20, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="inline-flex items-center px-5 py-2 rounded-full text-sm font-bold text-white shadow-lg"
+                    style={{ background: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)" }}
                   >
-                    {subjects[subjectIdx]}
+                    {CYCLING_PHRASES[phraseIdx]}
                   </motion.span>
                 </AnimatePresence>
               </div>
             </motion.div>
 
+            {/* Description */}
             <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-base leading-relaxed mb-9 max-w-md"
-              style={{ color: COLORS.textSecondary, lineHeight: 1.8 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+              className="text-lg leading-relaxed mb-10 max-w-lg font-medium"
+              style={{ color: "#475569" }}
             >
-              Computer Science tuition for CBSE, ICSE & IGCSE students — and coding courses for beginners.
-              Taught by developers who build production software.
+              We start with <strong className="text-emerald-600">visual block coding</strong> so kids build logic effortlessly.
+              Plus, dedicated <strong className="text-slate-900">CS & IP Tuition</strong> for Classes 6–12 to ace board exams.
             </motion.p>
 
             {/* CTA buttons */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex flex-wrap gap-3 mb-11"
+              transition={{ delay: 0.5 }}
+              className="flex flex-wrap gap-4 mb-12"
             >
               <motion.a
                 href="https://wa.link/5pk793"
-                whileHover={{ scale: 1.03, boxShadow: "0 8px 30px rgba(201,168,76,0.4)" }}
-                whileTap={{ scale: 0.97 }}
-                className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-sm font-bold tracking-wide"
-                style={{
-                  background: "linear-gradient(135deg, #C9A84C 0%, #A07830 100%)",
-                  color: "#0E0E0E",
-                  boxShadow: "0 4px 20px rgba(201,168,76,0.3)",
-                  letterSpacing: "0.03em",
-                }}
+                whileHover={{ scale: 1.05, boxShadow: "0 16px 40px rgba(16,185,129,0.4)" }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white"
+                style={{ background: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)", boxShadow: "0 8px 28px rgba(16,185,129,0.3)" }}
               >
-                <GraduationCap className="w-4 h-4" />
-                Join CS Classes
+                🚀 Book Free Trial
               </motion.a>
               <motion.a
-                href="https://wa.link/ctfbjv"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-sm font-bold tracking-wide border"
-                style={{
-                  color: COLORS.ink,
-                  borderColor: COLORS.borderStrong,
-                  background: "rgba(255,255,255,0.7)",
-                  backdropFilter: "blur(8px)",
-                  letterSpacing: "0.03em",
-                }}
+                href="#curriculum"
+                whileHover={{ scale: 1.05, borderColor: "#0EA5E9" }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold border-2 transition-colors"
+                style={{ color: "#0EA5E9", borderColor: "rgba(14,165,233,0.3)", background: "rgba(14,165,233,0.04)" }}
               >
-                <Laptop className="w-4 h-4" />
-                Get a Website Built
-              </motion.a>
-              <motion.a
-                href="https://wa.link/5pk793"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-sm font-bold tracking-wide border"
-                style={{
-                  color: COLORS.goldDeep,
-                  borderColor: "rgba(201,168,76,0.4)",
-                  background: COLORS.goldLight,
-                  letterSpacing: "0.03em",
-                }}
-              >
-                <ChevronRight className="w-4 h-4" />
-                Book a Free Demo
+                <MonitorPlay className="w-5 h-5" /> View Programs
               </motion.a>
             </motion.div>
 
             {/* Stats row */}
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.65 }}
-              className="flex items-center gap-8 flex-wrap"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+              className="flex gap-8 pt-8 border-t border-slate-100"
             >
-              {stats.map((s, i) => (
-                <div key={i} className="text-center">
-                  <div className="font-bold text-2xl"
-                    style={{
-                      color: COLORS.ink,
-                      fontFamily: "'Cormorant Garamond', Georgia, serif",
-                      letterSpacing: "-0.02em",
-                    }}>
-                    {s.n}
-                  </div>
-                  <div className="text-xs mt-0.5" style={{ color: COLORS.textMuted, letterSpacing: "0.04em" }}>{s.label}</div>
+              {STATS.map((s, i) => (
+                <div key={i}>
+                  <div className="text-2xl font-extrabold" style={{ color: "#0F172A" }}>{s.value}</div>
+                  <div className="text-xs font-semibold" style={{ color: "#64748B" }}>{s.label}</div>
                 </div>
               ))}
-              <div className="w-px h-10 hidden sm:block" style={{ background: COLORS.smoke }} />
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {["#C9A84C","#8E9AAB","#3D3D3D","#B87333"].map((c, i) => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold"
-                      style={{ background: c, color: i === 2 ? "#fff" : "#0E0E0E" }}>
-                      {["A","R","S","K"][i]}
-                    </div>
-                  ))}
-                </div>
-                <span className="text-xs" style={{ color: COLORS.textMuted, letterSpacing: "0.03em" }}>Students enrolled</span>
-              </div>
             </motion.div>
           </div>
 
-          {/* ── RIGHT COLUMN — Rotating Image Collage ── */}
+          {/* ── RIGHT: Visual Panel ── */}
           <motion.div
-            className="relative w-full mb-16 lg:mb-0"
-            style={{ y: imgY, height: "min(540px, 80vw)" }}
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="relative w-full h-[520px] lg:h-[640px] flex items-center justify-center"
           >
-            {/* Decorative frame */}
-            <div className="absolute rounded-3xl border hidden lg:block"
-              style={{ borderColor: "rgba(201,168,76,0.2)", top: "12px", right: "-12px", width: "42%", height: "58%" }} />
-
-            {/* Slot 0 — large left card */}
+            {/* Spinning rings */}
             <motion.div
-              transition={{ delay: 0.3, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute rounded-3xl overflow-hidden"
-              style={{
-                boxShadow: SHADOWS.float,
-                left: "4%", top: "0%",
-                width: "48%", height: "58%",
-                rotate: -2,
-              }}
-            >
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={img0}
-                  src={img0}
-                  alt="Student learning"
-                  className="w-full h-full object-cover absolute inset-0"
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
-                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                />
-              </AnimatePresence>
-              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent 50%, rgba(14,14,14,0.5) 100%)" }} />
-              <div className="absolute bottom-4 left-4 z-10">
-                <p className="text-white font-semibold italic"
-                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(0.75rem, 2vw, 1rem)" }}>
-                  Class in session
-                </p>
-              </div>
-            </motion.div>
-
-            {/* Slot 1 — top right card */}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-4 rounded-full border-2 border-dashed"
+              style={{ borderColor: "rgba(16,185,129,0.2)", zIndex:20 }}
+            />
             <motion.div
-              transition={{ delay: 0.5, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute rounded-3xl overflow-hidden"
-              style={{
-                boxShadow: SHADOWS.float,
-                right: "0%", top: "8%",
-                width: "42%", height: "46%",
-                rotate: 3,
-              }}
-            >
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={img1}
-                  src={img1}
-                  alt="Group study"
-                  className="w-full h-full object-cover absolute inset-0"
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
-                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                />
-              </AnimatePresence>
-            </motion.div>
-
-            {/* Slot 2 — bottom card */}
+              animate={{ rotate: -360 }}
+              transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-16 rounded-full border-2 border-dashed"
+              style={{ borderColor: "rgba(14,165,233,0.2)" }}
+            />
             <motion.div
-              transition={{ delay: 0.7, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute rounded-3xl overflow-hidden"
-              style={{
-                boxShadow: SHADOWS.float,
-                left: "14%", bottom: "0%",
-                width: "44%", height: "36%",
-                rotate: -1,
-              }}
-            >
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={img2}
-                  src={img2}
-                  alt="Learning"
-                  className="w-full h-full object-cover absolute inset-0"
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
-                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                />
-              </AnimatePresence>
-            </motion.div>
+              animate={{ rotate: 360 }}
+              transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-28 rounded-full border border-dashed"
+              style={{ borderColor: "rgba(99,102,241,0.15)" }}
+            />
 
-            {/* Floating badge — rating */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ delay: 0.9, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
-              className="absolute z-20"
-              style={{ top: "6%", right: "4%" }}
-            >
-              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl border"
-                style={{ background: COLORS.white, borderColor: COLORS.borderGold, boxShadow: SHADOWS.lg }}>
-                <div className="flex">
-                  {[1,2,3,4,5].map(i => (
-                    <Star key={i} className="w-2.5 h-2.5 fill-current" style={{ color: COLORS.gold }} />
-                  ))}
-                </div>
-                <span className="text-xs font-bold" style={{ color: COLORS.ink }}>4.9 Rating</span>
-              </div>
-            </motion.div>
+            {/* Central glow */}
+            <div className="absolute inset-32 rounded-full"
+              style={{ background: "radial-gradient(circle, rgba(14,165,233,0.08) 0%, rgba(16,185,129,0.06) 50%, transparent 80%)", filter: "blur(20px)" }} />
 
-            {/* Floating badge — live class */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ delay: 1.1, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
-              className="absolute z-20"
-              style={{ bottom: "30%", right: "2%" }}
-            >
-              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl"
-                style={{ background: COLORS.ink, boxShadow: SHADOWS.lg }}>
-                <span className="w-2 h-2 rounded-full animate-pulse flex-shrink-0" style={{ background: "#5A8A6A" }} />
-                <span className="text-xs font-bold text-white tracking-wide whitespace-nowrap">Live Class Now</span>
-              </div>
-            </motion.div>
-
-            {/* Floating badge — students */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ delay: 1.3, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
-              className="absolute z-20"
-              style={{ bottom: "4%", right: "26%" }}
-            >
-              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl border"
-                style={{ background: COLORS.white, borderColor: COLORS.border, boxShadow: SHADOWS.md }}>
-                <Users className="w-3 h-3 flex-shrink-0" style={{ color: COLORS.gold }} />
-                <span className="text-xs font-bold whitespace-nowrap" style={{ color: COLORS.ink }}>50+ Students</span>
-              </div>
-            </motion.div>
-
-            {/* Dot grid */}
-            <div className="absolute -top-6 -left-4 grid grid-cols-5 gap-2 opacity-25 hidden sm:grid">
-              {[...Array(25)].map((_, i) => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: COLORS.gold }} />
-              ))}
+            {/* Hero image */}
+            <div className="relative z-20 w-full max-w-[440px]">
+              <img
+                src={kid2}
+                alt="Kid Coding"
+                className="w-full h-auto object-contain"
+                style={{ filter: "drop-shadow(0 24px 48px rgba(0,0,0,0.1))" }}
+              />
             </div>
+
+            {/* Floating info cards */}
+            <motion.div
+              animate={{ y: [0, -18, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-[8%] right-[0%] z-30 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-white flex items-center gap-3"
+            >
+              <div className="bg-emerald-100 text-emerald-600 p-3 rounded-xl text-2xl">🏆</div>
+              <div>
+                <div className="text-sm font-extrabold text-slate-900">Board Excellence</div>
+                <div className="text-xs text-slate-500 font-medium">Classes 6–12</div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              animate={{ y: [0, 18, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="absolute bottom-[12%] left-[-2%] z-30 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-white flex items-center gap-3"
+            >
+              <div className="bg-cyan-100 text-cyan-600 p-3 rounded-xl text-2xl">🧱</div>
+              <div>
+                <div className="text-sm font-extrabold text-slate-900">Block to Text</div>
+                <div className="text-xs text-slate-500 font-medium">Smooth Progression</div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              animate={{ y: [0, -12, 0] }}
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+              className="absolute bottom-[35%] right-[-4%] z-30 bg-white/90 backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl border border-white flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-indigo-500" />
+              <span className="text-sm font-extrabold text-slate-900">6+ modules · 132 Lessons</span>
+            </motion.div>
           </motion.div>
         </div>
-      </div>
-
-      {/* Subject marquee ticker */}
-      <div className="absolute bottom-0 left-0 right-0 py-3 border-t overflow-hidden"
-        style={{ background: COLORS.ink, borderColor: "rgba(201,168,76,0.2)" }}>
-        <style>{`
-          @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-          .marquee-inner { display: flex; animation: marquee 30s linear infinite; width: max-content; }
-        `}</style>
-        <div className="marquee-inner flex gap-8 whitespace-nowrap">
-          {[...Array(2)].map((_, rep) => (
-            <div key={rep} className="flex gap-8">
-              {["Python", "Java", "CBSE Board", "ICSE Board", "IGCSE", "Web Development", "Data Structures", "Computer Applications", "SQL & DBMS", "React & Node", "Algorithms", "IT Fundamentals"].map((s, i) => (
-                <span key={i} className="text-sm font-medium flex items-center gap-3" style={{ color: "rgba(255,255,255,0.45)", letterSpacing: "0.04em" }}>
-                  <span className="w-1 h-1 rounded-full inline-block" style={{ background: COLORS.gold }} />
-                  {s}
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
+      </motion.div>
     </section>
   );
 };

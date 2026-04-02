@@ -1,157 +1,84 @@
 // src/components/WhyPearlxSection.jsx
-import React, { useRef } from "react";
-import { motion, useInView } from "framer-motion";
-import { Cpu, Target, BookOpen, Users, Zap, Star } from "lucide-react";
-import { COLORS, SHADOWS } from "../utils/theme";
-import img from "../assets/chooseus.png";
+import React from "react";
+import { motion } from "framer-motion";
+import { Zap, Target, Users, ShieldCheck, Trophy, Clock } from "lucide-react";
 
-const reasons = [
-  { icon: Cpu, title: "Taught by real developers", desc: "Not academic tutors. People who build production apps and teach from hard-won experience." },
-  { icon: Target, title: "Concept first, always", desc: "We build intuition so you can solve any problem — not just the ones from the textbook." },
-  { icon: BookOpen, title: "Board-exam focused", desc: "Past papers, marking schemes, exam patterns. We know exactly what examiners want." },
-  { icon: Users, title: "Small batches only", desc: "Max 6 students per batch. Every student gets attention, every question gets answered." },
-  { icon: Zap, title: "Project-based learning", desc: "Every topic ends with a mini project. Students leave with a portfolio, not just notes." },
-  { icon: Star, title: "Parents stay in the loop", desc: "Weekly progress reports and open communication. No surprises at report card time." },
+const features = [
+  { icon: Zap, t: "100% Projects", d: "Every lesson results in a real game, app, or website the student can show off.", color: "#10B981", bg: "rgba(16,185,129,0.1)" },
+  { icon: Target, t: "Board Ready", d: "Targeted tuition strategies for CBSE, ICSE, and state board CS exams.", color: "#0EA5E9", bg: "rgba(14,165,233,0.1)" },
+  { icon: Users, t: "Small Batches", d: "Maximum 3–5 students per class for genuine focus and attention.", color: "#6366F1", bg: "rgba(99,102,241,0.1)" },
+  { icon: ShieldCheck, t: "Certified", d: "Industry-standard certification issued at the end of each completed module.", color: "#C9A84C", bg: "rgba(201,168,76,0.1)" },
+  { icon: Trophy, t: "Grand Showcase", d: "Students present their capstone projects to parents at level completion.", color: "#10B981", bg: "rgba(16,185,129,0.1)" },
+  { icon: Clock, t: "Flexible Timing", d: "Schedule sessions at your convenience — weekdays or weekends.", color: "#0EA5E9", bg: "rgba(14,165,233,0.1)" },
 ];
 
-const WhyPearlxSection = () => {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+const WhyPearlxSection = () => (
+  <section className="py-28 relative overflow-hidden" style={{ background: "#F8FAFC" }}>
+    {/* Live background */}
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <motion.div animate={{ rotate: 360 }} transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+        className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)", filter: "blur(40px)" }} />
+      <motion.div animate={{ rotate: -360 }} transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
+        className="absolute bottom-[-20%] right-[-10%] w-[45vw] h-[45vw] rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%)", filter: "blur(40px)" }} />
+      <div className="absolute inset-0 opacity-[0.3]"
+        style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(15,23,42,0.06) 1px, transparent 0)", backgroundSize: "40px 40px" }} />
+      {/* Floating particles */}
+      {[...Array(8)].map((_, i) => (
+        <motion.div key={i}
+          className="absolute w-2 h-2 rounded-full"
+          style={{ background: i % 2 === 0 ? "#10B981" : "#0EA5E9", left: `${10 + i * 11}%`, opacity: 0.25 }}
+          animate={{ y: [0, -80, 0], opacity: [0, 0.35, 0] }}
+          transition={{ duration: 6 + i * 0.8, repeat: Infinity, delay: i * 0.6 }}
+        />
+      ))}
+    </div>
 
-  return (
-    <section className="py-28" style={{ background: COLORS.bgSecondary }}>
-      {/* Top border line */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 mb-16">
-        <div className="h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(201,168,76,0.3), transparent)" }} />
-      </div>
+    <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
+      <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
+        className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "#10B981", letterSpacing: "0.14em" }}>
+        Why Choose Us
+      </motion.p>
+      <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+        transition={{ delay: 0.1 }}
+        className="font-extrabold mb-16 tracking-tight"
+        style={{ fontSize: "clamp(2rem, 4vw, 3rem)", color: "#0F172A", letterSpacing: "-0.03em" }}>
+        Why{" "}
+        <span style={{ background: "linear-gradient(135deg, #10B981 0%, #0EA5E9 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+          Pearlx?
+        </span>
+      </motion.h2>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid lg:grid-cols-2 gap-16 items-start">
-          {/* Left — Image + quote */}
-          <div className="relative">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
-              className="relative rounded-3xl overflow-hidden"
-              style={{ boxShadow: SHADOWS.float }}
-            >
-              <img
-                src={img}
-                alt="Online class"
-                className="w-full h-80 object-cover"
-              />
-              <div className="absolute inset-0"
-                style={{ background: "linear-gradient(180deg, transparent 35%, rgba(14,14,14,0.75) 100%)" }} />
-              {/* Gold accent strip */}
-              <div className="absolute top-0 left-0 right-0 h-0.5"
-                style={{ background: "linear-gradient(90deg, #C9A84C, #E2BA5F, #C9A84C)" }} />
-              <div className="absolute bottom-5 left-5 right-5">
-                <p style={{
-                  color: "#fff",
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontStyle: "italic",
-                  fontWeight: 600,
-                  fontSize: "1.15rem",
-                  lineHeight: 1.45,
-                }}>
-                  "Our goal is simple — make sure every<br></br>Student Truely understands CS."
-                </p>
-                <p className="text-sm mt-2" style={{ color: "rgba(255,255,255,0.5)" }}>— Pearlx Founder</p>
-              </div>
-            </motion.div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {features.map((f, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.1, duration: 0.5 }}
+            whileHover={{ scale: 1.04, y: -6, transition: { duration: 0.2 } }}
+            className="p-8 rounded-[2rem] bg-white border-2 text-left relative overflow-hidden group"
+            style={{ borderColor: "rgba(15,23,42,0.06)", boxShadow: "0 4px 20px rgba(15,23,42,0.04)" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = `${f.color}30`; e.currentTarget.style.boxShadow = `0 20px 48px ${f.bg}, 0 4px 12px rgba(15,23,42,0.04)`; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(15,23,42,0.06)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(15,23,42,0.04)"; }}
+          >
+            {/* Top accent line on hover */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              style={{ background: `linear-gradient(90deg, transparent, ${f.color}, transparent)` }} />
 
-            {/* Second smaller image */}
-            <motion.div
-              initial={{ opacity: 0, y: 20, rotate: 3 }}
-              whileInView={{ opacity: 1, y: 0, rotate: 2 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3, duration: 0.65 }}
-              className="absolute -bottom-8 -right-6 w-44 h-32 rounded-2xl overflow-hidden border-4 border-white"
-              style={{ boxShadow: SHADOWS.lg }}
-            >
-              <img src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=300&q=80"
-                alt="Coding" className="w-full h-full object-cover" />
-            </motion.div>
-
-            {/* Floating stat */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.5, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
-              className="absolute -top-5 -left-5 px-4 py-3 rounded-2xl border"
-              style={{
-                background: COLORS.white,
-                borderColor: "rgba(201,168,76,0.25)",
-                boxShadow: `${SHADOWS.lg}, 0 0 0 1px rgba(201,168,76,0.1)`,
-              }}
-            >
-              <div className="font-bold text-2xl"
-                style={{ color: COLORS.gold, fontFamily: "'Cormorant Garamond', Georgia, serif", letterSpacing: "-0.02em" }}>
-                98%
-              </div>
-              <div className="text-xs" style={{ color: COLORS.textMuted, letterSpacing: "0.04em" }}>pass rate</div>
-            </motion.div>
-          </div>
-
-          {/* Right — Reasons */}
-          <div ref={ref}>
-            <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-              className="text-xs font-bold tracking-widest uppercase mb-3"
-              style={{ color: COLORS.gold, letterSpacing: "0.12em" }}>
-              Why Pearlx
-            </motion.p>
-            <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="font-bold mb-10"
-              style={{
-                color: COLORS.ink,
-                letterSpacing: "-0.03em",
-                fontSize: "clamp(2.2rem, 4vw, 3.2rem)",
-                fontFamily: "'Cormorant Garamond', Georgia, serif",
-                lineHeight: 1.1,
-              }}>
-              Why students{" "}
-              <em style={{ color: COLORS.gold }}>choose us</em>
-            </motion.h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {reasons.map((r, i) => (
-                <motion.div key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={inView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.5, delay: i * 0.08 }}
-                  className="flex gap-3.5 p-4 rounded-2xl border transition-all duration-200 cursor-default"
-                  style={{ background: COLORS.white, borderColor: COLORS.border }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = "rgba(201,168,76,0.3)";
-                    e.currentTarget.style.boxShadow = SHADOWS.md;
-                    e.currentTarget.style.background = COLORS.goldLight;
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = COLORS.border;
-                    e.currentTarget.style.boxShadow = "none";
-                    e.currentTarget.style.background = COLORS.white;
-                  }}
-                >
-                  <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: COLORS.goldLight }}>
-                    <r.icon className="w-4 h-4" style={{ color: COLORS.gold }} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold mb-0.5" style={{ color: COLORS.ink }}>{r.title}</h4>
-                    <p className="text-xs leading-relaxed" style={{ color: COLORS.textMuted }}>{r.desc}</p>
-                  </div>
-                </motion.div>
-              ))}
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+              style={{ background: f.bg }}>
+              <f.icon className="w-6 h-6" style={{ color: f.color }} />
             </div>
-          </div>
-        </div>
+            <h4 className="font-bold text-lg mb-2" style={{ color: "#0F172A" }}>{f.t}</h4>
+            <p className="text-slate-500 text-sm leading-relaxed">{f.d}</p>
+          </motion.div>
+        ))}
       </div>
-    </section>
-  );
-};
+    </div>
+  </section>
+);
 
 export default WhyPearlxSection;

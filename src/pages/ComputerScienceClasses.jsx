@@ -2,6 +2,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Check, ChevronDown, Trophy, Zap, Star, BookOpen, Users, Clock } from "lucide-react";
+import lp1 from "../assets/kids/LP1.webp"
+import bp1 from "../assets/kids/BP1.webp"
+import rp1 from "../assets/kids/RP1.webp"
 
 const T = { bg:"#F0FFFE",ink:"#0F172A",green:"#10B981",sky:"#0EA5E9",
   yellow:"#FFD166",pink:"#FF6B9D",purple:"#A78BFA" };
@@ -21,7 +24,7 @@ const LEVELS = [
     ],
     tools:["Scratch Jr","Code.org","Trinket.io"],
     highlight:"Drag-and-drop blocks — no typing needed!",
-    kidImg:"/images/kids/little-pearls-hero.png",
+    kidImg:lp1,
     desc:"A magic-first approach where children build logic through animated drag-and-drop blocks. No typing, no syntax stress — pure creative joy that builds real computational thinking.",
     achievement:"🐣 Coder Badge",
   },
@@ -39,7 +42,7 @@ const LEVELS = [
     ],
     tools:["Scratch","Thunkable","Replit"],
     highlight:"Block coding + intro to real text code!",
-    kidImg:"/images/kids/bright-pearls-hero.png",
+    kidImg:bp1,
     desc:"Students start building real games and apps. Advanced Scratch projects transition naturally into Python, creating the confidence needed for text-based programming.",
     achievement:"🌿 Builder Badge",
   },
@@ -57,20 +60,30 @@ const LEVELS = [
     ],
     tools:["Replit","GitHub Pages","Thunkable"],
     highlight:"Python, JS, web dev — real text coding!",
-    kidImg:"/images/kids/rising-pearls-hero.png",
+    kidImg:rp1,
     desc:"Pro-grade programming that matters. Python OOP, full-stack web development, mobile apps — students graduate with a real portfolio they can show universities and employers.",
     achievement:"🦋 Pro Coder Badge",
   },
 ];
 
+const LOGOS = {
+  python: "https://upload.wikimedia.org/wikipedia/commons/c/c3/Python-logo-notext.svg",
+  java: "https://upload.wikimedia.org/wikipedia/en/3/30/Java_programming_language_logo.svg",
+  web: "https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png",
+  sql: "https://upload.wikimedia.org/wikipedia/commons/8/87/Sql_data_base_with_logo.png",
+  ds: "https://cdn-icons-png.flaticon.com/512/2103/2103633.png", // Generic Algorithm Icon
+  tuition: "https://cdn-icons-png.flaticon.com/512/3426/3426653.png" // Education Icon
+};
+
 const COURSES = [
-  {icon:"🐍",name:"Python",desc:"Basics to advanced OOP, projects & automation",tags:"Classes 7–12",color:T.green},
-  {icon:"☕",name:"Java",desc:"OOP fundamentals, data structures for ICSE/ISC",tags:"Classes 9–12",color:"#FF9F43"},
-  {icon:"🌐",name:"Web Development",desc:"HTML, CSS, JavaScript, React — build real websites",tags:"Classes 7–12",color:T.sky},
-  {icon:"🗄️",name:"DBMS & SQL",desc:"Databases, SQL queries, ER diagrams for boards",tags:"Classes 10–12",color:T.purple},
-  {icon:"🌲",name:"Data Structures",desc:"Arrays, stacks, trees, algorithms — exam-ready",tags:"Classes 11–12",color:T.pink},
-  {icon:"📚",name:"CS / IT Tuition",desc:"CBSE, ICSE, IGCSE board exam tuition & past papers",tags:"Classes 6–12",color:T.yellow},
+  { logo: LOGOS.python, name: "Python", desc: "Basics to advanced OOP, projects & automation", tags: "Classes 7–12", color: T.green },
+  { logo: LOGOS.java, name: "Java", desc: "OOP fundamentals, data structures for ICSE/ISC", tags: "Classes 9–12", color: "#FF9F43" },
+  { logo: LOGOS.web, name: "Web Development", desc: "HTML, CSS, JavaScript, React — build real websites", tags: "Classes 7–12", color: T.sky },
+  { logo: LOGOS.sql, name: "DBMS & SQL", desc: "Databases, SQL queries, ER diagrams for boards", tags: "Classes 10–12", color: T.purple },
+  { logo: LOGOS.ds, name: "Data Structures", desc: "Arrays, stacks, trees, algorithms — exam-ready", tags: "Classes 11–12", color: T.pink },
+  { logo: LOGOS.tuition, name: "CS / IT Tuition", desc: "CBSE, ICSE, IGCSE board exam tuition & past papers", tags: "Classes 6–12", color: T.yellow },
 ];
+
 
 const BOARDS = [
   {name:"CBSE",sub:"CS & IT · Class 6–12",color:"#FFD166",bg:"rgba(255,209,102,0.1)",emoji:"📗"},
@@ -166,24 +179,26 @@ const LevelCard = ({level,index}) => {
           </div>
         </div>
         {/* Right: kid image */}
-        <div className="lg:w-52 flex-shrink-0">
-          <div className="relative h-48 rounded-2xl overflow-hidden"
-            style={{background:`${level.color}10`,border:`2px solid ${level.border}`}}>
-            <img src={level.kidImg} alt={level.name}
-              className="absolute bottom-0 left-1/2 -translate-x-1/2 h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
-              onError={e=>{e.target.style.display="none";}} />
-            <div className="absolute top-3 right-3 text-3xl">{level.emoji}</div>
-            {/* Stats */}
-            <div className="absolute bottom-0 left-0 right-0 flex bg-white/80 backdrop-blur-sm p-2">
-              {[{v:"9",l:"Modules"},{v:"44",l:"Lessons"},{v:"6+",l:"Projects"}].map((s,si)=>(
-                <div key={si} className="flex-1 text-center">
-                  <div className="font-black text-sm" style={{color:level.textColor}}>{s.v}</div>
-                  <div className="text-[9px] text-slate-400 uppercase tracking-wide font-semibold">{s.l}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="w-full lg:w-52 flex-shrink-0">
+  <div className="relative h-48 lg:h-52 rounded-2xl overflow-hidden"
+    style={{background:`${level.color}10`, border:`2px solid ${level.border}`}}>
+    
+    <img src={level.kidImg} alt={level.name}
+      // Fixed: Removed absolute positioning for mobile flow, or used inset-0 
+      className="absolute bottom-0 left-1/2 -translate-x-1/2 h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+      onError={e=>{e.target.style.display="none";}} />
+    
+    {/* Stats Strip */}
+    <div className="absolute bottom-0 left-0 right-0 flex bg-white/80 backdrop-blur-sm p-2">
+      {[{v:"9",l:"Modules"},{v:"44",l:"Lessons"},{v:"6+",l:"Projects"}].map((s,si)=>(
+        <div key={si} className="flex-1 text-center">
+          <div className="font-black text-sm" style={{color:level.textColor}}>{s.v}</div>
+          <div className="text-[9px] text-slate-400 uppercase tracking-wide font-semibold">{s.l}</div>
         </div>
+      ))}
+    </div>
+  </div>
+</div>
       </div>
       {/* Module grid toggle */}
       <div className="px-8 pb-8">
@@ -350,30 +365,33 @@ const ComputerScienceClasses = () => (
         </motion.h2>
         <p className="text-slate-500 mb-8 text-sm">Deep dives into specific technologies or board exam tuition for Classes 7–12.</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {COURSES.map((c,i)=>(
-            <motion.div key={i} initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}}
-              viewport={{once:true}} transition={{delay:i*0.07}}
-              whileHover={{y:-8}} className="p-6 rounded-3xl border-2 bg-white relative overflow-hidden group"
-              style={{borderColor:"rgba(15,23,42,0.06)",boxShadow:"0 4px 16px rgba(0,0,0,0.04)",transition:"all 0.25s"}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=`${c.color}40`;e.currentTarget.style.boxShadow=`0 20px 48px ${c.color}18`;}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(15,23,42,0.06)";e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,0.04)";}}>
-              <div className="absolute top-0 left-0 right-0 h-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{background:`linear-gradient(90deg,transparent,${c.color},transparent)`}} />
-              {/* mini visual */}
-              <div className="h-20 rounded-2xl mb-4 flex items-center justify-center"
-                style={{background:`${c.color}10`,border:`1px solid ${c.color}20`}}>
-                <span className="text-4xl">{c.icon}</span>
-                <div className="absolute top-3 right-3 px-2 py-0.5 rounded-lg text-[9px] font-bold"
-                  style={{background:`${c.color}20`,color:c.color}}>{c.tags}</div>
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">{c.icon}</span>
-                <span className="font-black text-base" style={{color:T.ink}}>{c.name}</span>
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed">{c.desc}</p>
-            </motion.div>
-          ))}
-        </div>
+  {COURSES.map((c, i) => (
+    <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }} transition={{ delay: i * 0.07 }}
+      whileHover={{ y: -8 }} className="p-6 rounded-3xl border-2 bg-white relative overflow-hidden group"
+      style={{ borderColor: "rgba(15,23,42,0.06)", boxShadow: "0 4px 16px rgba(0,0,0,0.04)", transition: "all 0.25s" }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = `${c.color}40`; e.currentTarget.style.boxShadow = `0 20px 48px ${c.color}18`; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(15,23,42,0.06)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.04)"; }}>
+      
+      <div className="absolute top-0 left-0 right-0 h-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ background: `linear-gradient(90deg,transparent,${c.color},transparent)` }} />
+      
+      {/* Updated visual box to use images */}
+      <div className="h-20 rounded-2xl mb-4 flex items-center justify-center p-4"
+        style={{ background: `${c.color}10`, border: `1px solid ${c.color}20` }}>
+        <img src={c.logo} alt={c.name} className="h-full object-contain filter group-hover:drop-shadow-md transition-all" />
+        <div className="absolute top-3 right-3 px-2 py-0.5 rounded-lg text-[9px] font-bold"
+          style={{ background: `${c.color}20`, color: c.color }}>{c.tags}</div>
+      </div>
+
+      <div className="flex items-center gap-2 mb-2">
+        <img src={c.logo} alt="" className="w-5 h-5 object-contain" />
+        <span className="font-black text-base" style={{ color: T.ink }}>{c.name}</span>
+      </div>
+      <p className="text-xs text-slate-500 leading-relaxed">{c.desc}</p>
+    </motion.div>
+  ))}
+</div>
       </div>
 
       {/* ── BOARDS ── */}

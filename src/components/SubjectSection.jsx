@@ -210,7 +210,7 @@ const SubjectSection = () => (
     <FloatKid src="/images/kids/float-star.png" emoji="🌟"
       style={{ width:65,height:65,top:"35%",left:"0.5%" }} delay={0.8} />
 
-    <div className="max-w-7xl mx-auto px-6 relative z-10">
+    <div className="md :max-w-[80%] sm:max-w-[90%] mx-auto px-6 relative z-10">
       {/* Header */}
       <div className="text-center mb-20">
         <motion.div initial={{ opacity:0,y:-10 }} whileInView={{ opacity:1,y:0 }} viewport={{ once:true }}

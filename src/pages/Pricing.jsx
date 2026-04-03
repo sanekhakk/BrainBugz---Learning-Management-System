@@ -283,7 +283,7 @@ const Pricing = () => {
   const [activeTab,setActiveTab] = useState("coding");
 
   return (
-    <section className="min-h-screen  relative overflow-hidden py-30" style={{background:T.bg}}>
+    <section className="min-h-screen  relative overflow-hidden py-40" style={{background:T.bg}}>
       {/* Live background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 opacity-20"

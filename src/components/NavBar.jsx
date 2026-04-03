@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Menu, X, Sparkles } from "lucide-react";
-import PearlxLogo from "../assets/logo.png";
+import PearlxLogo from "../assets/flat_logo_dark.webp";
 
 const navLinks = [
   { label: "Home", to: "/" },
@@ -69,10 +69,8 @@ const NavBar = () => {
 
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 z-10">
-              <img src={PearlxLogo} alt="Pearlx" className="h-10 w-auto object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,255,255,0.25))" }} />
-              <span className="text-white font-extrabold text-xl tracking-wide hidden sm:block" style={{ letterSpacing: "-0.01em" }}>
-                Pearlx
-              </span>
+              <img src={PearlxLogo} alt="Pearlx" className="h-20 w-auto object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,255,255,0.25))" }} />
+              
             </Link>
 
             {/* Desktop links */}

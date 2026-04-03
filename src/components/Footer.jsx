@@ -3,7 +3,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Mail, Heart, Phone, ArrowUpRight } from "lucide-react";
-import Logo from "../assets/logo.png";
+import Logo from "../assets/flat_logo_dark.webp";
 
 const Footer = () => {
   const year = new Date().getFullYear();

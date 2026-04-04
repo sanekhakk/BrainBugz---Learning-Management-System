@@ -22,7 +22,7 @@ const CYCLING_PHRASES = [
 ];
 
 const STATS = [
-  { value: "500+", label: "Students Taught" },
+  { value: "50+", label: "Students Taught" },
   { value: "3", label: "Structured Categories" },
   { value: "132", label: "Lessons" },
 ];

@@ -9,8 +9,9 @@ import PearlxLogo from "../assets/flat_logo_dark.webp";
 const navLinks = [
   { label: "Home", to: "/" },
   { label: "Classes", to: "/services/education" },
+   { label: "Pricing", to: "/pricing" },
   { label: "Web Dev", to: "/services/web-development" },
-  { label: "Pricing", to: "/pricing" },
+ 
 ];
 
 const NavBar = () => {

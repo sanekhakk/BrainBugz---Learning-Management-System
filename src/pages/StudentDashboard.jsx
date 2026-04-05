@@ -7,110 +7,110 @@ import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { db } from "../firebase";
 import {
   BookOpen, User, Loader2, CheckCircle, XCircle, TrendingUp,
-  Calendar, Clock, LogOut, Award, Target, Menu, X, Video, ArrowRight,
+  Calendar, Clock, LogOut, Award, Target, Video, ArrowRight,
+  Bell, Home, BarChart2, Star, Menu, X,
 } from "lucide-react";
 import { getProgressRef } from "../utils/paths";
-import { DARK as D } from "../utils/theme";
 import { getDisplayTime } from "../utils/timeUtils";
+import PearlxLogo from "../assets/flat_logo.webp";
 
-// ── Helpers ──────────────────────────────────────────────────
-const statusCfg = {
-  upcoming: {
-    border: D.borderMed, gradient: D.gradPrimary,
-    badgeBg: D.indigoMuted, badgeColor: "#818CF8", label: "Upcoming",
-    icon: Calendar,
-  },
-  completed: {
-    border: `${D.green}35`, gradient: D.gradGreen,
-    badgeBg: D.greenMuted, badgeColor: D.green, label: "Completed",
-    icon: CheckCircle,
-  },
-  missed: {
-    border: `${D.red}35`, gradient: D.gradRed,
-    badgeBg: D.redMuted, badgeColor: D.red, label: "Missed",
-    icon: XCircle,
-  },
+const C = {
+  bg: "#F4F6FB",
+  sidebar: "#FFFFFF",
+  card: "#FFFFFF",
+  border: "#E5E9F2",
+  textPrimary: "#0F172A",
+  textSecondary: "#475569",
+  textMuted: "#94A3B8",
+  emerald: "#10B981",
+  emeraldLight: "#ECFDF5",
+  emeraldDark: "#059669",
+  cyan: "#0EA5E9",
+  cyanLight: "#E0F2FE",
+  indigo: "#6366F1",
+  indigoLight: "#EEF2FF",
+  red: "#EF4444",
+  redLight: "#FEF2F2",
+  amber: "#F59E0B",
+  amberLight: "#FFFBEB",
+  violet: "#8B5CF6",
+  violetLight: "#F5F3FF",
+  gradPrimary: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)",
+  gradEmerald: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+  gradIndigo: "linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)",
+  gradRed: "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)",
+  shadowCard: "0 1px 4px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.04)",
+  shadowHover: "0 8px 24px rgba(15,23,42,0.1)",
 };
 
-// ── Compact Stat Card ─────────────────────────────────────────
-const StatCard = ({ icon: Icon, label, value, gradient }) => (
-  <motion.div whileHover={{ scale: 1.04, y: -2 }}
-    className="relative rounded-2xl p-4 border flex-shrink-0 min-w-[130px]"
-    style={{ background: D.surface, borderColor: D.border, boxShadow: D.shadowSm }}>
-    <div className="flex items-center gap-2 mb-3">
-      <div className="p-1.5 rounded-lg" style={{ background: gradient || D.gradPrimary }}>
-        <Icon className="w-3.5 h-3.5 text-white" />
-      </div>
+const statusCfg = {
+  upcoming:  { border: `#6366F125`, accent: "#6366F1", badgeBg: "#EEF2FF", badgeText: "#6366F1", label: "Upcoming",  icon: Calendar,     grad: "linear-gradient(135deg,#6366F1,#4F46E5)" },
+  completed: { border: `#10B98130`, accent: "#10B981", badgeBg: "#ECFDF5", badgeText: "#10B981", label: "Completed", icon: CheckCircle,  grad: "linear-gradient(135deg,#10B981,#059669)" },
+  missed:    { border: `#EF444430`, accent: "#EF4444", badgeBg: "#FEF2F2", badgeText: "#EF4444", label: "Missed",    icon: XCircle,      grad: "linear-gradient(135deg,#EF4444,#DC2626)" },
+};
+
+const Empty = ({ icon: Icon, msg, color }) => (
+  <div style={{ textAlign: "center", padding: "40px 20px", borderRadius: 16, background: C.bg, border: `1px solid ${C.border}` }}>
+    <div style={{ width: 52, height: 52, borderRadius: 14, background: color ? `${color}15` : "#F0F2F8", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+      <Icon style={{ width: 24, height: 24, color: color || C.textMuted, opacity: 0.5 }} />
     </div>
-    <div className="text-2xl font-bold mb-0.5" style={{ color: D.textPrimary }}>{value}</div>
-    <div className="text-xs" style={{ color: D.textMuted }}>{label}</div>
+    <p style={{ fontSize: 13, color: C.textMuted, fontWeight: 500 }}>{msg}</p>
+  </div>
+);
+
+const StatCard = ({ icon: Icon, label, value, light, iconColor }) => (
+  <motion.div whileHover={{ y: -2, boxShadow: C.shadowHover }}
+    style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "20px", boxShadow: C.shadowCard }}>
+    <div style={{ width: 40, height: 40, borderRadius: 12, background: light, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+      <Icon style={{ width: 20, height: 20, color: iconColor }} />
+    </div>
+    <div style={{ fontSize: 28, fontWeight: 800, color: C.textPrimary, lineHeight: 1 }}>{value}</div>
+    <div style={{ fontSize: 12, color: C.textMuted, fontWeight: 500, marginTop: 4 }}>{label}</div>
   </motion.div>
 );
 
-// ── Class Card ────────────────────────────────────────────────
 const ClassCard = ({ cls, type, permanentClassLink, timezone }) => {
   const cfg = statusCfg[type];
   const Icon = cfg.icon;
   const time = getDisplayTime(cls.classDate, cls.classTime, timezone);
-  const date = cls.classDate
-    ? new Date(cls.classDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-    : "TBD";
+  const date = cls.classDate ? new Date(cls.classDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "TBD";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-      className="relative rounded-2xl p-5 border overflow-hidden"
-      style={{ background: D.surface, borderColor: cfg.border, boxShadow: D.shadowSm }}
-      whileHover={{ y: -3, boxShadow: D.shadowMd, transition: { duration: 0.2 } }}
-    >
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2, boxShadow: C.shadowHover }}
+      style={{ background: C.card, border: `1px solid ${cfg.border}`, borderRadius: 16, padding: "18px 20px", boxShadow: C.shadowCard, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", left: 0, top: 12, bottom: 12, width: 3, borderRadius: "0 4px 4px 0", background: cfg.accent }} />
       {cls.isRescheduled && (
-        <span className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-xs font-bold"
-          style={{ background: D.amberMuted, color: D.amber, border: `1px solid ${D.amber}30` }}>
-          RESCHEDULED
-        </span>
+        <span style={{ position: "absolute", top: 14, right: 14, background: C.amberLight, color: C.amber, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20 }}>RESCHEDULED</span>
       )}
-
-      <div className="flex gap-4">
-        {/* Time badge */}
-        <div className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 text-white"
-          style={{ background: cfg.gradient, boxShadow: `0 4px 16px rgba(0,0,0,0.35)` }}>
-          <Clock className="w-4 h-4 mb-0.5 opacity-75" />
-          <span className="text-base font-bold leading-tight">{time.split(":")[0]}</span>
-          <span className="text-[11px] font-semibold opacity-80">
-            :{time.split(":")[1]?.split(" ")[0] || "00"} {time.split(" ")[1] || ""}
-          </span>
+      <div style={{ display: "flex", gap: 14, paddingLeft: 12 }}>
+        <div style={{ width: 56, height: 56, borderRadius: 16, background: cfg.grad, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0 }}>
+          <Clock style={{ width: 13, height: 13, opacity: 0.8, marginBottom: 2 }} />
+          <span style={{ fontSize: 12, fontWeight: 800 }}>{time.split(" ")[0]}</span>
+          <span style={{ fontSize: 9, opacity: 0.8 }}>{time.split(" ")[1] || ""}</span>
         </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-bold text-base truncate" style={{ color: D.textPrimary }}>{cls.subject}</h3>
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold flex-shrink-0 border"
-              style={{ background: cfg.badgeBg, color: cfg.badgeColor, borderColor: `${cfg.badgeColor}30` }}>
-              <Icon className="w-3 h-3" />{cfg.label}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary }}>{cls.subject}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, background: cfg.badgeBg, color: cfg.badgeText, fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+              <Icon style={{ width: 11, height: 11 }} />{cfg.label}
             </span>
           </div>
-          <p className="text-sm flex items-center gap-1.5 mb-1" style={{ color: D.textSecondary }}>
-            <User className="w-3.5 h-3.5" />with {cls.tutorName}
+          <p style={{ fontSize: 13, color: C.textSecondary, marginBottom: 2, display: "flex", alignItems: "center", gap: 5 }}>
+            <User style={{ width: 13, height: 13 }} />with {cls.tutorName}
           </p>
-          <p className="text-sm flex items-center gap-1.5 mb-3" style={{ color: D.textMuted }}>
-            <Calendar className="w-3.5 h-3.5" />{date}
+          <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
+            <Calendar style={{ width: 12, height: 12 }} />{date}
           </p>
-
-          {/* Summary */}
           {cls.summary && (type === "completed" || type === "missed") && (
-            <div className="px-3 py-2 rounded-xl text-xs mb-3"
-              style={{ background: cfg.badgeBg, color: cfg.badgeColor, border: `1px solid ${cfg.badgeColor}20` }}>
+            <div style={{ padding: "8px 12px", borderRadius: 10, fontSize: 12, marginBottom: 10, background: cfg.badgeBg, color: cfg.badgeText }}>
               {type === "completed" ? "📋 " : "⚠️ "}{cls.summary}
             </div>
           )}
-
-          {/* Join button for upcoming */}
           {type === "upcoming" && permanentClassLink && (
-            <motion.a href={permanentClassLink} target="_blank" rel="noopener noreferrer"
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-              style={{ background: D.gradPrimary, boxShadow: D.shadowGlow }}>
-              <Video className="w-3.5 h-3.5" />Join Class <ArrowRight className="w-3.5 h-3.5" />
-            </motion.a>
+            <a href={permanentClassLink} target="_blank" rel="noopener noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 12, background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 12, textDecoration: "none", boxShadow: "0 4px 12px rgba(16,185,129,0.25)" }}>
+              <Video style={{ width: 13, height: 13 }} />Join Class <ArrowRight style={{ width: 12, height: 12 }} />
+            </a>
           )}
         </div>
       </div>
@@ -118,315 +118,393 @@ const ClassCard = ({ cls, type, permanentClassLink, timezone }) => {
   );
 };
 
-// ── Progress Card ─────────────────────────────────────────────
-const ProgressCard = ({ assignment, progressData }) => {
-  const data = progressData[assignment.subject] || { completedChapters: [] };
-  const completed = data.completedChapters?.length || 0;
-
-  return (
-    <div className="p-5 rounded-2xl border" style={{ background: D.surface, borderColor: D.border }}>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="font-bold text-sm" style={{ color: D.textPrimary }}>{assignment.subject}</h3>
-          <p className="text-xs mt-0.5" style={{ color: D.textMuted }}>with {assignment.tutorName}</p>
-        </div>
-        <span className="text-2xl font-bold" style={{ color: D.indigo }}>{completed}</span>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {data.completedChapters?.map((ch, i) => (
-          <span key={i} className="px-2.5 py-1 rounded-lg text-xs font-medium"
-            style={{ background: D.greenMuted, color: D.green, border: `1px solid ${D.green}25` }}>
-            ✓ {ch}
-          </span>
-        ))}
-        {completed === 0 && (
-          <p className="text-xs" style={{ color: D.textMuted }}>No chapters completed yet</p>
-        )}
-      </div>
+const SideNavItem = ({ tab, active, onClick }) => (
+  <motion.button onClick={onClick} whileTap={{ scale: 0.97 }}
+    style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 12, border: `1px solid ${active ? C.emerald + "30" : "transparent"}`, background: active ? C.emeraldLight : "transparent", cursor: "pointer", transition: "all 0.15s" }}>
+    <div style={{ width: 34, height: 34, borderRadius: 10, background: active ? C.emerald : C.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <tab.icon style={{ width: 16, height: 16, color: active ? "#fff" : C.textMuted }} />
     </div>
-  );
-};
-
-// ── Mobile Drawer ─────────────────────────────────────────────
-const MobileDrawer = ({ isOpen, onClose, activeTab, setActiveTab, tabs }) => (
-  <AnimatePresence>
-    {isOpen && (
-      <>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          onClick={onClose} className="fixed inset-0 z-40 lg:hidden"
-          style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
-        <motion.div
-          initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
-          transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="fixed left-0 top-0 bottom-0 w-72 z-50 lg:hidden border-r"
-          style={{ background: D.surface, borderColor: D.border, boxShadow: D.shadowXl }}
-        >
-          <div className="p-5 border-b flex items-center justify-between" style={{ borderColor: D.border }}>
-            <span className="font-bold text-base" style={{ color: D.textPrimary }}>Menu</span>
-            <button onClick={onClose} className="p-2 rounded-xl transition-colors"
-              style={{ background: D.surfaceAlt }}>
-              <X className="w-4 h-4" style={{ color: D.textSecondary }} />
-            </button>
-          </div>
-          <div className="p-3 space-y-1">
-            {tabs.map(tab => {
-              const active = activeTab === tab.id;
-              return (
-                <motion.button key={tab.id} whileTap={{ scale: 0.97 }}
-                  onClick={() => { setActiveTab(tab.id); onClose(); }}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
-                  style={{
-                    background: active ? D.indigoMuted : "transparent",
-                    border: `1px solid ${active ? D.borderActive : "transparent"}`,
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <tab.icon className="w-4 h-4" style={{ color: active ? D.indigo : D.textMuted }} />
-                    <span className="text-sm font-medium" style={{ color: active ? D.textPrimary : D.textSecondary }}>
-                      {tab.label}
-                    </span>
-                  </div>
-                  {tab.count !== undefined && (
-                    <span className="px-2 py-0.5 rounded-full text-xs font-bold"
-                      style={{ background: D.indigoMuted, color: D.indigo }}>
-                      {tab.count}
-                    </span>
-                  )}
-                </motion.button>
-              );
-            })}
-          </div>
-        </motion.div>
-      </>
+    <span style={{ fontSize: 13, fontWeight: 600, color: active ? C.textPrimary : C.textSecondary, flex: 1, textAlign: "left" }}>{tab.label}</span>
+    {tab.count !== undefined && (
+      <span style={{ background: active ? C.emerald : C.border, color: active ? "#fff" : C.textMuted, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>{tab.count}</span>
     )}
-  </AnimatePresence>
+  </motion.button>
 );
 
-// ── Main ──────────────────────────────────────────────────────
 export default function StudentDashboard() {
   const { userId, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [studentProfile, setStudentProfile]   = useState(null);
-  const [loadingProfile, setLoadingProfile]   = useState(true);
-  const [upcomingClasses, setUpcoming]         = useState([]);
-  const [completedClasses, setCompleted]       = useState([]);
-  const [missedClasses, setMissed]             = useState([]);
-  const [loadingClasses, setLoadingClasses]    = useState(true);
-  const [progressData, setProgressData]        = useState({});
-  const [activeTab, setActiveTab]              = useState("upcoming");
-  const [drawerOpen, setDrawerOpen]            = useState(false);
+  const [profile, setProfile]         = useState(null);
+  const [loadingProfile, setLP]       = useState(true);
+  const [upcoming, setUpcoming]       = useState([]);
+  const [completed, setCompleted]     = useState([]);
+  const [missed, setMissed]           = useState([]);
+  const [loadingClasses, setLC]       = useState(true);
+  const [progressData, setProgress]   = useState({});
+  const [activeTab, setActiveTab]     = useState("overview");
+  const [isMobile, setIsMobile]       = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
-    const unsub = onSnapshot(doc(db, "userSummaries", userId), snap => {
-      if (snap.exists()) setStudentProfile({ uid: snap.id, ...snap.data() });
-      setLoadingProfile(false);
+    return onSnapshot(doc(db, "userSummaries", userId), snap => {
+      if (snap.exists()) setProfile({ uid: snap.id, ...snap.data() });
+      setLP(false);
     });
-    return () => unsub();
   }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
-    setLoadingClasses(true);
-    const q = query(collection(db, "classes"), where("studentId", "==", userId));
-    const unsub = onSnapshot(q, snap => {
-      const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      arr.sort((a, b) => new Date(a.classDate + " " + a.classTime) - new Date(b.classDate + " " + b.classTime));
+    setLC(true);
+    return onSnapshot(query(collection(db, "classes"), where("studentId", "==", userId)), snap => {
+      const arr = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(a.classDate + " " + a.classTime) - new Date(b.classDate + " " + b.classTime));
       setUpcoming(arr.filter(c => c.status === "scheduled" || c.status === "pending"));
       setCompleted(arr.filter(c => c.status === "completed"));
       setMissed(arr.filter(c => c.status === "missed"));
-      setLoadingClasses(false);
+      setLC(false);
     });
-    return () => unsub();
   }, [userId]);
 
   useEffect(() => {
-    if (!userId || !studentProfile) return;
-    const subjects = (studentProfile.assignments || []).map(a => a.subject);
-    const unsubs = subjects.map(sub => {
-      return onSnapshot(getProgressRef(userId, sub), snap => {
-        setProgressData(prev => ({
-          ...prev,
-          [sub]: snap.exists() ? snap.data() : { completedChapters: [] },
-        }));
-      });
-    });
+    if (!userId || !profile) return;
+    const subjects = (profile.assignments || []).map(a => a.subject);
+    const unsubs = subjects.map(sub =>
+      onSnapshot(getProgressRef(userId, sub), snap => {
+        setProgress(prev => ({ ...prev, [sub]: snap.exists() ? snap.data() : { completedChapters: [] } }));
+      })
+    );
     return () => unsubs.forEach(u => u());
-  }, [userId, studentProfile]);
+  }, [userId, profile]);
 
-  const assignments = studentProfile?.assignments || [];
-  const permanentClassLink = studentProfile?.permanentClassLink || "";
+  const assignments = profile?.assignments || [];
+  const permanentClassLink = profile?.permanentClassLink || "";
   const totalModules = Object.values(progressData).reduce((s, p) => s + (p.completedChapters?.length || 0), 0);
+  const attendanceRate = completed.length + missed.length > 0
+    ? Math.round((completed.length / (completed.length + missed.length)) * 100) : 100;
+  const nextClass = upcoming[0];
 
   const tabs = [
-    { id: "upcoming",  label: "Upcoming",  icon: Calendar,  count: upcomingClasses.length },
-    { id: "progress",  label: "Progress",  icon: TrendingUp },
-    { id: "completed", label: "Completed", icon: CheckCircle, count: completedClasses.length },
-    { id: "missed",    label: "Missed",    icon: XCircle,   count: missedClasses.length },
+    { id: "overview",  label: "Overview",   icon: Home },
+    { id: "upcoming",  label: "Upcoming",   icon: Calendar,    count: upcoming.length },
+    { id: "progress",  label: "Progress",   icon: TrendingUp },
+    { id: "completed", label: "Completed",  icon: CheckCircle, count: completed.length },
+    { id: "missed",    label: "Missed",     icon: XCircle,     count: missed.length },
   ];
 
-  return (
-    <div className="min-h-screen pb-10" style={{ background: D.bg }}>
-      <MobileDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)}
-        activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs} />
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSidebarOpen(false);
+  };
 
-      {/* Header */}
-      <div className="sticky top-0 z-30 border-b" style={{ background: `${D.surface}ee`, borderColor: D.border, backdropFilter: "blur(20px)" }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setDrawerOpen(true)}
-              className="p-2 rounded-xl lg:hidden"
-              style={{ background: D.surfaceAlt, border: `1px solid ${D.border}` }}>
-              <Menu className="w-5 h-5" style={{ color: D.textSecondary }} />
-            </button>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg text-white"
-              style={{ background: D.gradPrimary }}>
-              {studentProfile?.name?.charAt(0) || "S"}
-            </div>
-            <div>
-              <p className="font-bold text-sm" style={{ color: D.textPrimary }}>
-                {studentProfile?.name || "Student"}
-              </p>
-              <p className="text-xs" style={{ color: D.textMuted }}>
-                {studentProfile?.customId || "Loading..."}
-              </p>
-            </div>
+  const SidebarContent = () => (
+    <>
+      <div style={{ padding: "20px 20px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <img src={PearlxLogo} alt="Pearlx" style={{ height: 40, width: "auto", objectFit: "contain" }} />
+        {isMobile && (
+          <button onClick={() => setSidebarOpen(false)} style={{ background: C.bg, border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            <X style={{ width: 16, height: 16, color: C.textMuted }} />
+          </button>
+        )}
+      </div>
+
+      <div style={{ padding: "16px 14px", borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 13, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 17, flexShrink: 0 }}>
+            {profile?.name?.charAt(0) || "S"}
           </div>
-          <motion.button onClick={async () => { await logout(); navigate("/"); }}
-            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium"
-            style={{ background: D.redMuted, border: `1px solid ${D.red}30`, color: D.red }}>
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Logout</span>
-          </motion.button>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile?.name || "Student"}</p>
+            <p style={{ fontSize: 12, color: C.textMuted }}>{profile?.customId || ""} · Student</p>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <div style={{ padding: "9px 6px", borderRadius: 10, background: C.emeraldLight, textAlign: "center" }}>
+            <p style={{ fontSize: 17, fontWeight: 800, color: C.emerald }}>{attendanceRate}%</p>
+            <p style={{ fontSize: 11, color: C.textMuted }}>Attendance</p>
+          </div>
+          <div style={{ padding: "9px 6px", borderRadius: 10, background: C.indigoLight, textAlign: "center" }}>
+            <p style={{ fontSize: 17, fontWeight: 800, color: C.indigo }}>{totalModules}</p>
+            <p style={{ fontSize: 11, color: C.textMuted }}>Modules</p>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-7">
-        {loadingProfile ? (
-          <div className="flex justify-center py-24">
-            <Loader2 className="w-7 h-7 animate-spin" style={{ color: D.indigo }} />
-          </div>
-        ) : (
-          <>
-            {/* Stats row */}
-            <div className="flex gap-3 overflow-x-auto pb-3 mb-7 scrollbar-hide">
-              <StatCard icon={Calendar}  label="Upcoming"  value={upcomingClasses.length} gradient={D.gradPrimary} />
-              <StatCard icon={Target}    label="Modules"   value={totalModules}           gradient={D.gradSecondary} />
-              <StatCard icon={CheckCircle} label="Completed" value={completedClasses.length} gradient={D.gradGreen} />
-              <StatCard icon={Award}     label="Subjects"  value={assignments.length}     gradient="linear-gradient(135deg,#8B5CF6,#7C3AED)" />
-            </div>
+      <nav style={{ flex: 1, padding: "10px", display: "flex", flexDirection: "column", gap: 3, overflowY: "auto" }}>
+        <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 6px 8px" }}>MAIN MENU</p>
+        {tabs.map(tab => <SideNavItem key={tab.id} tab={tab} active={activeTab === tab.id} onClick={() => handleTabChange(tab.id)} />)}
+      </nav>
 
-            {/* Desktop tabs */}
-            <div className="hidden lg:flex gap-2 mb-7">
-              {tabs.map(tab => {
-                const active = activeTab === tab.id;
-                return (
-                  <motion.button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all"
-                    style={{
-                      background: active ? D.indigoMuted : D.surface,
-                      borderColor: active ? D.borderActive : D.border,
-                      color: active ? D.textPrimary : D.textSecondary,
-                      boxShadow: active ? D.shadowGlow : "none",
-                    }}
-                  >
-                    <tab.icon className="w-4 h-4" />
-                    {tab.label}
-                    {tab.count !== undefined && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-bold"
-                        style={{ background: active ? D.indigo : D.surfaceAlt, color: active ? "#fff" : D.textMuted }}>
-                        {tab.count}
-                      </span>
-                    )}
-                  </motion.button>
-                );
-              })}
-            </div>
+      {profile?.classLevel && (
+        <div style={{ margin: "0 10px 8px", padding: "12px 14px", borderRadius: 12, background: C.violetLight, border: `1px solid ${C.violet}20` }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, marginBottom: 4 }}>CLASS DETAILS</p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: C.violet }}>Grade {profile.classLevel}</p>
+          {profile.syllabus && <p style={{ fontSize: 12, color: C.textMuted }}>{profile.syllabus}</p>}
+        </div>
+      )}
 
-            {/* Mobile section header */}
-            <div className="flex items-center gap-3 mb-5 lg:hidden">
-              {(() => { const t = tabs.find(x => x.id === activeTab); return t ? (
-                <>
-                  <div className="p-2 rounded-xl" style={{ background: D.gradPrimary }}>
-                    <t.icon className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-base" style={{ color: D.textPrimary }}>{t.label}</p>
-                    {t.count !== undefined && <p className="text-xs" style={{ color: D.textMuted }}>{t.count} items</p>}
-                  </div>
-                </>
-              ) : null; })()}
-            </div>
-
-            {/* Content */}
-            <AnimatePresence mode="wait">
-              {activeTab === "upcoming" && (
-                <motion.div key="upcoming" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="space-y-4">
-                  {loadingClasses
-                    ? <div className="flex justify-center py-20"><Loader2 className="w-7 h-7 animate-spin" style={{ color: D.indigo }} /></div>
-                    : upcomingClasses.length === 0
-                      ? <Empty icon={Calendar} msg="No upcoming classes scheduled" />
-                      : upcomingClasses.map(cls => (
-                          <ClassCard key={cls.id} cls={cls} type="upcoming"
-                            permanentClassLink={permanentClassLink} timezone={studentProfile?.timezone} />
-                        ))
-                  }
-                </motion.div>
-              )}
-
-              {activeTab === "progress" && (
-                <motion.div key="progress" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="grid gap-4 md:grid-cols-2">
-                  {assignments.length === 0
-                    ? <div className="col-span-2"><Empty icon={TrendingUp} msg="No progress data available" /></div>
-                    : assignments.map((a, i) => <ProgressCard key={i} assignment={a} progressData={progressData} />)
-                  }
-                </motion.div>
-              )}
-
-              {activeTab === "completed" && (
-                <motion.div key="completed" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="space-y-4">
-                  {completedClasses.length === 0
-                    ? <Empty icon={CheckCircle} msg="No completed classes yet" />
-                    : completedClasses.map(cls => (
-                        <ClassCard key={cls.id} cls={cls} type="completed"
-                          permanentClassLink={permanentClassLink} timezone={studentProfile?.timezone} />
-                      ))
-                  }
-                </motion.div>
-              )}
-
-              {activeTab === "missed" && (
-                <motion.div key="missed" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="space-y-4">
-                  {missedClasses.length === 0
-                    ? <Empty icon={CheckCircle} msg="No missed classes — great work! 🎉" color={D.green} />
-                    : missedClasses.map(cls => (
-                        <ClassCard key={cls.id} cls={cls} type="missed"
-                          permanentClassLink={permanentClassLink} timezone={studentProfile?.timezone} />
-                      ))
-                  }
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
-        )}
+      <div style={{ padding: "12px 10px", borderTop: `1px solid ${C.border}` }}>
+        <motion.button onClick={async () => { await logout(); navigate("/"); }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 12, border: `1px solid ${C.red}20`, background: C.redLight, color: C.red, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          <LogOut style={{ width: 16, height: 16 }} /> Logout
+        </motion.button>
       </div>
+    </>
+  );
+
+  return (
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: C.bg, fontFamily: "'DM Sans', sans-serif" }}>
+
+      {/* ── MOBILE BACKDROP ── */}
+      <AnimatePresence>
+        {isMobile && sidebarOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setSidebarOpen(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 999, backdropFilter: "blur(4px)" }} />
+        )}
+      </AnimatePresence>
+
+      {/* ── SIDEBAR ── */}
+      <motion.div
+        initial={false}
+        animate={isMobile ? { x: sidebarOpen ? 0 : -280 } : { x: 0 }}
+        transition={{ type: "spring", damping: 28, stiffness: 300 }}
+        style={{
+          width: 256, minWidth: 256, height: "100vh",
+          background: C.sidebar, borderRight: `1px solid ${C.border}`,
+          display: "flex", flexDirection: "column", flexShrink: 0,
+          position: isMobile ? "fixed" : "relative",
+          zIndex: isMobile ? 1000 : "auto",
+          top: 0, left: 0,
+        }}>
+        <SidebarContent />
+      </motion.div>
+
+      {/* ── MAIN ── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+        {/* Topbar */}
+        <div style={{ height: 62, background: "rgba(244,246,251,0.96)", borderBottom: `1px solid ${C.border}`, backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px 0 16px", flexShrink: 0, gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            {isMobile && (
+              <button onClick={() => setSidebarOpen(true)}
+                style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                <Menu style={{ width: 18, height: 18, color: C.textPrimary }} />
+              </button>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: C.textPrimary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tabs.find(t => t.id === activeTab)?.label}</h1>
+              <p style={{ fontSize: 12, color: C.textMuted }}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            {nextClass && !isMobile && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 20, background: C.indigoLight, border: `1px solid ${C.indigo}25` }}>
+                <Bell style={{ width: 14, height: 14, color: C.indigo }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.indigo }}>
+                  Next: {nextClass.subject} · {getDisplayTime(nextClass.classDate, nextClass.classTime, profile?.timezone)}
+                </span>
+              </div>
+            )}
+            {nextClass && isMobile && (
+              <div style={{ padding: "6px 10px", borderRadius: 20, background: C.indigoLight, border: `1px solid ${C.indigo}25` }}>
+                <Bell style={{ width: 14, height: 14, color: C.indigo }} />
+              </div>
+            )}
+            <div style={{ width: 36, height: 36, borderRadius: 11, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 15 }}>
+              {profile?.name?.charAt(0) || "S"}
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? 16 : 24 }}>
+          {loadingProfile ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: 80 }}><Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
+          ) : (
+            <AnimatePresence mode="wait">
+
+              {/* ── OVERVIEW ── */}
+              {activeTab === "overview" && (
+                <motion.div key="ov" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                  {/* Banner */}
+                  <div style={{ borderRadius: 20, padding: isMobile ? "20px 20px" : "24px 28px", marginBottom: 24, background: C.gradPrimary, position: "relative", overflow: "hidden" }}>
+                    <div style={{ position: "absolute", right: -20, top: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.12)" }} />
+                    <div style={{ position: "absolute", right: 30, bottom: -40, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
+                    <div style={{ position: "relative", zIndex: 1 }}>
+                      <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: "#fff", marginBottom: 6 }}>Welcome back, {profile?.name?.split(" ")[0] || "Student"}! 👋</h2>
+                      <p style={{ fontSize: isMobile ? 13 : 14, color: "rgba(255,255,255,0.85)" }}>
+                        You have <strong>{upcoming.length}</strong> upcoming {upcoming.length === 1 ? "class" : "classes"} and completed <strong>{totalModules}</strong> modules so far.
+                      </p>
+                      {nextClass && permanentClassLink && (
+                        <a href={permanentClassLink} target="_blank" rel="noopener noreferrer"
+                          style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 14, padding: "9px 18px", borderRadius: 12, background: "rgba(255,255,255,0.2)", color: "#fff", fontWeight: 700, fontSize: 13, textDecoration: "none", border: "1px solid rgba(255,255,255,0.3)" }}>
+                          <Video style={{ width: 15, height: 15 }} />Join Next Class <ArrowRight style={{ width: 14, height: 14 }} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: isMobile ? 10 : 14, marginBottom: 24 }}>
+                    <StatCard icon={Calendar}    label="Upcoming Classes"  value={upcoming.length}   light={C.indigoLight}  iconColor={C.indigo} />
+                    <StatCard icon={CheckCircle} label="Classes Completed" value={completed.length}  light={C.emeraldLight} iconColor={C.emerald} />
+                    <StatCard icon={Target}      label="Modules Done"      value={totalModules}       light={C.cyanLight}    iconColor={C.cyan} />
+                    <StatCard icon={Award}       label="Subjects"          value={assignments.length} light={C.amberLight}   iconColor={C.amber} />
+                  </div>
+
+                  {/* Two col */}
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
+                    {/* Next class */}
+                    <div style={{ background: C.card, borderRadius: 18, padding: 20, border: `1px solid ${C.border}`, boxShadow: C.shadowCard }}>
+                      <h3 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+                        <Calendar style={{ width: 15, height: 15, color: C.indigo }} />Next Class
+                      </h3>
+                      {loadingClasses ? <div style={{ display: "flex", justifyContent: "center", padding: 24 }}><Loader2 style={{ width: 22, height: 22, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
+                        : nextClass ? <ClassCard cls={nextClass} type="upcoming" permanentClassLink={permanentClassLink} timezone={profile?.timezone} />
+                        : <Empty icon={Calendar} msg="No upcoming classes scheduled" />}
+                    </div>
+
+                    {/* Subject progress */}
+                    <div style={{ background: C.card, borderRadius: 18, padding: 20, border: `1px solid ${C.border}`, boxShadow: C.shadowCard }}>
+                      <h3 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+                        <TrendingUp style={{ width: 15, height: 15, color: C.emerald }} />Subject Progress
+                      </h3>
+                      {assignments.length === 0 ? <Empty icon={TrendingUp} msg="No subjects assigned yet" /> : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                          {assignments.map((a, i) => {
+                            const done = progressData[a.subject]?.completedChapters?.length || 0;
+                            return (
+                              <div key={i}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <div style={{ width: 28, height: 28, borderRadius: 8, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 12 }}>{a.subject?.charAt(0)}</div>
+                                    <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>{a.subject}</span>
+                                  </div>
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: C.emerald }}>{done} done</span>
+                                </div>
+                                <div style={{ height: 6, borderRadius: 6, background: C.emeraldLight, overflow: "hidden" }}>
+                                  <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, done * 10)}%` }} transition={{ duration: 0.7, delay: i * 0.1 }}
+                                    style={{ height: "100%", borderRadius: 6, background: C.gradEmerald }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Attendance summary */}
+                  <div style={{ marginTop: 20, background: C.card, borderRadius: 18, padding: 20, border: `1px solid ${C.border}`, boxShadow: C.shadowCard }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, marginBottom: 14 }}>Attendance Summary</h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+                      {[
+                        { label: "Total Classes", value: completed.length + missed.length, color: C.indigo, bg: C.indigoLight },
+                        { label: "Attended", value: completed.length, color: C.emerald, bg: C.emeraldLight },
+                        { label: "Missed", value: missed.length, color: C.red, bg: C.redLight },
+                      ].map((item, i) => (
+                        <div key={i} style={{ padding: isMobile ? "10px 8px" : "14px 16px", borderRadius: 14, background: item.bg, textAlign: "center" }}>
+                          <p style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: item.color }}>{item.value}</p>
+                          <p style={{ fontSize: isMobile ? 10 : 12, color: C.textMuted, marginTop: 2 }}>{item.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary }}>Attendance Rate</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: C.emerald }}>{attendanceRate}%</span>
+                      </div>
+                      <div style={{ height: 8, borderRadius: 8, background: C.emeraldLight, overflow: "hidden" }}>
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${attendanceRate}%` }} transition={{ duration: 1 }}
+                          style={{ height: "100%", borderRadius: 8, background: C.gradEmerald }} />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── UPCOMING ── */}
+              {activeTab === "upcoming" && (
+                <motion.div key="up" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {loadingClasses ? <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
+                    : upcoming.length === 0 ? <Empty icon={Calendar} msg="No upcoming classes scheduled" />
+                    : upcoming.map(cls => <ClassCard key={cls.id} cls={cls} type="upcoming" permanentClassLink={permanentClassLink} timezone={profile?.timezone} />)}
+                </motion.div>
+              )}
+
+              {/* ── PROGRESS ── */}
+              {activeTab === "progress" && (
+                <motion.div key="pr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
+                  {assignments.length === 0
+                    ? <div style={{ gridColumn: "1/-1" }}><Empty icon={TrendingUp} msg="No progress data available" /></div>
+                    : assignments.map((a, i) => {
+                        const data = progressData[a.subject] || { completedChapters: [] };
+                        const done = data.completedChapters?.length || 0;
+                        return (
+                          <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, boxShadow: C.shadowCard }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                              <div>
+                                <h3 style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary }}>{a.subject}</h3>
+                                <p style={{ fontSize: 12, color: C.textMuted }}>with {a.tutorName}</p>
+                              </div>
+                              <div style={{ textAlign: "right" }}>
+                                <p style={{ fontSize: 24, fontWeight: 800, color: C.emerald }}>{done}</p>
+                                <p style={{ fontSize: 11, color: C.textMuted }}>chapters</p>
+                              </div>
+                            </div>
+                            <div style={{ height: 6, borderRadius: 6, background: C.emeraldLight, overflow: "hidden", marginBottom: 12 }}>
+                              <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, done * 10)}%` }} transition={{ duration: 0.8 }}
+                                style={{ height: "100%", borderRadius: 6, background: C.gradEmerald }} />
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                              {data.completedChapters?.map((ch, ci) => (
+                                <span key={ci} style={{ padding: "4px 10px", borderRadius: 20, background: C.emeraldLight, color: C.emerald, fontSize: 12, fontWeight: 600 }}>✓ {ch}</span>
+                              ))}
+                              {done === 0 && <p style={{ fontSize: 13, color: C.textMuted }}>No chapters completed yet</p>}
+                            </div>
+                          </div>
+                        );
+                      })
+                  }
+                </motion.div>
+              )}
+
+              {/* ── COMPLETED ── */}
+              {activeTab === "completed" && (
+                <motion.div key="co" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {completed.length === 0 ? <Empty icon={CheckCircle} msg="No completed classes yet" />
+                    : completed.map(cls => <ClassCard key={cls.id} cls={cls} type="completed" permanentClassLink={permanentClassLink} timezone={profile?.timezone} />)}
+                </motion.div>
+              )}
+
+              {/* ── MISSED ── */}
+              {activeTab === "missed" && (
+                <motion.div key="mi" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {missed.length === 0 ? <Empty icon={CheckCircle} msg="No missed classes — great work! 🎉" color={C.emerald} />
+                    : missed.map(cls => <ClassCard key={cls.id} cls={cls} type="missed" permanentClassLink={permanentClassLink} timezone={profile?.timezone} />)}
+                </motion.div>
+              )}
+
+            </AnimatePresence>
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        *{box-sizing:border-box;margin:0;padding:0}
+        ::-webkit-scrollbar{width:5px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:10px}
+      `}</style>
     </div>
   );
 }
-
-const Empty = ({ icon: Icon, msg, color }) => (
-  <div className="text-center py-20 rounded-2xl border" style={{ background: D.surface, borderColor: D.border }}>
-    <Icon className="w-12 h-12 mx-auto mb-4 opacity-30" style={{ color: color || D.textMuted }} />
-    <p className="text-sm" style={{ color: D.textMuted }}>{msg}</p>
-  </div>
-);
-
-const D_gradSecondary = "linear-gradient(135deg, #06B6D4 0%, #0891B2 100%)";
-StudentDashboard.displayName = "StudentDashboard";

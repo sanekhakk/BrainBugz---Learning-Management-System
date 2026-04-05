@@ -114,7 +114,7 @@ const NavBar = () => {
                 <>
                   <button
                     onClick={() => openLoginModal("student")}
-                    className="text-sm font-semibold transition-colors"
+                    className="text-sm font-semibold transition-colors cursor-pointer"
                     style={{ color: "rgba(255,255,255,0.55)" }}
                     onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
                     onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.55)")}

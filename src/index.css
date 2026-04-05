@@ -71,16 +71,21 @@ body {
 
 /* Grain overlay */
 /* Update this section in src/index.css */
+/* src/index.css */
 .grain::before {
   content: '';
   position: fixed;
-  inset: -50%;
-  width: 200%;
-  height: 200%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
-  opacity: 0.02; /* Slightly reduced opacity for better clarity */
+  inset: 0; /* No need for -50% / 200% */
+  width: 100%;
+  height: 100%;
+  /* Use a much lighter background-image approach or a static asset */
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg"); 
+  opacity: 0.015; 
   pointer-events: none;
-  z-index: 50; /* Lowered from 9999 so it doesn't block effects */
+  z-index: 50;
+  /* Add this to force Hardware Acceleration */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .dashboard-container {

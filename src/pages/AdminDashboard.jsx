@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext";
 
 import { RegistrationPanel, EditUserPanel } from "./AdminDashboard_Part2";
 import { StudentSelectionView, ClassSchedulingForm } from "./AdminDashboard_Part3";
+import { CurriculumManager } from "./AdminDashboard_Part5";
 import { ClassesOverview } from "./AdminDashboard_Part4";
 import PearlxLogo from "../assets/flat_logo.webp";
 
@@ -399,6 +400,7 @@ export default function AdminDashboard() {
     { id: "classes-list",  label: "Classes",       icon: BookOpen,  count: allClasses.length },
     { id: "register",      label: "Register User", icon: PlusCircle },
     { id: "schedule",      label: "Schedule Class",icon: Calendar },
+     { id: "curriculum", label: "Curriculum", icon: BookOpen },
   ];
 
   if (role !== "admin") {
@@ -545,7 +547,7 @@ export default function AdminDashboard() {
                 adminScheduleClass={adminScheduleClass}
                 setActiveView={setActiveView} />
             )}
-
+             {activeView === "curriculum" && <CurriculumManager />}
           </AnimatePresence>
         </div>
       </div>

@@ -3,13 +3,21 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
+import { 
+  doc, 
+  onSnapshot, 
+  collection, 
+  query, 
+  where, 
+  onSnapshot as dbOnSnapshot 
+} from "firebase/firestore";
 import { db } from "../firebase";
 import {
   BookOpen, User, Loader2, CheckCircle, XCircle, TrendingUp,
   Calendar, Clock, LogOut, Award, Target, Video, ArrowRight,
-  Bell, Home, BarChart2, Star, Menu, X,
+  Bell, Home, BarChart2, Star, Menu, X, ChevronDown, ChevronRight,
 } from "lucide-react";
+import { CATEGORIES } from "../utils/curriculumData";
 import { getProgressRef } from "../utils/paths";
 import { getDisplayTime } from "../utils/timeUtils";
 import PearlxLogo from "../assets/flat_logo.webp";
@@ -131,6 +139,114 @@ const SideNavItem = ({ tab, active, onClick }) => (
   </motion.button>
 );
 
+// ── Student Curriculum View ───────────────────────────────────
+function StudentCurriculumView({ category, studentName }) {
+  const [modules, setModules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedModules, setExpandedModules] = useState({});
+
+  const catColors = {
+    little_pearls: { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C", light: "#FED7AA" },
+    bright_pearls: { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A", light: "#BBF7D0" },
+    rising_pearls: { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB", light: "#BFDBFE" },
+  };
+
+  useEffect(() => {
+    if (!category) { setLoading(false); return; }
+    setLoading(true);
+    const q = query(collection(db, "curriculum"), where("category", "==", category));
+    const unsub = dbOnSnapshot(q, snap => {
+      const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
+      setModules(mods);
+      if (mods.length > 0) setExpandedModules({ [mods[0].id]: true });
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [category]);
+
+  if (!category) {
+    return (
+      <div style={{ textAlign: "center", padding: "48px 24px", background: C.card, borderRadius: 20, border: `1px solid ${C.border}` }}>
+        <BookOpen style={{ width: 36, height: 36, color: C.textMuted, margin: "0 auto 12px", display: "block", opacity: 0.4 }} />
+        <p style={{ fontSize: 14, color: C.textMuted }}>No category assigned yet. Contact your admin.</p>
+      </div>
+    );
+  }
+
+  const catInfo = CATEGORIES.find(c => c.value === category);
+  const col = catColors[category] || catColors.little_pearls;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Category header banner */}
+      <div style={{ background: C.card, borderRadius: 18, border: `2px solid ${col.border}`, padding: "18px 22px", boxShadow: C.shadowCard }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 16, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>
+            {catInfo?.label.charAt(0)}
+          </div>
+          <div>
+            <p style={{ fontWeight: 800, fontSize: 16, color: col.text }}>{catInfo?.label}</p>
+            <p style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{catInfo?.ages} · {modules.length} modules · {modules.reduce((s, m) => s + (m.lessons?.length || 0), 0)} lessons</p>
+          </div>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 style={{ width: 24, height: 24, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
+      ) : modules.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 20px", background: C.card, borderRadius: 16, border: `1px solid ${C.border}` }}>
+          <p style={{ fontSize: 13, color: C.textMuted }}>Curriculum is being set up. Check back soon!</p>
+        </div>
+      ) : (
+        modules.map(mod => {
+          const isOpen = expandedModules[mod.id];
+          return (
+            <div key={mod.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", boxShadow: C.shadowCard }}>
+              <div onClick={() => setExpandedModules(p => ({ ...p, [mod.id]: !p[mod.id] }))}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", cursor: "pointer" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 13, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+                  {mod.moduleEmoji}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 800, fontSize: 14, color: C.textPrimary }}>Module {mod.moduleNumber}: {mod.moduleName}</p>
+                  <p style={{ fontSize: 12, color: C.textMuted }}>{mod.lessons?.length || 0} lessons</p>
+                </div>
+                {isOpen ? <ChevronDown style={{ width: 16, height: 16, color: C.textMuted }} /> : <ChevronRight style={{ width: 16, height: 16, color: C.textMuted }} />}
+              </div>
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
+                    <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+                      {(mod.lessons || []).sort((a, b) => a.lessonNumber - b.lessonNumber).map(lesson => (
+                        <div key={lesson.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 12, background: C.bg, border: `1px solid ${C.border}` }}>
+                          <div style={{ width: 28, height: 28, borderRadius: 8, background: col.light, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 11, fontWeight: 800, color: col.text }}>
+                            {lesson.lessonNumber}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary, marginBottom: 3 }}>{lesson.title}</p>
+                            <p style={{ fontSize: 11, color: C.cyan, fontWeight: 600 }}>📱 {lesson.platform}</p>
+                            {lesson.description && <p style={{ fontSize: 11, color: C.textSecondary, marginTop: 5, lineHeight: 1.6 }}>{lesson.description}</p>}
+                            {lesson.pptLink && (
+                              <a href={lesson.pptLink} target="_blank" rel="noopener noreferrer"
+                                style={{ fontSize: 11, color: C.indigo, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, marginTop: 5, textDecoration: "none" }}>
+                                🔗 View Lesson Resource →
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
 export default function StudentDashboard() {
   const { userId, logout } = useAuth();
   const navigate = useNavigate();
@@ -192,11 +308,12 @@ export default function StudentDashboard() {
   const nextClass = upcoming[0];
 
   const tabs = [
-    { id: "overview",  label: "Overview",   icon: Home },
-    { id: "upcoming",  label: "Upcoming",   icon: Calendar,    count: upcoming.length },
-    { id: "progress",  label: "Progress",   icon: TrendingUp },
-    { id: "completed", label: "Completed",  icon: CheckCircle, count: completed.length },
-    { id: "missed",    label: "Missed",     icon: XCircle,     count: missed.length },
+    { id: "overview",    label: "Overview",    icon: Home },
+    { id: "upcoming",    label: "Upcoming",    icon: Calendar,    count: upcoming.length },
+    { id: "progress",    label: "Progress",    icon: TrendingUp },
+    { id: "curriculum",  label: "My Curriculum", icon: BookOpen },
+    { id: "completed",   label: "Completed",   icon: CheckCircle, count: completed.length },
+    { id: "missed",      label: "Missed",      icon: XCircle,     count: missed.length },
   ];
 
   const handleTabChange = (tabId) => {
@@ -490,6 +607,12 @@ export default function StudentDashboard() {
                 <motion.div key="mi" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {missed.length === 0 ? <Empty icon={CheckCircle} msg="No missed classes — great work! 🎉" color={C.emerald} />
                     : missed.map(cls => <ClassCard key={cls.id} cls={cls} type="missed" permanentClassLink={permanentClassLink} timezone={profile?.timezone} />)}
+                </motion.div>
+              )}
+
+              {activeTab === "curriculum" && (
+                <motion.div key="cu" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                  <StudentCurriculumView category={profile?.category} studentName={profile?.name} />
                 </motion.div>
               )}
 

@@ -221,17 +221,17 @@ export async function seedCurriculumToFirestore(onProgress) {
   let seeded = 0, skipped = 0;
 
   for (const category of categories) {
-    for (const mod of MODULES_SEED) {
-      // Check if this module already exists
-      const existing = await getDocs(
-        query(
-          collection(db, "curriculum"),
-          where("category", "==", category),
-          where("moduleNumber", "==", mod.moduleNumber)
-        )
-      );
+    // Fetch ALL existing modules for this category in one query (no composite index needed)
+    const existingSnap = await getDocs(
+      query(collection(db, "curriculum"), where("category", "==", category))
+    );
+    const existingModuleNumbers = new Set(
+      existingSnap.docs.map(d => d.data().moduleNumber)
+    );
 
-      if (!existing.empty) { skipped++; continue; }
+    for (const mod of MODULES_SEED) {
+      // Check in JS — no compound Firestore query needed
+      if (existingModuleNumbers.has(mod.moduleNumber)) { skipped++; continue; }
 
       const lessons = mod.lessons.map((l, idx) => ({
         id: `${category}_m${mod.moduleNumber}_l${l.lessonNumber}`,

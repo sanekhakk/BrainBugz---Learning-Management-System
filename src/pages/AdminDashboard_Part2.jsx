@@ -1,88 +1,248 @@
-// CREATE THIS NEW FILE: src/pages/AdminDashboard_Part2.jsx
-// This file contains the Registration and Edit panels
-
+// src/pages/AdminDashboard_Part2.jsx
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusCircle, Loader2, XCircle, X } from "lucide-react";
-import { InputField, SelectField } from "../components/FormFields";
-import { DARK as D } from "../utils/theme";
-const COLORS = { glassBg: D.surfaceAlt, glassBorder: D.border };
-const GRADIENTS = { primary: D.gradPrimary };
-const SHADOWS = { md: D.shadowMd, lg: D.shadowLg, glow: D.shadowGlow };
+import { PlusCircle, Loader2, XCircle, X, CheckCircle, ArrowLeft } from "lucide-react";
 import { TIMEZONES } from "../utils/timeUtils";
+
+const C = {
+  bg: "#F4F6FB", card: "#FFFFFF", border: "#E5E9F2",
+  textPrimary: "#0F172A", textSecondary: "#475569", textMuted: "#94A3B8",
+  emerald: "#10B981", emeraldLight: "#ECFDF5",
+  cyan: "#0EA5E9", cyanLight: "#E0F2FE",
+  indigo: "#6366F1", indigoLight: "#EEF2FF",
+  red: "#EF4444", redLight: "#FEF2F2",
+  amber: "#F59E0B", amberLight: "#FFFBEB",
+  violet: "#8B5CF6", violetLight: "#F5F3FF",
+  gradPrimary: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)",
+  gradEmerald: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+  shadowCard: "0 1px 4px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.04)",
+};
+
+// ── Student Categories ─────────────────────────────────────────
+export const STUDENT_CATEGORIES = [
+  { value: "little_pearls",  label: "🐥 Little Pearls  (Ages 5–7 • Grades K–2)" },
+  { value: "bright_pearls",  label: "🌱 Bright Pearls  (Ages 8–11 • Grades 3–6)" },
+  { value: "rising_pearls",  label: "🦋 Rising Pearls  (Ages 12–15 • Grades 7–10)" },
+];
+
+// ── Tutor Types ────────────────────────────────────────────────
+const TUTOR_TYPE_OPTIONS = [
+  { value: "coding",   label: "💻 Coding Classes" },
+  { value: "cs_tuition", label: "📚 Computer Science Tuition" },
+];
+
+// ── Shared form field styles ───────────────────────────────────
+const fieldStyle = {
+  width: "100%", padding: "10px 14px", borderRadius: 12, border: `1px solid ${C.border}`,
+  background: C.bg, fontSize: 13, color: C.textPrimary, outline: "none",
+  fontFamily: "inherit", boxSizing: "border-box", transition: "border-color 0.15s",
+};
+
+const LabeledInput = ({ label, required, children }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <label style={{ fontSize: 12, fontWeight: 700, color: C.textSecondary }}>
+      {label}{required && <span style={{ color: C.red }}> *</span>}
+    </label>
+    {children}
+  </div>
+);
+
+const TextInput = ({ label, name, value, onChange, type = "text", required, placeholder, readOnly, disabled }) => (
+  <LabeledInput label={label} required={required}>
+    <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder}
+      readOnly={readOnly} disabled={disabled} required={required}
+      style={{ ...fieldStyle, opacity: disabled ? 0.5 : 1, cursor: disabled ? "not-allowed" : "text" }}
+      onFocus={e => { if (!disabled) { e.target.style.borderColor = C.emerald; e.target.style.boxShadow = `0 0 0 3px ${C.emerald}18`; }}}
+      onBlur={e => { e.target.style.borderColor = C.border; e.target.style.boxShadow = "none"; }} />
+  </LabeledInput>
+);
+
+const SelectInput = ({ label, name, value, onChange, options, required }) => (
+  <LabeledInput label={label} required={required}>
+    <select name={name} value={value} onChange={onChange} required={required}
+      style={{ ...fieldStyle, appearance: "none" }}
+      onFocus={e => { e.target.style.borderColor = C.emerald; }} onBlur={e => { e.target.style.borderColor = C.border; }}>
+      {(!value || value === "") && <option value="" disabled>Select an option</option>}
+      {options.map(opt => (
+        <option key={opt.value ?? opt} value={opt.value ?? opt}>{opt.label ?? opt}</option>
+      ))}
+    </select>
+  </LabeledInput>
+);
+
+// ── Tutor Type Checkbox Group ──────────────────────────────────
+const TutorTypeCheckboxes = ({ selectedTypes, onChange }) => (
+  <LabeledInput label="Tutor Category" required>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg }}>
+      {TUTOR_TYPE_OPTIONS.map(opt => {
+        const checked = selectedTypes.includes(opt.value);
+        return (
+          <label key={opt.value}
+            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "8px 10px", borderRadius: 10, background: checked ? C.emeraldLight : "transparent", border: `1px solid ${checked ? C.emerald + "40" : "transparent"}`, transition: "all 0.15s" }}>
+            <div onClick={() => onChange(opt.value)}
+              style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${checked ? C.emerald : C.border}`, background: checked ? C.emerald : "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer", transition: "all 0.15s" }}>
+              {checked && (
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+            <span onClick={() => onChange(opt.value)} style={{ fontSize: 13, fontWeight: checked ? 700 : 500, color: checked ? C.textPrimary : C.textSecondary }}>{opt.label}</span>
+          </label>
+        );
+      })}
+      {selectedTypes.length === 0 && (
+        <p style={{ fontSize: 11, color: C.red, margin: "2px 0 0 4px" }}>Please select at least one category</p>
+      )}
+      {selectedTypes.length === 2 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8, background: C.amberLight, marginTop: 2 }}>
+          <span style={{ fontSize: 11, color: C.amber, fontWeight: 600 }}>⭐ This tutor handles both coding and CS tuition</span>
+        </div>
+      )}
+    </div>
+  </LabeledInput>
+);
+
+// ── Student Category Card Selector ────────────────────────────
+const CategorySelector = ({ value, onChange }) => (
+  <div style={{ gridColumn: "1 / -1" }}>
+    <label style={{ fontSize: 12, fontWeight: 700, color: C.textSecondary, display: "block", marginBottom: 8 }}>
+      Student Category <span style={{ color: C.red }}>*</span>
+    </label>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+      {STUDENT_CATEGORIES.map(cat => {
+        const selected = value === cat.value;
+        const emoji    = cat.label.charAt(0);
+        const name     = cat.label.slice(2, cat.label.indexOf("(")).trim();
+        const sub      = cat.label.slice(cat.label.indexOf("("));
+        const colorMap = {
+          little_pearls: { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C" },
+          bright_pearls: { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A" },
+          rising_pearls: { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB" },
+        };
+        const col = colorMap[cat.value];
+        return (
+          <motion.div key={cat.value} onClick={() => onChange(cat.value)} whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
+            style={{ cursor: "pointer", padding: "14px 12px", borderRadius: 14, border: `2px solid ${selected ? col.border : C.border}`, background: selected ? col.bg : C.bg, transition: "all 0.15s", textAlign: "center" }}>
+            <div style={{ fontSize: 26, marginBottom: 6 }}>{emoji}</div>
+            <p style={{ fontSize: 12, fontWeight: 800, color: selected ? col.text : C.textPrimary, lineHeight: 1.3 }}>{name}</p>
+            <p style={{ fontSize: 10, color: selected ? col.text : C.textMuted, marginTop: 4, lineHeight: 1.4 }}>{sub}</p>
+            {selected && (
+              <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 20, background: col.border, color: "#fff" }}>
+                <CheckCircle style={{ width: 10, height: 10 }} />
+                <span style={{ fontSize: 10, fontWeight: 700 }}>Selected</span>
+              </div>
+            )}
+          </motion.div>
+        );
+      })}
+    </div>
+  </div>
+);
+
+const StatusBanner = ({ status }) => {
+  if (!status) return null;
+  return (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+        style={{ padding: "12px 16px", borderRadius: 12, marginBottom: 16, fontSize: 13, fontWeight: 600,
+          background: status.ok ? C.emeraldLight : C.redLight,
+          color: status.ok ? C.emerald : C.red,
+          border: `1px solid ${status.ok ? C.emerald : C.red}25`,
+          display: "flex", alignItems: "center", gap: 8 }}>
+        {status.ok ? <CheckCircle style={{ width: 15, height: 15 }} /> : <XCircle style={{ width: 15, height: 15 }} />}
+        {status.msg}
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+// ── Panel wrapper ─────────────────────────────────────────────
+const Panel = ({ children, title, subtitle, onClose }) => (
+  <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: C.shadowCard }}>
+    <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div>
+        <h2 style={{ fontSize: 17, fontWeight: 800, color: C.textPrimary }}>{title}</h2>
+        {subtitle && <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{subtitle}</p>}
+      </div>
+      {onClose && (
+        <motion.button onClick={onClose} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+          style={{ width: 32, height: 32, borderRadius: 8, background: C.bg, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <X style={{ width: 15, height: 15, color: C.textMuted }} />
+        </motion.button>
+      )}
+    </div>
+    <div style={{ padding: 24 }}>{children}</div>
+  </div>
+);
+
+// ── Assignment row ─────────────────────────────────────────────
+const AssignmentRow = ({ assignment, onRemove, index }) => (
+  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 12, background: C.bg, border: `1px solid ${C.border}` }}>
+    <div>
+      <span style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>{assignment.subject}</span>
+      <span style={{ fontSize: 12, color: C.cyan, marginLeft: 10 }}>· {assignment.tutorName}</span>
+    </div>
+    <motion.button type="button" onClick={() => onRemove(index)} whileHover={{ scale: 1.1 }}
+      style={{ background: C.redLight, border: "none", borderRadius: 8, padding: "5px 7px", cursor: "pointer", display: "flex", alignItems: "center" }}>
+      <XCircle style={{ width: 14, height: 14, color: C.red }} />
+    </motion.button>
+  </motion.div>
+);
 
 // ====================================================================
 // REGISTRATION PANEL
 // ====================================================================
-export function RegistrationPanel({
-  form,
-  regRole,
-  regStatus,
-  regLoading,
-  handleFormChange,
-  setRegRole,
-  setActiveView,
-  setRegStatus,
-  tutors,
-  setForm,
-  initialFormState,
-  adminRegisterUser,
-  setRegLoading,
-}) {
+export function RegistrationPanel({ form, regRole, regStatus, regLoading, handleFormChange, setRegRole, setActiveView, setRegStatus, tutors, setForm, initialFormState, adminRegisterUser, setRegLoading }) {
   const [currentSubjectInput, setCurrentSubjectInput] = useState("");
-  const [selectedTutor, setSelectedTutor] = useState({ id: "", name: "" });
-  const [assignedSubjects, setAssignedSubjects] = useState([]);
+  const [selectedTutor, setSelectedTutor]             = useState({ id: "", name: "" });
+  const [assignedSubjects, setAssignedSubjects]       = useState([]);
+  // NEW: student category & tutor type state
+  const [studentCategory, setStudentCategory]         = useState("");
+  const [tutorTypes, setTutorTypes]                   = useState([]);
 
-  const tutorOptions = tutors.map((t) => ({
-    value: t.uid,
-    label: `${t.name} (${t.subjects.join(", ") || "Any"})`,
-  }));
+  const tutorOptions = tutors.map(t => ({ value: t.uid, label: `${t.name} (${(t.subjects || []).join(", ") || "Any"})` }));
+
+  // Toggle a tutor type on/off
+  const handleTutorTypeToggle = (type) => {
+    setTutorTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
+  };
 
   const handleAddAssignment = () => {
     if (currentSubjectInput.trim() && selectedTutor.id) {
-      setAssignedSubjects((prev) => [
-        ...prev,
-        {
-          subject: currentSubjectInput.trim(),
-          tutorId: selectedTutor.id,
-          tutorName: selectedTutor.name,
-        },
-      ]);
-      setCurrentSubjectInput("");
-      setSelectedTutor({ id: "", name: "" });
+      setAssignedSubjects(prev => [...prev, { subject: currentSubjectInput.trim(), tutorId: selectedTutor.id, tutorName: selectedTutor.name }]);
+      setCurrentSubjectInput(""); setSelectedTutor({ id: "", name: "" });
     } else {
-      setRegStatus({ ok: false, msg: "Please enter Subject and select Tutor." });
+      setRegStatus({ ok: false, msg: "Please enter a subject and select a tutor." });
       setTimeout(() => setRegStatus(null), 3000);
     }
   };
 
-  const handleRemoveAssignment = (index) => {
-    setAssignedSubjects((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const localIsFormValid = () => {
-    const baseValid = form.name?.trim() && form.email?.trim() && form.password?.trim() && form.contactNumber?.trim();
-    if (!baseValid) return false;
-
+    if (!form.name?.trim() || !form.email?.trim() || !form.password?.trim() || !form.contactNumber?.trim()) return false;
     if (regRole === "student") {
       return (
-        form.classLevel?.trim() &&
+        studentCategory !== "" &&
+        form.grade?.trim() &&
         form.emergencyContact?.trim() &&
         form.permanentClassLink?.trim() &&
         assignedSubjects.length > 0
       );
     }
     if (regRole === "tutor") {
-      return form.qualifications?.trim() && form.hourlyRate?.trim() && form.subjects.length > 0;
+      return (
+        tutorTypes.length > 0 &&
+        form.qualifications?.trim() &&
+        form.hourlyRate?.trim() &&
+        form.subjects.length > 0
+      );
     }
     return true;
   };
 
-  const localHandleRegisterSubmit = async (e) => {
-    e.preventDefault();
-    setRegStatus(null);
-    setRegLoading(true);
-
+  const handleSubmit = async (e) => {
+    e.preventDefault(); setRegStatus(null); setRegLoading(true);
     if (!localIsFormValid()) {
       setRegLoading(false);
       setRegStatus({ ok: false, msg: "Please fill all required fields." });
@@ -90,245 +250,121 @@ export function RegistrationPanel({
     }
 
     const finalForm = {
-      ...Object.fromEntries(
-        Object.entries(form).map(([key, value]) =>
-          typeof value === "string" ? [key, value.trim()] : [key, value]
-        )
-      ),
+      ...Object.fromEntries(Object.entries(form).map(([k, v]) => typeof v === "string" ? [k, v.trim()] : [k, v])),
       role: regRole,
-      subjects: regRole === "student" ? assignedSubjects.map((a) => a.subject) : form.subjects || [],
+      // Student fields
+      category: regRole === "student" ? studentCategory : "",
+      classLevel: regRole === "student" ? form.grade : form.classLevel, // keep classLevel in sync
+      grade: regRole === "student" ? form.grade : "",
+      subjects: regRole === "student" ? assignedSubjects.map(a => a.subject) : form.subjects || [],
       assignments: regRole === "student" ? assignedSubjects : [],
       permanentClassLink: regRole === "student" ? form.permanentClassLink : "",
+      // Tutor fields
+      tutorTypes: regRole === "tutor" ? tutorTypes : [],
     };
 
     try {
       const res = await adminRegisterUser(finalForm, regRole);
       setRegLoading(false);
-
-      if (res && res.success) {
-        alert(`SUCCESS! ${res.message || `${regRole} created`}. Navigating to list.`);
-        setRegStatus({ ok: true, msg: res.message || `${regRole} created.` });
-
-        setAssignedSubjects([]);
-        setCurrentSubjectInput("");
-        setSelectedTutor({ id: "", name: "" });
+      if (res?.success) {
+        setRegStatus({ ok: true, msg: res.message || `${regRole} created successfully!` });
+        setAssignedSubjects([]); setCurrentSubjectInput(""); setSelectedTutor({ id: "", name: "" });
+        setStudentCategory(""); setTutorTypes([]);
         setForm(initialFormState);
-
-        setTimeout(() => {
-          setRegStatus(null);
-          setActiveView("list");
-        }, 900);
+        setTimeout(() => { setRegStatus(null); setActiveView("list"); }, 1200);
       } else {
-        const errorMessage = res?.error || "Registration failed";
-        alert(`ERROR: ${errorMessage}`);
-        setRegStatus({ ok: false, msg: errorMessage });
+        setRegStatus({ ok: false, msg: res?.error || "Registration failed" });
       }
     } catch (err) {
-      const networkError = err?.message || "Failed to connect to server.";
-      alert(`CRITICAL ERROR: ${networkError}`);
       setRegLoading(false);
-      setRegStatus({ ok: false, msg: `Error: ${networkError}` });
+      setRegStatus({ ok: false, msg: err?.message || "Failed to connect to server." });
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="p-8 rounded-2xl border backdrop-blur-xl"
-      style={{
-        background: COLORS.glassBg,
-        borderColor: COLORS.glassBorder,
-        boxShadow: SHADOWS.lg,
-      }}
-    >
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Register New User</h2>
-        <motion.button
-          onClick={() => {
-            setActiveView("list");
-            setRegStatus(null);
-          }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="text-sm text-gray-400 hover:text-white transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </motion.button>
-      </div>
+    <Panel title="Register New User" subtitle="Add a student or tutor to the Pearlx platform"
+      onClose={() => { setActiveView("list"); setRegStatus(null); }}>
 
-      <div className="flex gap-3 mb-6">
-        {["student", "tutor"].map((role) => (
-          <motion.button
-            key={role}
-            onClick={() => {
-              setRegRole(role);
-              setForm(initialFormState);
-              setAssignedSubjects([]);
-            }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className={`flex-1 px-6 py-3 rounded-xl font-bold transition-all ${
-              regRole === role ? "text-white" : "text-gray-400"
-            }`}
-            style={{
-              background: regRole === role ? GRADIENTS.primary : COLORS.glassBg,
-              border: `1px solid ${regRole === role ? "transparent" : COLORS.glassBorder}`,
-              boxShadow: regRole === role ? SHADOWS.md : "none",
-            }}
-          >
-            {role.charAt(0).toUpperCase() + role.slice(1)}
-          </motion.button>
+      {/* Role toggle */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, padding: 4, background: C.bg, borderRadius: 14, border: `1px solid ${C.border}` }}>
+        {["student", "tutor"].map(r => (
+          <button key={r} type="button" onClick={() => { setRegRole(r); setForm(initialFormState); setAssignedSubjects([]); setStudentCategory(""); setTutorTypes([]); }}
+            style={{ flex: 1, padding: "10px", borderRadius: 12, border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer",
+              background: regRole === r ? C.gradPrimary : "transparent",
+              color: regRole === r ? "#fff" : C.textMuted, transition: "all 0.2s" }}>
+            {r.charAt(0).toUpperCase() + r.slice(1)}
+          </button>
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
-        {regStatus && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={`mb-4 p-4 rounded-xl ${
-              regStatus.ok
-                ? "bg-green-500/10 border border-green-500/30 text-green-300"
-                : "bg-red-500/10 border border-red-500/30 text-red-300"
-            }`}
-          >
-            {regStatus.msg}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <StatusBanner status={regStatus} />
 
-      <form onSubmit={localHandleRegisterSubmit} className="space-y-6">
-        <div className="grid md:grid-cols-2 gap-4">
-          <InputField label="Full name" name="name" value={form.name} onChange={handleFormChange} required />
-          <InputField label="Email" name="email" value={form.email} onChange={handleFormChange} type="email" required />
-          <InputField label="Temp password" name="password" value={form.password} onChange={handleFormChange} type="password" required />
-          <InputField label="Contact number" name="contactNumber" value={form.contactNumber} onChange={handleFormChange} required />
-          <SelectField label="Timezone" name="timezone" value={form.timezone || "Asia/Kolkata"} onChange={handleFormChange} options={TIMEZONES} required />
+      <form onSubmit={handleSubmit}>
+        {/* Basic fields */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <TextInput label="Full Name" name="name" value={form.name} onChange={handleFormChange} required />
+          <TextInput label="Email Address" name="email" value={form.email} onChange={handleFormChange} type="email" required />
+          <TextInput label="Temporary Password" name="password" value={form.password} onChange={handleFormChange} type="password" required />
+          <TextInput label="Contact Number" name="contactNumber" value={form.contactNumber} onChange={handleFormChange} required />
+          <SelectInput label="Timezone" name="timezone" value={form.timezone || "Asia/Kolkata"} onChange={handleFormChange} options={TIMEZONES} required />
 
-          {regRole === "student" && (
-            <>
-              <InputField label="Class / Grade" name="classLevel" value={form.classLevel} onChange={handleFormChange} required />
-              <InputField label="Emergency contact" name="emergencyContact" value={form.emergencyContact} onChange={handleFormChange} required />
-              <InputField
-                label="Permanent Class Link"
-                name="permanentClassLink"
-                value={form.permanentClassLink}
-                onChange={handleFormChange}
-                type="url"
-                required
-                placeholder="https://meet.google.com/xyz"
-              />
-            </>
-          )}
+          {/* ── STUDENT FIELDS ── */}
+          {regRole === "student" && (<>
+            {/* Category selector spans full width */}
+            <CategorySelector value={studentCategory} onChange={setStudentCategory} />
 
-          {regRole === "tutor" && (
-            <>
-              <InputField label="Qualifications" name="qualifications" value={form.qualifications} onChange={handleFormChange} required />
-              <InputField label="Hourly rate" name="hourlyRate" value={form.hourlyRate} onChange={handleFormChange} required />
-              <InputField
-                label="Subjects (comma separated)"
-                name="subjects"
-                value={form.subjects.join(", ")}
-                onChange={(e) =>
-                  handleFormChange({
-                    target: {
-                      name: "subjects",
-                      value: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                    },
-                  })
-                }
-                required
-              />
-            </>
-          )}
-        </div>
+            <TextInput label="Student Grade / Class" name="grade" value={form.grade || ""} onChange={handleFormChange}
+              placeholder="e.g. Grade 3, Class 5, KG" required />
+            <TextInput label="Emergency Contact" name="emergencyContact" value={form.emergencyContact} onChange={handleFormChange} required />
+            <TextInput label="Permanent Class Link (Google Meet / Zoom)" name="permanentClassLink" value={form.permanentClassLink} onChange={handleFormChange} type="url" placeholder="https://meet.google.com/xyz" required />
+          </>)}
 
-        {regRole === "student" && (
-          <div className="p-6 rounded-xl border-2 border-dashed" style={{ borderColor: COLORS.glassBorder }}>
-            <label className="block text-base font-bold text-white mb-4">
-              Assign Tutors & Subjects <span className="text-red-400">*</span>
-            </label>
-
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 mb-4 items-end">
-              <InputField
-                label="Subject Name"
-                name="currentSubject"
-                value={currentSubjectInput}
-                onChange={(e) => setCurrentSubjectInput(e.target.value)}
-                placeholder="e.g., Python, Physics"
-              />
-              <SelectField
-                label="Choose Tutor"
-                name="selectedTutor"
-                value={selectedTutor.id}
-                onChange={(e) => {
-                  const tutorId = e.target.value;
-                  const tutor = tutors.find((t) => t.uid === tutorId);
-                  setSelectedTutor({ id: tutorId, name: tutor ? tutor.name : "" });
-                }}
-                options={tutorOptions}
-              />
-              <motion.button
-                type="button"
-                onClick={handleAddAssignment}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="py-2.5 px-4 h-[44px] rounded-xl font-bold text-white"
-                style={{ background: GRADIENTS.primary, boxShadow: SHADOWS.md }}
-              >
-                <PlusCircle className="w-5 h-5" />
-              </motion.button>
+          {/* ── TUTOR FIELDS ── */}
+          {regRole === "tutor" && (<>
+            {/* Tutor type checkboxes span full width */}
+            <div style={{ gridColumn: "1 / -1" }}>
+              <TutorTypeCheckboxes selectedTypes={tutorTypes} onChange={handleTutorTypeToggle} />
             </div>
 
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {assignedSubjects.length === 0 ? (
-                <p className="text-gray-500 text-sm text-center py-4 border-t" style={{ borderColor: COLORS.glassBorder }}>
-                  No subjects assigned yet
-                </p>
-              ) : (
-                assignedSubjects.map((assignment, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex justify-between items-center p-3 rounded-xl border"
-                    style={{ background: COLORS.glassBg, borderColor: COLORS.glassBorder }}
-                  >
-                    <div>
-                      <span className="font-semibold text-white">{assignment.subject}</span>
-                      <span className="text-xs text-cyan-400 ml-3">• {assignment.tutorName}</span>
-                    </div>
-                    <motion.button
-                      type="button"
-                      onClick={() => handleRemoveAssignment(index)}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30"
-                    >
-                      <XCircle className="w-4 h-4 text-red-400" />
-                    </motion.button>
-                  </motion.div>
-                ))
-              )}
+            <TextInput label="Qualifications" name="qualifications" value={form.qualifications} onChange={handleFormChange} required />
+            <TextInput label="Hourly Rate (₹)" name="hourlyRate" value={form.hourlyRate} onChange={handleFormChange} required />
+            <TextInput label="Subjects (comma-separated)" name="subjects" value={form.subjects.join(", ")}
+              onChange={e => handleFormChange({ target: { name: "subjects", value: e.target.value.split(",").map(s => s.trim()).filter(Boolean) } })} required />
+          </>)}
+        </div>
+
+        {/* Student assignments */}
+        {regRole === "student" && (
+          <div style={{ border: `2px dashed ${C.border}`, borderRadius: 14, padding: 18, marginBottom: 18 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, marginBottom: 14 }}>
+              Assign Subjects & Tutors <span style={{ color: C.red }}>*</span>
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 10, marginBottom: 12, alignItems: "flex-end" }}>
+              <TextInput label="Subject Name" name="subject" value={currentSubjectInput}
+                onChange={e => setCurrentSubjectInput(e.target.value)} placeholder="e.g. Coding, Maths" />
+              <SelectInput label="Choose Tutor" name="tutor" value={selectedTutor.id}
+                onChange={e => { const t = tutors.find(t => t.uid === e.target.value); setSelectedTutor({ id: e.target.value, name: t?.name || "" }); }}
+                options={tutorOptions} />
+              <motion.button type="button" onClick={handleAddAssignment} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                style={{ height: 42, paddingInline: 16, borderRadius: 12, border: "none", background: C.gradPrimary, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <PlusCircle style={{ width: 18, height: 18 }} />
+              </motion.button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 200, overflowY: "auto" }}>
+              {assignedSubjects.length === 0
+                ? <p style={{ textAlign: "center", fontSize: 13, color: C.textMuted, padding: "12px 0" }}>No subjects assigned yet</p>
+                : assignedSubjects.map((a, i) => <AssignmentRow key={i} assignment={a} onRemove={idx => setAssignedSubjects(prev => prev.filter((_, j) => j !== idx))} index={i} />)
+              }
             </div>
           </div>
         )}
 
-        <motion.button
-          disabled={!localIsFormValid() || regLoading}
-          type="submit"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full py-4 rounded-xl font-bold text-white disabled:opacity-50"
-          style={{ background: GRADIENTS.primary, boxShadow: SHADOWS.glow }}
-        >
-          {regLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : `Create ${regRole}`}
+        <motion.button type="submit" disabled={!localIsFormValid() || regLoading} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+          style={{ width: "100%", padding: "14px", borderRadius: 14, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 14, cursor: localIsFormValid() && !regLoading ? "pointer" : "not-allowed", opacity: !localIsFormValid() || regLoading ? 0.5 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          {regLoading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : `Create ${regRole.charAt(0).toUpperCase() + regRole.slice(1)}`}
         </motion.button>
       </form>
-    </motion.div>
+    </Panel>
   );
 }
 
@@ -336,225 +372,142 @@ export function RegistrationPanel({
 // EDIT USER PANEL
 // ====================================================================
 export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) {
-  const {
-    uid, name, email, role, contactNumber = "", emergencyContact = "", classLevel = "",
+  const { uid, name, email, role, contactNumber = "", emergencyContact = "", classLevel = "",
     subjects = [], qualifications = "", hourlyRate = "", permanentClassLink = "",
     assignments: initialAssignments = [], syllabus = "",
-  } = user;
+    category: initialCategory = "", grade: initialGrade = "",
+    tutorTypes: initialTutorTypes = [] } = user;
 
   const [form, setForm] = useState({
-    name, email, contactNumber, emergencyContact, classLevel, qualifications,
-    hourlyRate, permanentClassLink, syllabus,
-    timezone: user.timezone || "Asia/Kolkata", 
+    name, email, contactNumber, emergencyContact,
+    classLevel, grade: initialGrade || classLevel,  // populate grade from classLevel if not set
+    qualifications, hourlyRate, permanentClassLink, syllabus,
+    timezone: user.timezone || "Asia/Kolkata",
     tutorSubjectsString: role === "tutor" ? subjects.join(", ") : "",
   });
-
-  const [assignedSubjects, setAssignedSubjects] = useState(initialAssignments);
+  const [studentCategory, setStudentCategory]         = useState(initialCategory);
+  const [tutorTypes, setTutorTypes]                   = useState(initialTutorTypes);
+  const [assignedSubjects, setAssignedSubjects]       = useState(initialAssignments);
   const [currentSubjectInput, setCurrentSubjectInput] = useState("");
-  const [selectedTutor, setSelectedTutor] = useState({ id: "", name: "" });
-  const [updateStatus, setUpdateStatus] = useState(null);
-  const [updateLoading, setUpdateLoading] = useState(false);
+  const [selectedTutor, setSelectedTutor]             = useState({ id: "", name: "" });
+  const [updateStatus, setUpdateStatus]               = useState(null);
+  const [updateLoading, setUpdateLoading]             = useState(false);
 
-  const tutorOptions = tutors.map((t) => ({
-    value: t.uid,
-    label: `${t.name} (${t.subjects.join(", ") || "Any"})`,
-  }));
+  const tutorOptions = tutors.map(t => ({ value: t.uid, label: `${t.name} (${(t.subjects || []).join(", ") || "Any"})` }));
 
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  const handleFormChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleTutorTypeToggle = (type) => {
+    setTutorTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
 
   const handleAddAssignment = () => {
     if (currentSubjectInput.trim() && selectedTutor.id) {
-      setAssignedSubjects((prev) => [
-        ...prev,
-        { subject: currentSubjectInput.trim(), tutorId: selectedTutor.id, tutorName: selectedTutor.name },
-      ]);
-      setCurrentSubjectInput("");
-      setSelectedTutor({ id: "", name: "" });
+      setAssignedSubjects(prev => [...prev, { subject: currentSubjectInput.trim(), tutorId: selectedTutor.id, tutorName: selectedTutor.name }]);
+      setCurrentSubjectInput(""); setSelectedTutor({ id: "", name: "" });
     }
-  };
-
-  const handleRemoveAssignment = (index) => {
-    setAssignedSubjects((prev) => prev.filter((_, i) => i !== index));
   };
 
   const localIsFormValid = () => {
-    if (role === "student" && assignedSubjects.length === 0) return false;
     if (!form.name || !form.email || !form.contactNumber) return false;
-    if (role === "student" && (!form.classLevel || !form.emergencyContact || !form.permanentClassLink)) return false;
-    if (role === "tutor" && (!form.qualifications || !form.hourlyRate)) return false;
+    if (role === "student" && (!studentCategory || !form.grade || !form.emergencyContact || !form.permanentClassLink || assignedSubjects.length === 0)) return false;
+    if (role === "tutor" && (!form.qualifications || !form.hourlyRate || tutorTypes.length === 0)) return false;
     return true;
   };
 
-  const handleUpdateSubmit = async (e) => {
-    e.preventDefault();
-    setUpdateStatus(null);
-    setUpdateLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault(); setUpdateStatus(null); setUpdateLoading(true);
+    if (!localIsFormValid()) { setUpdateLoading(false); setUpdateStatus({ ok: false, msg: "Fill all required fields." }); return; }
 
-    if (!localIsFormValid()) {
-      setUpdateLoading(false);
-      setUpdateStatus({ ok: false, msg: "Fill all required fields." });
-      return;
-    }
-
-    const tutorSubjectsArray = form.tutorSubjectsString
-      ? form.tutorSubjectsString.split(",").map((s) => s.trim()).filter(Boolean)
-      : [];
-
+    const tutorSubjectsArray = form.tutorSubjectsString ? form.tutorSubjectsString.split(",").map(s => s.trim()).filter(Boolean) : [];
     const finalForm = {
-      ...form,
-      role: role,
-      subjects: role === "tutor" ? tutorSubjectsArray : assignedSubjects.map((a) => a.subject),
+      ...form, role,
+      category: role === "student" ? studentCategory : "",
+      classLevel: role === "student" ? form.grade : form.classLevel,
+      grade: role === "student" ? form.grade : "",
+      subjects: role === "tutor" ? tutorSubjectsArray : assignedSubjects.map(a => a.subject),
       assignments: role === "student" ? assignedSubjects : [],
+      tutorTypes: role === "tutor" ? tutorTypes : [],
     };
 
     try {
       const res = await adminUpdateUser(uid, finalForm);
       setUpdateLoading(false);
-
-      if (res && res.success) {
-        alert(`SUCCESS! ${res.message || `${role} updated`}`);
-        setUpdateStatus({ ok: true, msg: res.message || `${role} updated.` });
-        setTimeout(() => {
-          setUpdateStatus(null);
-          setActiveView("list");
-        }, 900);
+      if (res?.success) {
+        setUpdateStatus({ ok: true, msg: res.message || `${role} updated successfully!` });
+        setTimeout(() => { setUpdateStatus(null); setActiveView("list"); }, 1200);
       } else {
-        alert(`ERROR: ${res?.error || "Update failed"}`);
         setUpdateStatus({ ok: false, msg: res?.error || "Update failed" });
       }
     } catch (err) {
-      alert(`ERROR: ${err?.message || "Failed"}`);
       setUpdateLoading(false);
-      setUpdateStatus({ ok: false, msg: `Error: ${err?.message}` });
+      setUpdateStatus({ ok: false, msg: err?.message || "Failed" });
     }
   };
 
+  const roleCap = role.charAt(0).toUpperCase() + role.slice(1);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="p-8 rounded-2xl border backdrop-blur-xl"
-      style={{ background: COLORS.glassBg, borderColor: COLORS.glassBorder, boxShadow: SHADOWS.lg }}
-    >
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">
-          Edit {role.charAt(0).toUpperCase() + role.slice(1)}: {name}
-        </h2>
-        <motion.button onClick={() => setActiveView("list")} whileHover={{ scale: 1.05 }}>
-          <X className="w-5 h-5 text-gray-400 hover:text-white" />
-        </motion.button>
-      </div>
+    <Panel title={`Edit ${roleCap}: ${name}`} subtitle={`Update ${role} profile and assignments`}
+      onClose={() => setActiveView("list")}>
+      <StatusBanner status={updateStatus} />
 
-      <AnimatePresence mode="wait">
-        {updateStatus && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={`mb-4 p-4 rounded-xl ${
-              updateStatus.ok ? "bg-green-500/10 border border-green-500/30 text-green-300" : 
-              "bg-red-500/10 border border-red-500/30 text-red-300"
-            }`}
-          >
-            {updateStatus.msg}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <form onSubmit={handleSubmit}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <TextInput label="Full Name" name="name" value={form.name} onChange={handleFormChange} required />
+          <TextInput label="Email (Read-only)" name="email" value={form.email} readOnly disabled />
+          <TextInput label="Contact Number" name="contactNumber" value={form.contactNumber} onChange={handleFormChange} required />
 
-      <form onSubmit={handleUpdateSubmit} className="space-y-6">
-        <div className="grid md:grid-cols-2 gap-4">
-          <InputField label="Full Name" name="name" value={form.name} onChange={handleFormChange} required />
-          <InputField label="Email (Read-only)" name="email" value={form.email} readOnly disabled />
-          <InputField label="Contact Number" name="contactNumber" value={form.contactNumber} onChange={handleFormChange} required />
+          {role === "student" && (<>
+            <CategorySelector value={studentCategory} onChange={setStudentCategory} />
+            <TextInput label="Student Grade / Class" name="grade" value={form.grade} onChange={handleFormChange}
+              placeholder="e.g. Grade 3" required />
+            <SelectInput label="Timezone" name="timezone" value={form.timezone} onChange={handleFormChange} options={TIMEZONES} required />
+            <TextInput label="Emergency Contact" name="emergencyContact" value={form.emergencyContact} onChange={handleFormChange} required />
+            <TextInput label="Permanent Class Link" name="permanentClassLink" value={form.permanentClassLink} onChange={handleFormChange} type="url" required />
+            <TextInput label="Syllabus" name="syllabus" value={form.syllabus} onChange={handleFormChange} />
+          </>)}
 
-          {role === "student" && (
-            <>
-              <InputField label="Class / Grade" name="classLevel" value={form.classLevel} onChange={handleFormChange} required />
-              <SelectField
-  label="Timezone"
-  name="timezone"
-  value={form.timezone}
-  onChange={handleFormChange}
-  options={TIMEZONES}
-  required
-/>
-              <InputField label="Emergency Contact" name="emergencyContact" value={form.emergencyContact} onChange={handleFormChange} required />
-              <InputField label="Permanent Class Link" name="permanentClassLink" value={form.permanentClassLink} onChange={handleFormChange} type="url" required />
-              <InputField label="Syllabus" name="syllabus" value={form.syllabus} onChange={handleFormChange} />
-            </>
-          )}
-
-          {role === "tutor" && (
-            <>
-              <InputField label="Qualifications" name="qualifications" value={form.qualifications} onChange={handleFormChange} required />
-              <SelectField
-  label="Timezone"
-  name="timezone"
-  value={form.timezone}
-  onChange={handleFormChange}
-  options={TIMEZONES}
-  required
-/>
-              <InputField label="Hourly Rate" name="hourlyRate" value={form.hourlyRate} onChange={handleFormChange} required />
-              <InputField label="Subjects Taught" name="tutorSubjectsString" value={form.tutorSubjectsString} onChange={handleFormChange} required />
-            </>
-          )}
+          {role === "tutor" && (<>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <TutorTypeCheckboxes selectedTypes={tutorTypes} onChange={handleTutorTypeToggle} />
+            </div>
+            <TextInput label="Qualifications" name="qualifications" value={form.qualifications} onChange={handleFormChange} required />
+            <SelectInput label="Timezone" name="timezone" value={form.timezone} onChange={handleFormChange} options={TIMEZONES} required />
+            <TextInput label="Hourly Rate (₹)" name="hourlyRate" value={form.hourlyRate} onChange={handleFormChange} required />
+            <TextInput label="Subjects Taught (comma-separated)" name="tutorSubjectsString" value={form.tutorSubjectsString} onChange={handleFormChange} required />
+          </>)}
         </div>
 
         {role === "student" && (
-          <div className="p-6 rounded-xl border-2 border-dashed" style={{ borderColor: COLORS.glassBorder }}>
-            <label className="block text-base font-bold text-white mb-4">
-              Assign Subjects <span className="text-red-400">*</span>
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 mb-4 items-end">
-              <InputField label="Subject Name" name="currentSubject" value={currentSubjectInput}
-                onChange={(e) => setCurrentSubjectInput(e.target.value)} />
-              <SelectField label="Choose Tutor" name="selectedTutor" value={selectedTutor.id}
-                onChange={(e) => {
-                  const tutorId = e.target.value;
-                  const tutor = tutors.find((t) => t.uid === tutorId);
-                  setSelectedTutor({ id: tutorId, name: tutor ? tutor.name : "" });
-                }}
+          <div style={{ border: `2px dashed ${C.border}`, borderRadius: 14, padding: 18, marginBottom: 18 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, marginBottom: 14 }}>
+              Assign Subjects <span style={{ color: C.red }}>*</span>
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 10, marginBottom: 12, alignItems: "flex-end" }}>
+              <TextInput label="Subject" name="sub" value={currentSubjectInput} onChange={e => setCurrentSubjectInput(e.target.value)} placeholder="e.g. Coding" />
+              <SelectInput label="Tutor" name="tutor" value={selectedTutor.id}
+                onChange={e => { const t = tutors.find(t => t.uid === e.target.value); setSelectedTutor({ id: e.target.value, name: t?.name || "" }); }}
                 options={tutorOptions} />
               <motion.button type="button" onClick={handleAddAssignment} whileHover={{ scale: 1.05 }}
-                className="py-2.5 px-4 h-[44px] rounded-xl font-bold text-white"
-                style={{ background: GRADIENTS.primary }}>
-                <PlusCircle className="w-5 h-5" />
+                style={{ height: 42, paddingInline: 16, borderRadius: 12, border: "none", background: C.gradPrimary, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                <PlusCircle style={{ width: 17, height: 17 }} />
               </motion.button>
             </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {assignedSubjects.length === 0 ? (
-                <p className="text-gray-500 text-sm text-center py-4">No subjects assigned</p>
-              ) : (
-                assignedSubjects.map((assignment, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 rounded-xl border"
-                    style={{ background: COLORS.glassBg, borderColor: COLORS.glassBorder }}>
-                    <div>
-                      <span className="font-semibold text-white">{assignment.subject}</span>
-                      <span className="text-xs text-cyan-400 ml-3">• {assignment.tutorName}</span>
-                    </div>
-                    <motion.button type="button" onClick={() => handleRemoveAssignment(index)}
-                      whileHover={{ scale: 1.1 }} className="p-1.5 rounded-lg bg-red-500/20">
-                      <XCircle className="w-4 h-4 text-red-400" />
-                    </motion.button>
-                  </div>
-                ))
-              )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 200, overflowY: "auto" }}>
+              {assignedSubjects.length === 0
+                ? <p style={{ textAlign: "center", fontSize: 13, color: C.textMuted, padding: "12px 0" }}>No subjects assigned</p>
+                : assignedSubjects.map((a, i) => <AssignmentRow key={i} assignment={a} onRemove={idx => setAssignedSubjects(prev => prev.filter((_, j) => j !== idx))} index={i} />)
+              }
             </div>
           </div>
         )}
 
-        <motion.button disabled={updateLoading || !localIsFormValid()} type="submit"
-          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-          className="w-full py-4 rounded-xl font-bold text-white disabled:opacity-50"
-          style={{ background: GRADIENTS.primary, boxShadow: SHADOWS.glow }}>
-          {updateLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : `Update ${role}`}
+        <motion.button type="submit" disabled={updateLoading || !localIsFormValid()} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+          style={{ width: "100%", padding: "14px", borderRadius: 14, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: !localIsFormValid() || updateLoading ? 0.5 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          {updateLoading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : `Update ${roleCap}`}
         </motion.button>
       </form>
-    </motion.div>
+    </Panel>
   );
 }

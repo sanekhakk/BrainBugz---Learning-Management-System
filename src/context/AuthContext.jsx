@@ -152,6 +152,11 @@ const adminRegisterUser = async (form, regRole) => {
         mediumOfCommunication: form.mediumOfCommunication || "", // NEW
         assignments: form.assignments || [] ,// NEW
         permanentClassLink: form.permanentClassLink || "",
+        // NEW: student category + explicit grade
+        category: form.category || "",
+        grade: form.grade || form.classLevel || "",
+        // NEW: tutor category types
+        tutorTypes: form.tutorTypes || [],
       })
     });
 

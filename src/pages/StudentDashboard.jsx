@@ -155,12 +155,18 @@ function StudentCurriculumView({ category, studentName }) {
     if (!category) { setLoading(false); return; }
     setLoading(true);
     const q = query(collection(db, "curriculum"), where("category", "==", category));
-    const unsub = dbOnSnapshot(q, snap => {
-      const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
-      setModules(mods);
-      if (mods.length > 0) setExpandedModules({ [mods[0].id]: true });
-      setLoading(false);
-    });
+    const unsub = onSnapshot(q, 
+      snap => {
+        const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
+        setModules(mods);
+        if (mods.length > 0) setExpandedModules({ [mods[0].id]: true });
+        setLoading(false);
+      },
+      err => {
+        console.error("Curriculum snapshot error:", err);
+        setLoading(false);
+      }
+    );
     return () => unsub();
   }, [category]);
 

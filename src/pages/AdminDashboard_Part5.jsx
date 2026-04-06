@@ -359,10 +359,16 @@ function CategoryPanel({ cat }) {
 
   useEffect(() => {
     const q = query(collection(db, "curriculum"), where("category", "==", cat.value));
-    return onSnapshot(q, snap => {
-      setModules(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber));
-      setLoading(false);
-    });
+    return onSnapshot(q, 
+        snap => {
+            setModules(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber));
+            setLoading(false);
+        },
+        err => {
+            console.error("Curriculum snapshot error:", err);
+            setLoading(false); // ← this is the key fix: stop the spinner on error
+        }
+        );
   }, [cat.value]);
 
   return (

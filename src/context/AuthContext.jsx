@@ -293,7 +293,8 @@ const adminUpdateUser = async (uid, form) => {
 };
 
 // NEW: TUTOR MARK ATTENDANCE
-const tutorMarkAttendance = async (classId, studentId, status, summary) => {
+// lessonUpdates: [{ key: "M1:L3 Title", status: "completed" | "ongoing" }]
+const tutorMarkAttendance = async (classId, studentId, status, summary, lessonUpdates = []) => {
     try {
         if (role !== "tutor") {
             return { success: false, error: "Only tutors can mark attendance." };
@@ -302,11 +303,41 @@ const tutorMarkAttendance = async (classId, studentId, status, summary) => {
         const classRef = doc(db, "classes", classId);
 
         await updateDoc(classRef, {
-            status: status, // 'completed' or 'missed'
-            summary: summary, // topic taken or reason for absence
+            status: status,
+            summary: summary,
             markedAt: serverTimestamp(),
-            studentAttendance: status === 'completed' ? 'present' : 'absent' 
+            studentAttendance: status === 'completed' ? 'present' : 'absent',
+            lessonsTagged: lessonUpdates,
         });
+
+        // If class completed and lessons were tagged, update progress collection
+        if (status === "completed" && lessonUpdates.length > 0 && studentId) {
+            // Get subject from the class doc
+            const classSnap = await getDoc(doc(db, "classes", classId));
+            const subject = classSnap.exists() ? classSnap.data().subject : null;
+
+            if (subject) {
+                const progressRef = getProgressRef(studentId, subject);
+                const progressSnap = await getDoc(progressRef);
+                const existing = progressSnap.exists() ? (progressSnap.data().lessons || []) : [];
+
+                // Merge: apply new statuses, preserving any lessons not touched this class
+                const lessonMap = {};
+                existing.forEach(l => { lessonMap[l.key] = l.status; });
+                lessonUpdates.forEach(l => { lessonMap[l.key] = l.status; });
+
+                const merged = Object.entries(lessonMap).map(([key, st]) => ({ key, status: st }));
+
+                await setDoc(progressRef, {
+                    studentId,
+                    subject,
+                    lessons: merged,
+                    // Keep legacy completedChapters for backward compat
+                    completedChapters: merged.filter(l => l.status === "completed").map(l => l.key),
+                    updatedAt: serverTimestamp(),
+                }, { merge: true });
+            }
+        }
 
         return { success: true, message: `Attendance marked as ${status}.` };
 

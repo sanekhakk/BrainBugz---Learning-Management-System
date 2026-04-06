@@ -82,7 +82,13 @@ const SideNavItem = ({ tab, active, onClick }) => (
   </motion.button>
 );
 
-// ── Attendance Modal (updated with lesson checkboxes) ─────────
+// ── Attendance Modal — per-lesson status (not covered / ongoing / completed) ──
+const LESSON_STATUSES = [
+  { val: "not_covered", label: "—",          color: "#94A3B8", bg: "transparent",  title: "Not covered" },
+  { val: "ongoing",     label: "Ongoing",    color: "#F59E0B", bg: "#FFFBEB",      title: "Introduced, still in progress" },
+  { val: "completed",   label: "Completed",  color: "#10B981", bg: "#ECFDF5",      title: "Fully covered" },
+];
+
 const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
   const [status, setStatus] = useState("completed");
   const [summary, setSummary] = useState("");
@@ -90,19 +96,18 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // Curriculum lesson state
   const [currModules, setCurrModules] = useState([]);
   const [currLoading, setCurrLoading] = useState(true);
-  const [checkedLessons, setCheckedLessons] = useState([]);
+  // lessonStatuses: { [lessonKey]: "not_covered" | "ongoing" | "completed" }
+  const [lessonStatuses, setLessonStatuses] = useState({});
+  const [existingProgress, setExistingProgress] = useState({});
   const [expandedModules, setExpandedModules] = useState({});
   const [studentCategory, setStudentCategory] = useState(null);
 
-  // Fetch student's category + curriculum
   useEffect(() => {
-    const fetchCurriculum = async () => {
+    const fetchData = async () => {
       setCurrLoading(true);
       try {
-        // Get student's category from userSummaries
         const snap = await getDoc(doc(db, "userSummaries", classItem.studentId));
         const category = snap.exists() ? snap.data().category : null;
         setStudentCategory(category);
@@ -110,42 +115,61 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
         if (category) {
           const q = query(collection(db, "curriculum"), where("category", "==", category));
           const currSnap = await getDocs(q);
-          const mods = currSnap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .sort((a, b) => a.moduleNumber - b.moduleNumber);
+          const mods = currSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
           setCurrModules(mods);
-          // Auto-expand first module
           if (mods.length > 0) setExpandedModules({ [mods[0].id]: true });
+
+          // Load existing progress so tutor sees what's already been logged
+          const progressSnap = await getDoc(getProgressRef(classItem.studentId, classItem.subject));
+          if (progressSnap.exists()) {
+            const lessons = progressSnap.data().lessons || [];
+            const map = {};
+            lessons.forEach(l => { map[l.key] = l.status; });
+            setExistingProgress(map);
+          }
         }
       } catch (e) {
-        console.error("Curriculum fetch error:", e);
+        console.error("Curriculum/progress fetch error:", e);
       }
       setCurrLoading(false);
     };
-    fetchCurriculum();
-  }, [classItem.studentId]);
+    fetchData();
+  }, [classItem.studentId, classItem.subject]);
 
-  const toggleLesson = (lessonKey) => {
-    setCheckedLessons(prev =>
-      prev.includes(lessonKey) ? prev.filter(k => k !== lessonKey) : [...prev, lessonKey]
-    );
+  const getLessonStatus = (key) => lessonStatuses[key] || existingProgress[key] || "not_covered";
+
+  const cycleLessonStatus = (key) => {
+    const current = getLessonStatus(key);
+    // Cycle: not_covered → ongoing → completed → not_covered
+    const next = current === "not_covered" ? "ongoing" : current === "ongoing" ? "completed" : "not_covered";
+    setLessonStatuses(prev => ({ ...prev, [key]: next }));
   };
 
-  const toggleModule = (modId) => {
-    setExpandedModules(prev => ({ ...prev, [modId]: !prev[modId] }));
-  };
+  const toggleModule = (modId) => setExpandedModules(prev => ({ ...prev, [modId]: !prev[modId] }));
+
+  const taggedCount = Object.values(lessonStatuses).filter(s => s !== "not_covered").length;
+  const completedCount = Object.values(lessonStatuses).filter(s => s === "completed").length;
+  const ongoingCount = Object.values(lessonStatuses).filter(s => s === "ongoing").length;
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError(null);
-    if (!summary.trim() && status === "completed") { setError("Please describe what was covered."); return; }
     setLoading(true);
 
-    // Build lesson summary string
-    const lessonSummary = checkedLessons.length > 0
-      ? `Lessons covered: ${checkedLessons.join(", ")}. ${summary}`.trim()
-      : summary;
+    // Build lessonUpdates array: only lessons that have been touched (not "not_covered")
+    // Merge with existingProgress so we don't wipe old records
+    const mergedStatuses = { ...existingProgress, ...lessonStatuses };
+    const lessonUpdates = Object.entries(mergedStatuses)
+      .filter(([, s]) => s !== "not_covered")
+      .map(([key, st]) => ({ key, status: st }));
 
-    const res = await markAttendance(classItem.id, classItem.studentId, status, lessonSummary);
+    // Build summary with lesson info
+    const completedKeys = Object.entries(lessonStatuses).filter(([,s]) => s === "completed").map(([k]) => k);
+    const ongoingKeys = Object.entries(lessonStatuses).filter(([,s]) => s === "ongoing").map(([k]) => k);
+    let lessonSummary = summary;
+    if (completedKeys.length > 0) lessonSummary = `Completed: ${completedKeys.join(", ")}. ` + lessonSummary;
+    if (ongoingKeys.length > 0) lessonSummary = `Ongoing: ${ongoingKeys.join(", ")}. ` + lessonSummary;
+
+    const res = await markAttendance(classItem.id, classItem.studentId, status, lessonSummary.trim(), lessonUpdates);
     setLoading(false);
     if (res.success) { setSuccess(res.message); setTimeout(onClose, 1500); } else setError(res.error);
   };
@@ -155,7 +179,7 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
       style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(8px)" }}
       onClick={onClose}>
       <motion.div initial={{ scale: 0.94, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.94, y: 16 }}
-        style={{ background: C.card, borderRadius: 24, width: "100%", maxWidth: 560, maxHeight: "90vh", overflow: "hidden", boxShadow: C.shadowModal, display: "flex", flexDirection: "column" }}
+        style={{ background: C.card, borderRadius: 24, width: "100%", maxWidth: 580, maxHeight: "92vh", overflow: "hidden", boxShadow: C.shadowModal, display: "flex", flexDirection: "column" }}
         onClick={e => e.stopPropagation()}>
         <div style={{ height: 4, background: C.gradPrimary, flexShrink: 0 }} />
         <div style={{ overflowY: "auto", padding: 28 }}>
@@ -176,7 +200,7 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
           {success && <div style={{ background: C.emeraldLight, borderRadius: 12, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: C.emerald, fontWeight: 600 }}>✓ {success}</div>}
 
           <form onSubmit={handleSubmit}>
-            {/* Status buttons */}
+            {/* Attendance status */}
             <p style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, marginBottom: 10 }}>Attendance Status</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 22 }}>
               {[{ val: "completed", label: "Present ✓", color: C.emerald, bg: C.emeraldLight }, { val: "missed", label: "Absent ✗", color: C.red, bg: C.redLight }].map(opt => {
@@ -188,58 +212,87 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
               })}
             </div>
 
-            {/* Lesson checkboxes — only show when "completed" */}
+            {/* Lesson progress — only show when present */}
             {status === "completed" && (
               <div style={{ marginBottom: 20 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: C.textSecondary, marginBottom: 10 }}>
-                  Lessons Covered <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 500 }}>(check all that apply)</span>
-                </p>
+                {/* Legend */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: C.textSecondary }}>
+                    Lesson Progress
+                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {[
+                      { label: "Tap once → Ongoing", color: C.amber },
+                      { label: "Tap twice → Completed", color: C.emerald },
+                    ].map((l, i) => (
+                      <span key={i} style={{ fontSize: 10, fontWeight: 700, color: l.color, background: l.color + "15", padding: "3px 8px", borderRadius: 20 }}>{l.label}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Summary pills */}
+                {taggedCount > 0 && (
+                  <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                    {completedCount > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "3px 10px", borderRadius: 20 }}>✓ {completedCount} completed</span>}
+                    {ongoingCount > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: C.amber, background: C.amberLight, padding: "3px 10px", borderRadius: 20 }}>⏳ {ongoingCount} ongoing</span>}
+                  </div>
+                )}
+
                 {currLoading ? (
                   <div style={{ display: "flex", justifyContent: "center", padding: 20 }}><Loader2 style={{ width: 20, height: 20, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
                 ) : currModules.length === 0 ? (
                   <div style={{ padding: "12px 14px", borderRadius: 10, background: C.amberLight, fontSize: 12, color: C.amber, fontWeight: 600 }}>
-                    ⚠️ No curriculum found for this student's category. Ask admin to add curriculum data.
+                    ⚠️ No curriculum found for this student's category.
                   </div>
                 ) : (
-                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
                     {currModules.map((mod, mIdx) => {
                       const isOpen = expandedModules[mod.id];
-                      const modChecked = (mod.lessons || []).filter(l => checkedLessons.includes(`M${mod.moduleNumber}:L${l.lessonNumber} ${l.title}`)).length;
+                      const modTagged = (mod.lessons || []).filter(l => {
+                        const key = `M${mod.moduleNumber}:L${l.lessonNumber} ${l.title}`;
+                        return getLessonStatus(key) !== "not_covered";
+                      }).length;
                       return (
                         <div key={mod.id} style={{ borderBottom: mIdx < currModules.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                          {/* Module header */}
                           <div onClick={() => toggleModule(mod.id)}
                             style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", background: isOpen ? C.bg : C.card, userSelect: "none" }}>
                             <span style={{ fontSize: 16 }}>{mod.moduleEmoji}</span>
                             <span style={{ flex: 1, fontWeight: 700, fontSize: 13, color: C.textPrimary }}>
                               Module {mod.moduleNumber}: {mod.moduleName}
                             </span>
-                            {modChecked > 0 && (
-                              <span style={{ fontSize: 11, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "2px 8px", borderRadius: 20 }}>{modChecked} selected</span>
+                            {modTagged > 0 && (
+                              <span style={{ fontSize: 11, fontWeight: 700, color: C.indigo, background: C.indigoLight, padding: "2px 8px", borderRadius: 20 }}>{modTagged} tagged</span>
                             )}
                             {isOpen ? <ChevronDown style={{ width: 14, height: 14, color: C.textMuted }} /> : <ChevronRight style={{ width: 14, height: 14, color: C.textMuted }} />}
                           </div>
-                          {/* Lessons */}
                           <AnimatePresence>
                             {isOpen && (
                               <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} style={{ overflow: "hidden" }}>
-                                <div style={{ padding: "6px 14px 10px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                                <div style={{ padding: "6px 14px 10px 14px", display: "flex", flexDirection: "column", gap: 5 }}>
                                   {(mod.lessons || []).sort((a, b) => a.lessonNumber - b.lessonNumber).map(lesson => {
                                     const key = `M${mod.moduleNumber}:L${lesson.lessonNumber} ${lesson.title}`;
-                                    const checked = checkedLessons.includes(key);
+                                    const st = getLessonStatus(key);
+                                    const isExisting = !!existingProgress[key] && !lessonStatuses[key];
+                                    const stConfig = LESSON_STATUSES.find(s => s.val === st);
                                     return (
-                                      <label key={lesson.id} onClick={() => toggleLesson(key)}
-                                        style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 10px", borderRadius: 10, cursor: "pointer", background: checked ? C.emeraldLight : "transparent", border: `1px solid ${checked ? C.emerald + "40" : "transparent"}`, transition: "all 0.12s" }}>
-                                        <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${checked ? C.emerald : C.border}`, background: checked ? C.emerald : "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, transition: "all 0.12s" }}>
-                                          {checked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                      <div key={lesson.id} onClick={() => cycleLessonStatus(key)}
+                                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, cursor: "pointer", background: st === "not_covered" ? "transparent" : stConfig.bg, border: `1px solid ${st === "not_covered" ? C.border : stConfig.color + "40"}`, transition: "all 0.15s", userSelect: "none" }}>
+                                        {/* Status pill */}
+                                        <div style={{ width: 68, flexShrink: 0, textAlign: "center" }}>
+                                          <span style={{ fontSize: 10, fontWeight: 800, color: stConfig.color, background: stConfig.color + "20", padding: "3px 6px", borderRadius: 20, display: "inline-block", letterSpacing: "0.02em" }}>
+                                            {st === "not_covered" ? "—" : st === "ongoing" ? "⏳ Ongoing" : "✓ Done"}
+                                          </span>
                                         </div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
-                                          <p style={{ fontSize: 12, fontWeight: checked ? 700 : 500, color: C.textPrimary, lineHeight: 1.4 }}>
+                                          <p style={{ fontSize: 12, fontWeight: st !== "not_covered" ? 700 : 500, color: st === "not_covered" ? C.textSecondary : C.textPrimary, lineHeight: 1.4 }}>
                                             <span style={{ color: C.textMuted, fontSize: 11 }}>L{lesson.lessonNumber} · </span>{lesson.title}
                                           </p>
-                                          <p style={{ fontSize: 11, color: C.cyan, marginTop: 1 }}>{lesson.platform}</p>
+                                          <p style={{ fontSize: 10, color: C.cyan, marginTop: 1 }}>{lesson.platform}</p>
                                         </div>
-                                      </label>
+                                        {isExisting && (
+                                          <span style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, background: C.bg, padding: "2px 6px", borderRadius: 20, border: `1px solid ${C.border}`, flexShrink: 0 }}>saved</span>
+                                        )}
+                                      </div>
                                     );
                                   })}
                                 </div>
@@ -251,15 +304,10 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
                     })}
                   </div>
                 )}
-                {checkedLessons.length > 0 && (
-                  <p style={{ fontSize: 11, color: C.emerald, fontWeight: 600, marginTop: 6 }}>
-                    ✓ {checkedLessons.length} lesson{checkedLessons.length > 1 ? "s" : ""} selected
-                  </p>
-                )}
               </div>
             )}
 
-            {/* Summary / reason */}
+            {/* Notes */}
             <label style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, display: "block", marginBottom: 8 }}>
               {status === "completed" ? "Additional Notes (optional)" : "Reason for Absence (optional)"}
             </label>
@@ -269,7 +317,7 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
               onFocus={e => { e.target.style.borderColor = C.emerald; }} onBlur={e => { e.target.style.borderColor = C.border; }} />
             <button type="submit" disabled={loading}
               style={{ width: "100%", marginTop: 16, padding: 14, borderRadius: 14, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              {loading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : "Submit Attendance"}
+              {loading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : "Save & Submit"}
             </button>
           </form>
         </div>
@@ -407,12 +455,18 @@ function CurriculumView() {
   useEffect(() => {
     setLoading(true);
     const q = query(collection(db, "curriculum"), where("category", "==", activeCategory));
-    const unsub = onSnapshot(q, snap => {
-      const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
-      setModules(mods);
-      if (mods.length > 0) setExpandedModules({ [mods[0].id]: true });
-      setLoading(false);
-    });
+    const unsub = onSnapshot(q, 
+      snap => {
+        const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
+        setModules(mods);
+        if (mods.length > 0) setExpandedModules({ [mods[0].id]: true });
+        setLoading(false);
+      },
+      err => {
+        console.error("Curriculum snapshot error:", err);
+        setLoading(false);
+      }
+    );
     return () => unsub();
   }, [activeCategory]);
 
@@ -493,6 +547,237 @@ function CurriculumView() {
   );
 }
 
+// ── Progress Tracker View ─────────────────────────────────────
+function ProgressTrackerView({ students, tutorId }) {
+  const [selectedStudent, setSelectedStudent] = useState(students[0]?.uid || null);
+  const [currModules, setCurrModules] = useState([]);
+  const [currLoading, setCurrLoading] = useState(false);
+  const [lessonProgress, setLessonProgress] = useState({}); // { subject: { [lessonKey]: status } }
+  const [expandedModules, setExpandedModules] = useState({});
+
+  const student = students.find(s => s.uid === selectedStudent);
+
+  // Load curriculum for student's category whenever student changes
+  useEffect(() => {
+    if (!student?.category) { setCurrModules([]); return; }
+    setCurrLoading(true);
+    const q = query(collection(db, "curriculum"), where("category", "==", student.category));
+    const unsub = onSnapshot(q, snap => {
+      const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
+      setCurrModules(mods);
+      if (mods.length > 0) setExpandedModules({ [mods[0].id]: true });
+      setCurrLoading(false);
+    }, () => setCurrLoading(false));
+    return () => unsub();
+  }, [student?.uid, student?.category]);
+
+  // Load live lesson progress for each assignment subject
+  useEffect(() => {
+    if (!student) return;
+    const unsubs = {};
+    const prog = {};
+    (student.assignments || []).forEach(a => {
+      unsubs[a.subject] = onSnapshot(
+        getProgressRef(student.uid, a.subject),
+        snap => {
+          const lessons = snap.exists() ? (snap.data().lessons || []) : [];
+          prog[a.subject] = {};
+          lessons.forEach(l => { prog[a.subject][l.key] = l.status; });
+          setLessonProgress({ ...prog });
+        }
+      );
+    });
+    return () => Object.values(unsubs).forEach(u => u());
+  }, [student?.uid, student?.assignments]);
+
+  const subjects = (student?.assignments || []).map(a => a.subject);
+  const [activeSubject, setActiveSubject] = useState(null);
+  const subjectProgress = lessonProgress[activeSubject] || {};
+
+  // Auto-select first subject when student changes
+  useEffect(() => {
+    if (subjects.length > 0) setActiveSubject(subjects[0]);
+  }, [selectedStudent]);
+
+  // Stats for selected subject
+  const allTagged = Object.values(subjectProgress);
+  const completedCount = allTagged.filter(s => s === "completed").length;
+  const ongoingCount = allTagged.filter(s => s === "ongoing").length;
+  const totalLessons = currModules.reduce((s, m) => s + (m.lessons?.length || 0), 0);
+  const pct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
+  const catInfo = catLabel[student?.category];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Student selector */}
+      <div style={{ background: C.card, borderRadius: 16, padding: 16, border: `1px solid ${C.border}`, boxShadow: C.shadowCard }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>Select Student</p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {students.map(s => {
+            const active = s.uid === selectedStudent;
+            const ci = catLabel[s.category];
+            const totalDone = Object.values(s.progress || {}).reduce((sum, p) => sum + (p.completedChapters?.length || 0), 0);
+            return (
+              <button key={s.uid} onClick={() => setSelectedStudent(s.uid)}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 30, border: `2px solid ${active ? C.emerald : C.border}`, background: active ? C.emeraldLight : C.bg, cursor: "pointer", transition: "all 0.15s" }}>
+                <div style={{ width: 28, height: 28, borderRadius: 10, background: active ? C.gradPrimary : C.border, display: "flex", alignItems: "center", justifyContent: "center", color: active ? "#fff" : C.textMuted, fontWeight: 800, fontSize: 12 }}>{s.name?.charAt(0)}</div>
+                <div style={{ textAlign: "left" }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: active ? C.textPrimary : C.textSecondary, lineHeight: 1 }}>{s.name}</p>
+                  <p style={{ fontSize: 10, color: ci?.color || C.textMuted, marginTop: 2 }}>{ci?.label || `Grade ${s.classLevel}`}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {student && (
+        <>
+          {/* Subject tabs */}
+          {subjects.length > 1 && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {subjects.map(subj => {
+                const active = subj === activeSubject;
+                const prog = lessonProgress[subj] || {};
+                const done = Object.values(prog).filter(s => s === "completed").length;
+                const ongoing = Object.values(prog).filter(s => s === "ongoing").length;
+                return (
+                  <button key={subj} onClick={() => setActiveSubject(subj)}
+                    style={{ padding: "8px 16px", borderRadius: 30, border: `2px solid ${active ? C.indigo : C.border}`, background: active ? C.indigoLight : C.card, color: active ? C.indigo : C.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 6 }}>
+                    {subj}
+                    {(done > 0 || ongoing > 0) && (
+                      <span style={{ fontSize: 10, background: active ? C.indigo : C.border, color: active ? "#fff" : C.textMuted, padding: "1px 6px", borderRadius: 20 }}>
+                        {done}✓{ongoing > 0 ? ` ${ongoing}⏳` : ""}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Progress header card */}
+          <div style={{ background: C.card, borderRadius: 16, padding: "16px 20px", border: `1px solid ${C.border}`, boxShadow: C.shadowCard }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 11, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 15 }}>{student.name?.charAt(0)}</div>
+                  <div>
+                    <p style={{ fontWeight: 800, fontSize: 15, color: C.textPrimary }}>{student.name}</p>
+                    {catInfo && <span style={{ fontSize: 10, fontWeight: 700, color: catInfo.color, background: catInfo.bg, padding: "2px 8px", borderRadius: 20 }}>{catInfo.label}</span>}
+                  </div>
+                </div>
+                <p style={{ fontSize: 12, color: C.textMuted }}>
+                  {activeSubject} · {completedCount} lessons completed · {ongoingCount} ongoing
+                </p>
+              </div>
+              {/* Progress ring */}
+              <div style={{ textAlign: "center", flexShrink: 0 }}>
+                <div style={{ position: "relative", width: 64, height: 64 }}>
+                  <svg width="64" height="64" style={{ transform: "rotate(-90deg)" }}>
+                    <circle cx="32" cy="32" r="26" fill="none" stroke={C.emeraldLight} strokeWidth="6" />
+                    <circle cx="32" cy="32" r="26" fill="none" stroke={C.emerald} strokeWidth="6"
+                      strokeDasharray={`${2 * Math.PI * 26}`}
+                      strokeDashoffset={`${2 * Math.PI * 26 * (1 - pct / 100)}`}
+                      strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.8s ease" }} />
+                  </svg>
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: C.emerald }}>{pct}%</span>
+                  </div>
+                </div>
+                <p style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>complete</p>
+              </div>
+            </div>
+
+            {/* Compact progress bar */}
+            <div style={{ marginTop: 14 }}>
+              <div style={{ height: 8, borderRadius: 8, background: C.bg, overflow: "hidden", border: `1px solid ${C.border}` }}>
+                <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8 }}
+                  style={{ height: "100%", borderRadius: 8, background: C.gradEmerald }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                <span style={{ fontSize: 10, color: C.textMuted }}>{completedCount} / {totalLessons} lessons done</span>
+                {ongoingCount > 0 && <span style={{ fontSize: 10, color: C.amber, fontWeight: 600 }}>⏳ {ongoingCount} in progress</span>}
+              </div>
+            </div>
+          </div>
+
+          {/* Curriculum with lesson statuses */}
+          {currLoading ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 style={{ width: 24, height: 24, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
+          ) : currModules.length === 0 ? (
+            <Empty icon={BookOpen} msg="No curriculum data for this student's category." />
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {currModules.map(mod => {
+                const modLessons = mod.lessons || [];
+                const modCompleted = modLessons.filter(l => subjectProgress[`M${mod.moduleNumber}:L${l.lessonNumber} ${l.title}`] === "completed").length;
+                const modOngoing = modLessons.filter(l => subjectProgress[`M${mod.moduleNumber}:L${l.lessonNumber} ${l.title}`] === "ongoing").length;
+                const isOpen = expandedModules[mod.id];
+                const modDonePct = modLessons.length > 0 ? Math.round((modCompleted / modLessons.length) * 100) : 0;
+                const hasActivity = modCompleted > 0 || modOngoing > 0;
+
+                return (
+                  <div key={mod.id} style={{ background: C.card, border: `1px solid ${hasActivity ? C.emerald + "30" : C.border}`, borderRadius: 16, overflow: "hidden", boxShadow: C.shadowCard }}>
+                    <div onClick={() => setExpandedModules(p => ({ ...p, [mod.id]: !p[mod.id] }))}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", cursor: "pointer", userSelect: "none" }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: modDonePct === 100 ? C.gradEmerald : modOngoing > 0 ? C.gradAmber : C.bg, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+                        {modDonePct === 100 ? "✅" : mod.moduleEmoji}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: 800, fontSize: 13, color: C.textPrimary }}>Module {mod.moduleNumber}: {mod.moduleName}</p>
+                        <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                          {modCompleted > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "2px 7px", borderRadius: 20 }}>✓ {modCompleted} done</span>}
+                          {modOngoing > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.amber, background: C.amberLight, padding: "2px 7px", borderRadius: 20 }}>⏳ {modOngoing} ongoing</span>}
+                          {!hasActivity && <span style={{ fontSize: 10, color: C.textMuted }}>Not started</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, color: modDonePct > 0 ? C.emerald : C.textMuted, fontWeight: 700 }}>{modDonePct}%</span>
+                        {isOpen ? <ChevronDown style={{ width: 14, height: 14, color: C.textMuted }} /> : <ChevronRight style={{ width: 14, height: 14, color: C.textMuted }} />}
+                      </div>
+                    </div>
+                    <AnimatePresence>
+                      {isOpen && (
+                        <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} style={{ overflow: "hidden" }}>
+                          <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                            {modLessons.sort((a, b) => a.lessonNumber - b.lessonNumber).map(lesson => {
+                              const key = `M${mod.moduleNumber}:L${lesson.lessonNumber} ${lesson.title}`;
+                              const st = subjectProgress[key] || "not_covered";
+                              return (
+                                <div key={lesson.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 10, background: st === "completed" ? C.emeraldLight : st === "ongoing" ? C.amberLight : C.bg, border: `1px solid ${st === "completed" ? C.emerald + "30" : st === "ongoing" ? C.amber + "40" : C.border}` }}>
+                                  {/* Status icon */}
+                                  <div style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: st === "completed" ? C.emerald : st === "ongoing" ? C.amber : C.border, fontSize: 11 }}>
+                                    {st === "completed" ? <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> : st === "ongoing" ? <span style={{ fontSize: 10 }}>⏳</span> : <span style={{ fontSize: 10, color: "#fff" }}>–</span>}
+                                  </div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontSize: 12, fontWeight: st !== "not_covered" ? 700 : 500, color: st === "not_covered" ? C.textMuted : C.textPrimary, lineHeight: 1.3 }}>
+                                      <span style={{ color: C.textMuted, fontSize: 10, fontWeight: 500 }}>L{lesson.lessonNumber} · </span>{lesson.title}
+                                    </p>
+                                    <p style={{ fontSize: 10, color: C.cyan, marginTop: 1 }}>{lesson.platform}</p>
+                                  </div>
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: st === "completed" ? C.emerald : st === "ongoing" ? C.amber : C.textMuted, flexShrink: 0 }}>
+                                    {st === "completed" ? "Done" : st === "ongoing" ? "In Progress" : ""}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Main Dashboard ────────────────────────────────────────────
 export default function TutorDashboard() {
   const { userId, logout, tutorMarkAttendance, tutorUpdateChapterProgress, tutorDeleteChapterProgress } = useAuth();
@@ -539,19 +824,40 @@ export default function TutorDashboard() {
   }, [userId]);
 
   useEffect(() => {
-    if (!students.length) { setStudentsWP([]); return; }
-    const unsubs = {}; const prog = {};
-    students.forEach(st => {
-      prog[st.uid] = {};
-      (st.assignments || []).forEach(a => {
-        unsubs[`${st.uid}_${a.subject}`] = onSnapshot(getProgressRef(st.uid, a.subject), snap => {
+  if (!students.length) { setStudentsWP([]); return; }
+  const unsubs = {}; const prog = {};
+
+  students.forEach(st => {
+    prog[st.uid] = {};
+    const assignments = st.assignments || [];
+
+    // ← FIX: if no assignments, still populate studentsWP
+    if (assignments.length === 0) {
+      setStudentsWP(prev => {
+        const without = prev.filter(s => s.uid !== st.uid);
+        return [...without, { ...st, progress: {} }];
+      });
+      return;
+    }
+
+    assignments.forEach(a => {
+      unsubs[`${st.uid}_${a.subject}`] = onSnapshot(
+        getProgressRef(st.uid, a.subject),
+        snap => {
           prog[st.uid][a.subject] = snap.exists() ? snap.data() : { completedChapters: [] };
           setStudentsWP(students.map(s => ({ ...s, progress: { ...(prog[s.uid] || {}) } })));
-        });
-      });
+        },
+        err => {
+          // ← FIX: on error still show the student, just with no progress
+          console.error("Progress read error:", err);
+          setStudentsWP(students.map(s => ({ ...s, progress: { ...(prog[s.uid] || {}) } })));
+        }
+      );
     });
-    return () => Object.values(unsubs).forEach(u => u());
-  }, [students]);
+  });
+
+  return () => Object.values(unsubs).forEach(u => u());
+}, [students]);
 
   useEffect(() => {
     if (!userId) return;
@@ -812,44 +1118,11 @@ export default function TutorDashboard() {
             )}
 
             {activeTab === "progress" && (
-              <motion.div key="pr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
-                {studentsWP.length === 0 ? <div style={{ gridColumn: "1/-1" }}><Empty icon={TrendingUp} msg="No progress data" /></div>
-                  : studentsWP.map(s => (
-                    <div key={s.uid} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, boxShadow: C.shadowCard }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 12, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16 }}>{s.name?.charAt(0)}</div>
-                        <div>
-                          <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary }}>{s.name}</p>
-                          <p style={{ fontSize: 12, color: C.textMuted }}>Grade {s.classLevel || s.grade}</p>
-                        </div>
-                      </div>
-                      {(s.assignments || []).map((a, i) => {
-                        const done = s.progress?.[a.subject]?.completedChapters || [];
-                        return (
-                          <div key={i} style={{ marginBottom: 14 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary }}>{a.subject}</span>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: C.emerald }}>{done.length} ch</span>
-                                <button onClick={() => { setSelProgress({ student: s, assignment: a }); setShowProgress(true); }}
-                                  style={{ padding: "3px 10px", borderRadius: 20, background: C.indigoLight, color: C.indigo, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Edit</button>
-                              </div>
-                            </div>
-                            <div style={{ height: 6, borderRadius: 6, background: C.emeraldLight, overflow: "hidden" }}>
-                              <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, done.length * 10)}%` }} transition={{ duration: 0.7 }}
-                                style={{ height: "100%", borderRadius: 6, background: C.gradEmerald }} />
-                            </div>
-                            {done.length > 0 && (
-                              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
-                                {done.map((ch, ci) => <span key={ci} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 20, background: C.emeraldLight, color: C.emerald, fontWeight: 600 }}>✓ {ch}</span>)}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+              <motion.div key="pr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                {studentsWP.length === 0
+                  ? <div style={{ gridColumn: "1/-1" }}><Empty icon={TrendingUp} msg="No progress data" /></div>
+                  : <ProgressTrackerView students={studentsWP} tutorId={userId} />
+                }
               </motion.div>
             )}
 

@@ -37,9 +37,10 @@ const fieldStyle = {
 };
 
 const catColor = {
-  little_pearls: { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C", light: "#FED7AA" },
-  bright_pearls: { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A", light: "#BBF7D0" },
-  rising_pearls: { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB", light: "#BFDBFE" },
+  little_pearls:    { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C", light: "#FED7AA" },
+  bright_pearls:    { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A", light: "#BBF7D0" },
+  rising_pearls:    { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB", light: "#BFDBFE" },
+  academic_tuition: { bg: "#F5F3FF", border: "#8B5CF6", text: "#6D28D9", light: "#DDD6FE" },
 };
 
 // ── Tiny helpers ──────────────────────────────────────────────
@@ -405,6 +406,316 @@ function CategoryPanel({ cat }) {
   );
 }
 
+// ── Academic Tuition Lesson Modal (per-student) ──────────────
+function AcademicLessonModal({ studentId, studentName, subject, lesson, onClose, onSave }) {
+  const isEdit = !!lesson;
+  const blank = { title: "", description: "", notes: "", resourceLink: "", order: 1 };
+  const [form, setForm] = useState(isEdit ? { ...lesson } : blank);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+
+  const handleSave = async () => {
+    if (!form.title.trim()) { setErr("Lesson title is required."); return; }
+    setSaving(true); setErr(null);
+    try {
+      const ref = doc(db, "academicCurriculum", `${studentId}_${subject}`);
+      const snap = await import("firebase/firestore").then(m => m.getDoc(ref));
+      const existing = snap.exists() ? (snap.data().lessons || []) : [];
+      let lessons;
+      if (isEdit) {
+        lessons = existing.map(l => l.id === lesson.id ? { ...l, ...form, order: Number(form.order) || l.order } : l);
+      } else {
+        const maxOrder = existing.length > 0 ? Math.max(...existing.map(l => l.order || 0)) : 0;
+        lessons = [...existing, {
+          id: `acad_${studentId}_${subject}_${Date.now()}`,
+          ...form,
+          order: maxOrder + 1,
+        }];
+      }
+      await import("firebase/firestore").then(m => m.setDoc(ref, {
+        studentId, subject,
+        studentName,
+        lessons,
+        updatedAt: serverTimestamp(),
+      }, { merge: true }));
+      onSave();
+      onClose();
+    } catch (e) {
+      setErr(e.message);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+      onClick={onClose}>
+      <motion.div initial={{ scale: 0.94, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.94 }}
+        style={{ background: C.card, borderRadius: 20, width: "100%", maxWidth: 500, boxShadow: C.shadowModal, overflow: "hidden" }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ height: 4, background: "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)" }} />
+        <div style={{ padding: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>{isEdit ? "Edit Lesson" : "Add Lesson"}</h3>
+              <p style={{ fontSize: 12, color: "#8B5CF6", marginTop: 2 }}>{studentName} · {subject}</p>
+            </div>
+            <button onClick={onClose} style={{ background: C.bg, border: "none", borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+              <X style={{ width: 15, height: 15, color: C.textMuted }} />
+            </button>
+          </div>
+          {err && <Banner status={{ ok: false, msg: err }} />}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 80px", gap: 10 }}>
+              <div>
+                <FieldLabel required>Lesson Title</FieldLabel>
+                <input name="title" value={form.title} onChange={handleChange} placeholder="e.g. Chapter 1: Variables & Data Types" style={fieldStyle}
+                  onFocus={e => e.target.style.borderColor = "#8B5CF6"} onBlur={e => e.target.style.borderColor = C.border} />
+              </div>
+              <div>
+                <FieldLabel>Order #</FieldLabel>
+                <input name="order" type="number" min="1" value={form.order} onChange={handleChange} style={fieldStyle}
+                  onFocus={e => e.target.style.borderColor = "#8B5CF6"} onBlur={e => e.target.style.borderColor = C.border} />
+              </div>
+            </div>
+            <div>
+              <FieldLabel>Description / Learning Objectives</FieldLabel>
+              <textarea name="description" value={form.description} onChange={handleChange} rows={3}
+                placeholder="What will be taught in this lesson?"
+                style={{ ...fieldStyle, resize: "none" }}
+                onFocus={e => e.target.style.borderColor = "#8B5CF6"} onBlur={e => e.target.style.borderColor = C.border} />
+            </div>
+            <div>
+              <FieldLabel>Tutor Notes</FieldLabel>
+              <textarea name="notes" value={form.notes} onChange={handleChange} rows={2}
+                placeholder="Tips, exercises, page references..."
+                style={{ ...fieldStyle, resize: "none" }}
+                onFocus={e => e.target.style.borderColor = "#8B5CF6"} onBlur={e => e.target.style.borderColor = C.border} />
+            </div>
+            <div>
+              <FieldLabel>Resource / Book Link</FieldLabel>
+              <input name="resourceLink" value={form.resourceLink} onChange={handleChange} placeholder="https://drive.google.com/..." style={fieldStyle}
+                onFocus={e => e.target.style.borderColor = "#8B5CF6"} onBlur={e => e.target.style.borderColor = C.border} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <button onClick={onClose} style={{ flex: 1, padding: "11px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, fontSize: 13, fontWeight: 700, color: C.textSecondary, cursor: "pointer" }}>Cancel</button>
+            <button onClick={handleSave} disabled={saving}
+              style={{ flex: 2, padding: "11px", borderRadius: 12, border: "none", background: "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: saving ? 0.7 : 1 }}>
+              {saving ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : (isEdit ? "Save Changes" : "Add Lesson")}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Academic Tuition Manager (per-student lessons) ────────────
+function AcademicTuitionManager() {
+  const [students, setStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [lessons, setLessons] = useState({});   // { "studentId_subject": [lesson,...] }
+  const [showAddLesson, setShowAddLesson] = useState(false);
+  const [editLesson, setEditLesson] = useState(null);
+  const [activeSubject, setActiveSubject] = useState(null);
+  const [status, setStatus] = useState(null);
+
+  // Load all academic_tuition students
+  useEffect(() => {
+    const q = query(collection(db, "userSummaries"), where("category", "==", "academic_tuition"));
+    return onSnapshot(q, snap => {
+      const arr = snap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      setStudents(arr);
+      if (arr.length > 0 && !selectedStudentId) setSelectedStudentId(arr[0].uid);
+      setLoadingStudents(false);
+    }, () => setLoadingStudents(false));
+  }, []);
+
+  const selectedStudent = students.find(s => s.uid === selectedStudentId);
+  const subjects = (selectedStudent?.assignments || []).map(a => a.subject);
+
+  // Auto-select first subject when student changes
+  useEffect(() => {
+    if (subjects.length > 0) setActiveSubject(subjects[0]);
+    else setActiveSubject(null);
+  }, [selectedStudentId]);
+
+  // Load lessons for selected student + subject
+  useEffect(() => {
+    if (!selectedStudentId || !activeSubject) return;
+    const key = `${selectedStudentId}_${activeSubject}`;
+    const ref = doc(db, "academicCurriculum", key);
+    return onSnapshot(ref, snap => {
+      if (snap.exists()) {
+        setLessons(prev => ({ ...prev, [key]: (snap.data().lessons || []).sort((a, b) => (a.order || 0) - (b.order || 0)) }));
+      } else {
+        setLessons(prev => ({ ...prev, [key]: [] }));
+      }
+    });
+  }, [selectedStudentId, activeSubject]);
+
+  const currentKey = selectedStudentId && activeSubject ? `${selectedStudentId}_${activeSubject}` : null;
+  const currentLessons = currentKey ? (lessons[currentKey] || []) : [];
+
+  const deleteLesson = async (lessonId) => {
+    if (!window.confirm("Delete this lesson?")) return;
+    const ref = doc(db, "academicCurriculum", currentKey);
+    const updated = currentLessons.filter(l => l.id !== lessonId);
+    try {
+      await import("firebase/firestore").then(m => m.updateDoc(ref, { lessons: updated, updatedAt: serverTimestamp() }));
+      setStatus({ ok: true, msg: "Lesson deleted." });
+      setTimeout(() => setStatus(null), 2000);
+    } catch (e) {
+      setStatus({ ok: false, msg: e.message });
+    }
+  };
+
+  if (loadingStudents) return (
+    <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
+      <Loader2 style={{ width: 24, height: 24, color: "#8B5CF6", animation: "spin 1s linear infinite" }} />
+    </div>
+  );
+
+  if (students.length === 0) return (
+    <div style={{ textAlign: "center", padding: "48px 20px", borderRadius: 14, background: C.bg, border: `2px dashed ${C.border}` }}>
+      <BookOpen style={{ width: 32, height: 32, color: C.textMuted, margin: "0 auto 12px", display: "block", opacity: 0.4 }} />
+      <p style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginBottom: 4 }}>No Academic Tuition students yet</p>
+      <p style={{ fontSize: 13, color: C.textMuted }}>Register a student with the "Academic Tuition" category first.</p>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", gap: 20 }}>
+      {/* Student list sidebar */}
+      <div style={{ width: 220, flexShrink: 0 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 8 }}>Students</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {students.map(s => {
+            const active = s.uid === selectedStudentId;
+            return (
+              <button key={s.uid} onClick={() => setSelectedStudentId(s.uid)}
+                style={{ textAlign: "left", padding: "10px 12px", borderRadius: 12, border: `2px solid ${active ? "#8B5CF6" : C.border}`, background: active ? "#F5F3FF" : C.card, cursor: "pointer", transition: "all 0.15s" }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: active ? "#6D28D9" : C.textPrimary }}>{s.name}</p>
+                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{(s.assignments || []).map(a => a.subject).join(", ") || "No subjects"}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Lesson management area */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {!selectedStudent ? (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <p style={{ fontSize: 13, color: C.textMuted }}>Select a student</p>
+          </div>
+        ) : (
+          <>
+            {/* Student info */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16 }}>
+                  {selectedStudent.name?.charAt(0)}
+                </div>
+                <div>
+                  <p style={{ fontWeight: 800, fontSize: 15, color: C.textPrimary }}>{selectedStudent.name}</p>
+                  <p style={{ fontSize: 12, color: C.textMuted }}>Grade {selectedStudent.grade || selectedStudent.classLevel} · {selectedStudent.customId}</p>
+                </div>
+              </div>
+              {activeSubject && (
+                <button onClick={() => { setEditLesson(null); setShowAddLesson(true); }}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12, border: "none", background: "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                  <PlusCircle style={{ width: 15, height: 15 }} /> Add Lesson
+                </button>
+              )}
+            </div>
+
+            <Banner status={status} />
+
+            {/* Subject tabs */}
+            {subjects.length > 0 ? (
+              <>
+                <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+                  {subjects.map(subj => {
+                    const active = subj === activeSubject;
+                    const key = `${selectedStudentId}_${subj}`;
+                    const count = (lessons[key] || []).length;
+                    return (
+                      <button key={subj} onClick={() => setActiveSubject(subj)}
+                        style={{ padding: "8px 16px", borderRadius: 30, border: `2px solid ${active ? "#8B5CF6" : C.border}`, background: active ? "#F5F3FF" : C.card, color: active ? "#6D28D9" : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                        {subj}
+                        <span style={{ fontSize: 11, background: active ? "#8B5CF6" : C.border, color: active ? "#fff" : C.textMuted, padding: "1px 6px", borderRadius: 20 }}>{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Lessons list */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {currentLessons.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "32px 20px", borderRadius: 14, border: `2px dashed #8B5CF640`, background: "#F5F3FF" }}>
+                      <p style={{ fontSize: 13, color: "#8B5CF6", fontWeight: 600 }}>No lessons yet for {activeSubject}</p>
+                      <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Click "Add Lesson" to create the first one.</p>
+                    </div>
+                  ) : currentLessons.map((lesson, idx) => (
+                    <div key={lesson.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "14px 16px", boxShadow: C.shadowCard }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 10, background: "#DDD6FE", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, color: "#6D28D9", flexShrink: 0 }}>
+                          {lesson.order || idx + 1}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary }}>{lesson.title}</p>
+                          {lesson.description && <p style={{ fontSize: 12, color: C.textSecondary, marginTop: 4, lineHeight: 1.5 }}>{lesson.description}</p>}
+                          {lesson.notes && <p style={{ fontSize: 12, color: C.amber, marginTop: 3 }}>📝 {lesson.notes}</p>}
+                          {lesson.resourceLink && (
+                            <a href={lesson.resourceLink} target="_blank" rel="noopener noreferrer"
+                              style={{ fontSize: 11, color: "#8B5CF6", fontWeight: 600, display: "inline-block", marginTop: 4 }}>🔗 View Resource</a>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                          <button onClick={() => { setEditLesson(lesson); setShowAddLesson(true); }}
+                            style={{ padding: "5px 8px", borderRadius: 8, background: C.indigoLight, border: "none", cursor: "pointer" }}>
+                            <Pencil style={{ width: 13, height: 13, color: C.indigo }} />
+                          </button>
+                          <button onClick={() => deleteLesson(lesson.id)}
+                            style={{ padding: "5px 8px", borderRadius: 8, background: C.redLight, border: "none", cursor: "pointer" }}>
+                            <Trash2 style={{ width: 13, height: 13, color: C.red }} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: 40, borderRadius: 14, background: C.bg, border: `1px solid ${C.border}` }}>
+                <p style={{ fontSize: 13, color: C.textMuted }}>No subjects assigned to this student. Edit the student to add subject assignments.</p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {showAddLesson && selectedStudent && activeSubject && (
+          <AcademicLessonModal
+            studentId={selectedStudentId}
+            studentName={selectedStudent.name}
+            subject={activeSubject}
+            lesson={editLesson}
+            onClose={() => { setShowAddLesson(false); setEditLesson(null); }}
+            onSave={() => { setStatus({ ok: true, msg: editLesson ? "Lesson updated!" : "Lesson added!" }); setTimeout(() => setStatus(null), 2000); }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ── Main Export ───────────────────────────────────────────────
 export function CurriculumManager() {
   const [activeCategory, setActiveCategory] = useState("little_pearls");
@@ -424,6 +735,12 @@ export function CurriculumManager() {
     setSeeding(false);
   };
 
+  // All tabs: 3 coding categories + academic_tuition
+  const allTabs = [
+    ...CATEGORIES,
+    { value: "academic_tuition", label: "📖 Academic Tuition", ages: "CS Subjects – Custom per-student syllabus" },
+  ];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Header */}
@@ -433,13 +750,15 @@ export function CurriculumManager() {
             <h2 style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary, display: "flex", alignItems: "center", gap: 8 }}>
               <BookOpen style={{ width: 20, height: 20, color: C.emerald }} /> Curriculum Manager
             </h2>
-            <p style={{ fontSize: 13, color: C.textMuted, marginTop: 3 }}>Add, edit and organise modules and lessons for each student category.</p>
+            <p style={{ fontSize: 13, color: C.textMuted, marginTop: 3 }}>Manage coding curriculum for categories, or custom lessons for Academic Tuition students.</p>
           </div>
-          <button onClick={handleSeed} disabled={seeding}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, color: C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: seeding ? 0.7 : 1 }}>
-            {seeding ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Database style={{ width: 15, height: 15 }} />}
-            {seeding ? "Seeding…" : "Seed Initial Curriculum"}
-          </button>
+          {activeCategory !== "academic_tuition" && (
+            <button onClick={handleSeed} disabled={seeding}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, color: C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: seeding ? 0.7 : 1 }}>
+              {seeding ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : <Database style={{ width: 15, height: 15 }} />}
+              {seeding ? "Seeding…" : "Seed Initial Curriculum"}
+            </button>
+          )}
         </div>
 
         {/* Seed log */}
@@ -457,20 +776,24 @@ export function CurriculumManager() {
 
       {/* Category tabs */}
       <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: C.shadowCard }}>
-        <div style={{ display: "flex", borderBottom: `1px solid ${C.border}` }}>
-          {CATEGORIES.map(cat => {
+        <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, overflowX: "auto" }}>
+          {allTabs.map(cat => {
             const active = activeCategory === cat.value;
-            const col = catColor[cat.value];
+            const col = catColor[cat.value] || catColor.rising_pearls;
             return (
               <button key={cat.value} onClick={() => setActiveCategory(cat.value)}
-                style={{ flex: 1, padding: "14px 12px", border: "none", cursor: "pointer", fontWeight: active ? 800 : 600, fontSize: 13, background: active ? col.bg : C.bg, color: active ? col.text : C.textMuted, borderBottom: active ? `2px solid ${col.border}` : "2px solid transparent", transition: "all 0.15s" }}>
-                {cat.label.split(" ")[0]} {cat.label.split(" ").slice(1).join(" ")}
+                style={{ flex: "0 0 auto", padding: "14px 16px", border: "none", cursor: "pointer", fontWeight: active ? 800 : 600, fontSize: 13, background: active ? col.bg : C.bg, color: active ? col.text : C.textMuted, borderBottom: active ? `2px solid ${col.border}` : "2px solid transparent", transition: "all 0.15s", whiteSpace: "nowrap" }}>
+                {cat.label}
               </button>
             );
           })}
         </div>
         <div style={{ padding: 24 }}>
-          <CategoryPanel cat={CATEGORIES.find(c => c.value === activeCategory)} />
+          {activeCategory === "academic_tuition" ? (
+            <AcademicTuitionManager />
+          ) : (
+            <CategoryPanel cat={CATEGORIES.find(c => c.value === activeCategory)} />
+          )}
         </div>
       </div>
 

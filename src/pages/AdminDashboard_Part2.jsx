@@ -20,9 +20,10 @@ const C = {
 
 // ── Student Categories ─────────────────────────────────────────
 export const STUDENT_CATEGORIES = [
-  { value: "little_pearls",  label: "🐥 Little Pearls  (Ages 5–7 • Grades K–2)" },
-  { value: "bright_pearls",  label: "🌱 Bright Pearls  (Ages 8–11 • Grades 3–6)" },
-  { value: "rising_pearls",  label: "🦋 Rising Pearls  (Ages 12–15 • Grades 7–10)" },
+  { value: "little_pearls",     label: "🐥 Little Pearls  (Ages 5–7 • Grades K–2)" },
+  { value: "bright_pearls",     label: "🌱 Bright Pearls  (Ages 8–11 • Grades 3–6)" },
+  { value: "rising_pearls",     label: "🦋 Rising Pearls  (Ages 12–15 • Grades 7–10)" },
+  { value: "academic_tuition",  label: "📖 Academic Tuition  (CS Subjects – Custom Syllabus)" },
 ];
 
 // ── Tutor Types ────────────────────────────────────────────────
@@ -109,16 +110,17 @@ const CategorySelector = ({ value, onChange }) => (
     <label style={{ fontSize: 12, fontWeight: 700, color: C.textSecondary, display: "block", marginBottom: 8 }}>
       Student Category <span style={{ color: C.red }}>*</span>
     </label>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
       {STUDENT_CATEGORIES.map(cat => {
         const selected = value === cat.value;
         const emoji    = cat.label.charAt(0);
         const name     = cat.label.slice(2, cat.label.indexOf("(")).trim();
         const sub      = cat.label.slice(cat.label.indexOf("("));
         const colorMap = {
-          little_pearls: { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C" },
-          bright_pearls: { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A" },
-          rising_pearls: { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB" },
+          little_pearls:    { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C" },
+          bright_pearls:    { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A" },
+          rising_pearls:    { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB" },
+          academic_tuition: { bg: "#F5F3FF", border: "#8B5CF6", text: "#6D28D9" },
         };
         const col = colorMap[cat.value];
         return (
@@ -137,6 +139,15 @@ const CategorySelector = ({ value, onChange }) => (
         );
       })}
     </div>
+    {value === "academic_tuition" && (
+      <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 12, background: "#F5F3FF", border: "1px solid #8B5CF625", display: "flex", alignItems: "flex-start", gap: 8 }}>
+        <span style={{ fontSize: 16, flexShrink: 0 }}>📌</span>
+        <p style={{ fontSize: 12, color: "#6D28D9", lineHeight: 1.6 }}>
+          <strong>Academic Tuition students</strong> follow a <strong>custom per-student syllabus</strong> instead of the shared coding curriculum.
+          After registering, go to <strong>Curriculum → Academic Tuition</strong> to add lessons for this student.
+        </p>
+      </div>
+    )}
   </div>
 );
 

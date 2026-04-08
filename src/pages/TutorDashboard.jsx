@@ -82,96 +82,105 @@ const SideNavItem = ({ tab, active, onClick }) => (
   </motion.button>
 );
 
-// ── Attendance Modal — per-lesson status (not covered / ongoing / completed) ──
-const LESSON_STATUSES = [
-  { val: "not_covered", label: "—",          color: "#94A3B8", bg: "transparent",  title: "Not covered" },
-  { val: "ongoing",     label: "Ongoing",    color: "#F59E0B", bg: "#FFFBEB",      title: "Introduced, still in progress" },
-  { val: "completed",   label: "Completed",  color: "#10B981", bg: "#ECFDF5",      title: "Fully covered" },
-];
-
-const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
+// ── Attendance Modal — lessons with Completed / Ongoing toggle ─
+const AttendanceModal = ({ classItem, onClose, markAttendance }) => {
+  const { userId, tutorSaveLessonProgress } = useAuth();
   const [status, setStatus] = useState("completed");
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
+  // curriculum
   const [currModules, setCurrModules] = useState([]);
   const [currLoading, setCurrLoading] = useState(true);
-  // lessonStatuses: { [lessonKey]: "not_covered" | "ongoing" | "completed" }
-  const [lessonStatuses, setLessonStatuses] = useState({});
-  const [existingProgress, setExistingProgress] = useState({});
   const [expandedModules, setExpandedModules] = useState({});
   const [studentCategory, setStudentCategory] = useState(null);
 
+  // lessonStates: { [lessonKey]: "completed" | "ongoing" | null }
+  const [lessonStates, setLessonStates] = useState({});
+
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCurriculum = async () => {
       setCurrLoading(true);
       try {
         const snap = await getDoc(doc(db, "userSummaries", classItem.studentId));
         const category = snap.exists() ? snap.data().category : null;
         setStudentCategory(category);
-
         if (category) {
           const q = query(collection(db, "curriculum"), where("category", "==", category));
           const currSnap = await getDocs(q);
-          const mods = currSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
+          const mods = currSnap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => a.moduleNumber - b.moduleNumber);
           setCurrModules(mods);
           if (mods.length > 0) setExpandedModules({ [mods[0].id]: true });
-
-          // Load existing progress so tutor sees what's already been logged
-          const progressSnap = await getDoc(getProgressRef(classItem.studentId, classItem.subject));
-          if (progressSnap.exists()) {
-            const lessons = progressSnap.data().lessons || [];
-            const map = {};
-            lessons.forEach(l => { map[l.key] = l.status; });
-            setExistingProgress(map);
-          }
         }
       } catch (e) {
-        console.error("Curriculum/progress fetch error:", e);
+        console.error("Curriculum fetch error:", e);
       }
       setCurrLoading(false);
     };
-    fetchData();
-  }, [classItem.studentId, classItem.subject]);
+    fetchCurriculum();
+  }, [classItem.studentId]);
 
-  const getLessonStatus = (key) => lessonStatuses[key] || existingProgress[key] || "not_covered";
-
-  const cycleLessonStatus = (key) => {
-    const current = getLessonStatus(key);
-    // Cycle: not_covered → ongoing → completed → not_covered
-    const next = current === "not_covered" ? "ongoing" : current === "ongoing" ? "completed" : "not_covered";
-    setLessonStatuses(prev => ({ ...prev, [key]: next }));
+  // Cycle: null → "ongoing" → "completed" → null
+  const cycleLesson = (key) => {
+    setLessonStates(prev => {
+      const cur = prev[key] || null;
+      const next = cur === null ? "ongoing" : cur === "ongoing" ? "completed" : null;
+      return { ...prev, [key]: next };
+    });
   };
 
-  const toggleModule = (modId) => setExpandedModules(prev => ({ ...prev, [modId]: !prev[modId] }));
+  const toggleModule = (modId) =>
+    setExpandedModules(prev => ({ ...prev, [modId]: !prev[modId] }));
 
-  const taggedCount = Object.values(lessonStatuses).filter(s => s !== "not_covered").length;
-  const completedCount = Object.values(lessonStatuses).filter(s => s === "completed").length;
-  const ongoingCount = Object.values(lessonStatuses).filter(s => s === "ongoing").length;
+  const selectedLessons = Object.entries(lessonStates).filter(([, v]) => v !== null);
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setError(null);
+    e.preventDefault();
+    setError(null);
     setLoading(true);
 
-    // Build lessonUpdates array: only lessons that have been touched (not "not_covered")
-    // Merge with existingProgress so we don't wipe old records
-    const mergedStatuses = { ...existingProgress, ...lessonStatuses };
-    const lessonUpdates = Object.entries(mergedStatuses)
-      .filter(([, s]) => s !== "not_covered")
-      .map(([key, st]) => ({ key, status: st }));
-
-    // Build summary with lesson info
-    const completedKeys = Object.entries(lessonStatuses).filter(([,s]) => s === "completed").map(([k]) => k);
-    const ongoingKeys = Object.entries(lessonStatuses).filter(([,s]) => s === "ongoing").map(([k]) => k);
+    // Build human-readable summary
+    const completedTitles = Object.entries(lessonStates).filter(([, v]) => v === "completed").map(([k]) => k);
+    const ongoingTitles   = Object.entries(lessonStates).filter(([, v]) => v === "ongoing").map(([k]) => k);
     let lessonSummary = summary;
-    if (completedKeys.length > 0) lessonSummary = `Completed: ${completedKeys.join(", ")}. ` + lessonSummary;
-    if (ongoingKeys.length > 0) lessonSummary = `Ongoing: ${ongoingKeys.join(", ")}. ` + lessonSummary;
+    if (completedTitles.length) lessonSummary = `Completed: ${completedTitles.join(", ")}. ` + lessonSummary;
+    if (ongoingTitles.length)   lessonSummary = `Ongoing: ${ongoingTitles.join(", ")}. ` + lessonSummary;
 
-    const res = await markAttendance(classItem.id, classItem.studentId, status, lessonSummary.trim(), lessonUpdates);
+    // 1) Mark attendance as before
+    const res = await markAttendance(classItem.id, classItem.studentId, status, lessonSummary.trim());
+    if (!res.success) { setError(res.error); setLoading(false); return; }
+
+    // 2) Save structured lesson progress if any lessons selected
+    if (selectedLessons.length > 0 && status === "completed") {
+      // Build lessonProgress entries: { lessonKey, moduleNumber, lessonNumber, title, platform, lessonStatus }
+      const lessonProgressEntries = [];
+      currModules.forEach(mod => {
+        (mod.lessons || []).forEach(lesson => {
+          const key = `M${mod.moduleNumber}:L${lesson.lessonNumber} ${lesson.title}`;
+          const st = lessonStates[key];
+          if (st) {
+            lessonProgressEntries.push({
+              lessonKey: key,
+              moduleNumber: mod.moduleNumber,
+              moduleName: mod.moduleName,
+              lessonNumber: lesson.lessonNumber,
+              title: lesson.title,
+              platform: lesson.platform || "",
+              lessonStatus: st, // "completed" or "ongoing"
+            });
+          }
+        });
+      });
+      await tutorSaveLessonProgress(classItem.studentId, classItem.subject, lessonProgressEntries);
+    }
+
     setLoading(false);
-    if (res.success) { setSuccess(res.message); setTimeout(onClose, 1500); } else setError(res.error);
+    setSuccess("Attendance marked successfully!");
+    setTimeout(onClose, 1400);
   };
 
   return (
@@ -179,7 +188,7 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
       style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(8px)" }}
       onClick={onClose}>
       <motion.div initial={{ scale: 0.94, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.94, y: 16 }}
-        style={{ background: C.card, borderRadius: 24, width: "100%", maxWidth: 580, maxHeight: "92vh", overflow: "hidden", boxShadow: C.shadowModal, display: "flex", flexDirection: "column" }}
+        style={{ background: C.card, borderRadius: 24, width: "100%", maxWidth: 580, maxHeight: "90vh", overflow: "hidden", boxShadow: C.shadowModal, display: "flex", flexDirection: "column" }}
         onClick={e => e.stopPropagation()}>
         <div style={{ height: 4, background: C.gradPrimary, flexShrink: 0 }} />
         <div style={{ overflowY: "auto", padding: 28 }}>
@@ -203,95 +212,104 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
             {/* Attendance status */}
             <p style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, marginBottom: 10 }}>Attendance Status</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 22 }}>
-              {[{ val: "completed", label: "Present ✓", color: C.emerald, bg: C.emeraldLight }, { val: "missed", label: "Absent ✗", color: C.red, bg: C.redLight }].map(opt => {
+              {[{ val: "completed", label: "Present ✓", color: C.emerald, bg: C.emeraldLight },
+                { val: "missed",    label: "Absent ✗",  color: C.red,     bg: C.redLight }].map(opt => {
                 const active = status === opt.val;
-                return <button key={opt.val} type="button" onClick={() => setStatus(opt.val)}
-                  style={{ padding: "14px 10px", borderRadius: 14, border: `2px solid ${active ? opt.color : C.border}`, background: active ? opt.bg : C.bg, color: active ? opt.color : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-                  {opt.label}
-                </button>;
+                return (
+                  <button key={opt.val} type="button" onClick={() => setStatus(opt.val)}
+                    style={{ padding: "14px 10px", borderRadius: 14, border: `2px solid ${active ? opt.color : C.border}`, background: active ? opt.bg : C.bg, color: active ? opt.color : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                    {opt.label}
+                  </button>
+                );
               })}
             </div>
 
-            {/* Lesson progress — only show when present */}
+            {/* Lesson selector — only when present */}
             {status === "completed" && (
               <div style={{ marginBottom: 20 }}>
-                {/* Legend */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                   <p style={{ fontSize: 13, fontWeight: 700, color: C.textSecondary }}>
-                    Lesson Progress
+                    Lessons Covered
                   </p>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {[
-                      { label: "Tap once → Ongoing", color: C.amber },
-                      { label: "Tap twice → Completed", color: C.emerald },
-                    ].map((l, i) => (
-                      <span key={i} style={{ fontSize: 10, fontWeight: 700, color: l.color, background: l.color + "15", padding: "3px 8px", borderRadius: 20 }}>{l.label}</span>
-                    ))}
+                  {/* Legend */}
+                  <div style={{ display: "flex", gap: 10, fontSize: 11 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, color: C.amber, fontWeight: 600 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: "50%", background: C.amber, display: "inline-block" }} />Ongoing
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, color: C.emerald, fontWeight: 600 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: "50%", background: C.emerald, display: "inline-block" }} />Completed
+                    </span>
                   </div>
                 </div>
-
-                {/* Summary pills */}
-                {taggedCount > 0 && (
-                  <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-                    {completedCount > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "3px 10px", borderRadius: 20 }}>✓ {completedCount} completed</span>}
-                    {ongoingCount > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: C.amber, background: C.amberLight, padding: "3px 10px", borderRadius: 20 }}>⏳ {ongoingCount} ongoing</span>}
-                  </div>
-                )}
+                <p style={{ fontSize: 11, color: C.textMuted, marginBottom: 10 }}>
+                  Click once = 🔄 Ongoing &nbsp;·&nbsp; Click twice = ✅ Completed &nbsp;·&nbsp; Click again = clear
+                </p>
 
                 {currLoading ? (
-                  <div style={{ display: "flex", justifyContent: "center", padding: 20 }}><Loader2 style={{ width: 20, height: 20, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
+                  <div style={{ display: "flex", justifyContent: "center", padding: 20 }}>
+                    <Loader2 style={{ width: 20, height: 20, color: C.emerald, animation: "spin 1s linear infinite" }} />
+                  </div>
                 ) : currModules.length === 0 ? (
                   <div style={{ padding: "12px 14px", borderRadius: 10, background: C.amberLight, fontSize: 12, color: C.amber, fontWeight: 600 }}>
-                    ⚠️ No curriculum found for this student's category.
+                    ⚠️ No curriculum found for this student's category. Ask admin to add curriculum data.
                   </div>
                 ) : (
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
                     {currModules.map((mod, mIdx) => {
                       const isOpen = expandedModules[mod.id];
-                      const modTagged = (mod.lessons || []).filter(l => {
-                        const key = `M${mod.moduleNumber}:L${l.lessonNumber} ${l.title}`;
-                        return getLessonStatus(key) !== "not_covered";
-                      }).length;
+                      const modOngoing   = (mod.lessons || []).filter(l => lessonStates[`M${mod.moduleNumber}:L${l.lessonNumber} ${l.title}`] === "ongoing").length;
+                      const modCompleted = (mod.lessons || []).filter(l => lessonStates[`M${mod.moduleNumber}:L${l.lessonNumber} ${l.title}`] === "completed").length;
                       return (
                         <div key={mod.id} style={{ borderBottom: mIdx < currModules.length - 1 ? `1px solid ${C.border}` : "none" }}>
                           <div onClick={() => toggleModule(mod.id)}
-                            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", background: isOpen ? C.bg : C.card, userSelect: "none" }}>
+                            style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", cursor: "pointer", background: isOpen ? C.bg : C.card, userSelect: "none" }}>
                             <span style={{ fontSize: 16 }}>{mod.moduleEmoji}</span>
                             <span style={{ flex: 1, fontWeight: 700, fontSize: 13, color: C.textPrimary }}>
-                              Module {mod.moduleNumber}: {mod.moduleName}
+                              M{mod.moduleNumber}: {mod.moduleName}
                             </span>
-                            {modTagged > 0 && (
-                              <span style={{ fontSize: 11, fontWeight: 700, color: C.indigo, background: C.indigoLight, padding: "2px 8px", borderRadius: 20 }}>{modTagged} tagged</span>
-                            )}
+                            <div style={{ display: "flex", gap: 5 }}>
+                              {modOngoing > 0 && (
+                                <span style={{ fontSize: 10, fontWeight: 700, color: C.amber, background: C.amberLight, padding: "2px 7px", borderRadius: 20 }}>🔄 {modOngoing}</span>
+                              )}
+                              {modCompleted > 0 && (
+                                <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "2px 7px", borderRadius: 20 }}>✅ {modCompleted}</span>
+                              )}
+                            </div>
                             {isOpen ? <ChevronDown style={{ width: 14, height: 14, color: C.textMuted }} /> : <ChevronRight style={{ width: 14, height: 14, color: C.textMuted }} />}
                           </div>
+
                           <AnimatePresence>
                             {isOpen && (
                               <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} style={{ overflow: "hidden" }}>
-                                <div style={{ padding: "6px 14px 10px 14px", display: "flex", flexDirection: "column", gap: 5 }}>
+                                <div style={{ padding: "6px 14px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
                                   {(mod.lessons || []).sort((a, b) => a.lessonNumber - b.lessonNumber).map(lesson => {
                                     const key = `M${mod.moduleNumber}:L${lesson.lessonNumber} ${lesson.title}`;
-                                    const st = getLessonStatus(key);
-                                    const isExisting = !!existingProgress[key] && !lessonStatuses[key];
-                                    const stConfig = LESSON_STATUSES.find(s => s.val === st);
+                                    const st = lessonStates[key] || null;
+                                    const isOngoing   = st === "ongoing";
+                                    const isCompleted = st === "completed";
+                                    const rowBg = isCompleted ? C.emeraldLight : isOngoing ? C.amberLight : "transparent";
+                                    const rowBorder = isCompleted ? `${C.emerald}40` : isOngoing ? `${C.amber}40` : "transparent";
                                     return (
-                                      <div key={lesson.id} onClick={() => cycleLessonStatus(key)}
-                                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, cursor: "pointer", background: st === "not_covered" ? "transparent" : stConfig.bg, border: `1px solid ${st === "not_covered" ? C.border : stConfig.color + "40"}`, transition: "all 0.15s", userSelect: "none" }}>
-                                        {/* Status pill */}
-                                        <div style={{ width: 68, flexShrink: 0, textAlign: "center" }}>
-                                          <span style={{ fontSize: 10, fontWeight: 800, color: stConfig.color, background: stConfig.color + "20", padding: "3px 6px", borderRadius: 20, display: "inline-block", letterSpacing: "0.02em" }}>
-                                            {st === "not_covered" ? "—" : st === "ongoing" ? "⏳ Ongoing" : "✓ Done"}
-                                          </span>
+                                      <div key={lesson.id} onClick={() => cycleLesson(key)}
+                                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", borderRadius: 10, cursor: "pointer", background: rowBg, border: `1px solid ${rowBorder}`, transition: "all 0.12s" }}>
+                                        {/* Status indicator */}
+                                        <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13,
+                                          background: isCompleted ? C.emerald : isOngoing ? C.amber : C.border,
+                                          border: `2px solid ${isCompleted ? C.emeraldDark : isOngoing ? "#D97706" : C.border}`,
+                                          transition: "all 0.12s" }}>
+                                          {isCompleted ? <span style={{ color: "#fff", fontSize: 12 }}>✓</span>
+                                            : isOngoing ? <span style={{ color: "#fff", fontSize: 11 }}>↻</span>
+                                            : null}
                                         </div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
-                                          <p style={{ fontSize: 12, fontWeight: st !== "not_covered" ? 700 : 500, color: st === "not_covered" ? C.textSecondary : C.textPrimary, lineHeight: 1.4 }}>
+                                          <p style={{ fontSize: 12, fontWeight: st ? 700 : 500, color: C.textPrimary, lineHeight: 1.4 }}>
                                             <span style={{ color: C.textMuted, fontSize: 11 }}>L{lesson.lessonNumber} · </span>{lesson.title}
                                           </p>
-                                          <p style={{ fontSize: 10, color: C.cyan, marginTop: 1 }}>{lesson.platform}</p>
+                                          <p style={{ fontSize: 11, color: C.cyan, marginTop: 1 }}>{lesson.platform}</p>
                                         </div>
-                                        {isExisting && (
-                                          <span style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, background: C.bg, padding: "2px 6px", borderRadius: 20, border: `1px solid ${C.border}`, flexShrink: 0 }}>saved</span>
-                                        )}
+                                        {/* Status badge */}
+                                        {isOngoing && <span style={{ fontSize: 10, fontWeight: 700, color: C.amber, whiteSpace: "nowrap", flexShrink: 0 }}>Ongoing</span>}
+                                        {isCompleted && <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald, whiteSpace: "nowrap", flexShrink: 0 }}>Completed</span>}
                                       </div>
                                     );
                                   })}
@@ -302,6 +320,17 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+
+                {selectedLessons.length > 0 && (
+                  <div style={{ marginTop: 8, display: "flex", gap: 12, fontSize: 11, fontWeight: 600 }}>
+                    {Object.values(lessonStates).filter(v => v === "ongoing").length > 0 && (
+                      <span style={{ color: C.amber }}>🔄 {Object.values(lessonStates).filter(v => v === "ongoing").length} ongoing</span>
+                    )}
+                    {Object.values(lessonStates).filter(v => v === "completed").length > 0 && (
+                      <span style={{ color: C.emerald }}>✅ {Object.values(lessonStates).filter(v => v === "completed").length} completed</span>
+                    )}
                   </div>
                 )}
               </div>
@@ -315,9 +344,10 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
               placeholder={status === "completed" ? "Any extra notes about today's class..." : "Reason for absence..."}
               style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, fontSize: 13, color: C.textPrimary, resize: "none", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
               onFocus={e => { e.target.style.borderColor = C.emerald; }} onBlur={e => { e.target.style.borderColor = C.border; }} />
+
             <button type="submit" disabled={loading}
-              style={{ width: "100%", marginTop: 16, padding: 14, borderRadius: 14, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              {loading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : "Save & Submit"}
+              style={{ width: "100%", marginTop: 16, padding: 14, borderRadius: 14, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.7 : 1 }}>
+              {loading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : "Submit Attendance"}
             </button>
           </form>
         </div>
@@ -326,66 +356,242 @@ const AttendanceModal = ({ classItem, students, onClose, markAttendance }) => {
   );
 };
 
-// ── Progress Update Modal ─────────────────────────────────────
-const ProgressUpdateModal = ({ student, assignment, onClose, tutorUpdateChapterProgress, tutorDeleteChapterProgress }) => {
-  const [chapter, setChapter] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [progress, setProgress] = useState({ completedChapters: [] });
+// ── Progress Detail Modal — curriculum-based lesson progress ──
+const ProgressUpdateModal = ({ student, onClose }) => {
+  const { tutorSaveLessonProgress } = useAuth();
+  const [modules, setModules] = useState([]);
+  const [loadingCurr, setLoadingCurr] = useState(true);
+  const [progress, setProgress] = useState({}); // { subject: { lessons: [...] } }
+  const [expandedMods, setExpandedMods] = useState({});
+  const [saving, setSaving] = useState(null); // lessonKey being saved
+  const [activeSubject] = useState(
+    (student.assignments || [])[0]?.subject || null
+  );
 
+  const catInfo = catLabel[student.category];
+
+  // Fetch curriculum for student's category
   useEffect(() => {
-    const unsub = onSnapshot(getProgressRef(student.uid, assignment.subject), snap => {
-      setProgress(snap.exists() ? snap.data() : { completedChapters: [] });
-    });
-    return () => unsub();
-  }, [student.uid, assignment.subject]);
+    if (!student.category) { setLoadingCurr(false); return; }
+    const q = query(collection(db, "curriculum"), where("category", "==", student.category));
+    getDocs(q).then(snap => {
+      const mods = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => a.moduleNumber - b.moduleNumber);
+      setModules(mods);
+      if (mods.length > 0) setExpandedMods({ [mods[0].id]: true });
+      setLoadingCurr(false);
+    }).catch(() => setLoadingCurr(false));
+  }, [student.category]);
 
-  const handleAdd = async (e) => {
-    e.preventDefault(); if (!chapter.trim()) return;
-    setLoading(true);
-    const res = await tutorUpdateChapterProgress(student.uid, assignment.subject, chapter.trim());
-    setLoading(false);
-    if (res.success) setChapter(""); else setError(res.error);
+  // Listen to progress for each subject the student has
+  useEffect(() => {
+    const unsubs = [];
+    (student.assignments || []).forEach(a => {
+      const unsub = onSnapshot(getProgressRef(student.uid, a.subject), snap => {
+        const data = snap.exists() ? snap.data() : {};
+        setProgress(prev => ({ ...prev, [a.subject]: data }));
+      }, () => {});
+      unsubs.push(unsub);
+    });
+    return () => unsubs.forEach(u => u());
+  }, [student.uid, student.assignments]);
+
+  // For a given subject, get lessonProgress array (new structured format)
+  const getLessonProgress = (subject) =>
+    progress[subject]?.lessonProgress || [];
+
+  const getLessonStatus = (subject, lessonKey) => {
+    const lp = getLessonProgress(subject);
+    const found = lp.find(l => l.lessonKey === lessonKey);
+    return found?.lessonStatus || null; // "completed" | "ongoing" | null
   };
+
+  // Cycle status for a lesson directly from progress modal
+  const cycleLesson = async (subject, mod, lesson) => {
+    const key = `M${mod.moduleNumber}:L${lesson.lessonNumber} ${lesson.title}`;
+    const cur = getLessonStatus(subject, key);
+    const next = cur === null ? "ongoing" : cur === "ongoing" ? "completed" : null;
+
+    setSaving(key);
+    const entry = {
+      lessonKey: key,
+      moduleNumber: mod.moduleNumber,
+      moduleName: mod.moduleName,
+      lessonNumber: lesson.lessonNumber,
+      title: lesson.title,
+      platform: lesson.platform || "",
+      lessonStatus: next, // null means remove
+    };
+    await tutorSaveLessonProgress(student.uid, subject, [entry]);
+    setSaving(null);
+  };
+
+  const subjects = (student.assignments || []).map(a => a.subject);
+  const [selSubject, setSelSubject] = useState(subjects[0] || null);
+
+  // Count stats for selected subject
+  const lessonProg = getLessonProgress(selSubject);
+  const completedCount = lessonProg.filter(l => l.lessonStatus === "completed").length;
+  const ongoingCount   = lessonProg.filter(l => l.lessonStatus === "ongoing").length;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(8px)" }}
       onClick={onClose}>
       <motion.div initial={{ scale: 0.94, y: 16 }} animate={{ scale: 1, y: 0 }}
-        style={{ background: C.card, borderRadius: 24, width: "100%", maxWidth: 460, overflow: "hidden", boxShadow: C.shadowModal }}
+        style={{ background: C.card, borderRadius: 24, width: "100%", maxWidth: 560, maxHeight: "90vh", overflow: "hidden", boxShadow: C.shadowModal, display: "flex", flexDirection: "column" }}
         onClick={e => e.stopPropagation()}>
-        <div style={{ height: 4, background: C.gradEmerald }} />
-        <div style={{ padding: 28 }}>
-          <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, background: C.bg, border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-            <X style={{ width: 16, height: 16, color: C.textMuted }} />
-          </button>
-          <h3 style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary, marginBottom: 4 }}>Update Progress</h3>
-          <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 20 }}><span style={{ color: C.emerald, fontWeight: 700 }}>{assignment.subject}</span> — {student.name}</p>
-          {error && <div style={{ background: C.redLight, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: C.red }}>{error}</div>}
-          <form onSubmit={handleAdd} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <input value={chapter} onChange={e => setChapter(e.target.value)} placeholder="Chapter or topic name"
-              style={{ flex: 1, padding: "10px 14px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, fontSize: 13, color: C.textPrimary, outline: "none", fontFamily: "inherit" }}
-              onFocus={e => e.target.style.borderColor = C.emerald} onBlur={e => e.target.style.borderColor = C.border} />
-            <button type="submit" disabled={!chapter.trim()}
-              style={{ padding: "10px 18px", borderRadius: 12, border: "none", background: C.gradEmerald, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !chapter.trim() ? 0.4 : 1 }}>+ Add</button>
-          </form>
-          <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
-            {(progress.completedChapters || []).length === 0
-              ? <p style={{ textAlign: "center", padding: "24px 0", fontSize: 13, color: C.textMuted }}>No chapters added yet</p>
-              : (progress.completedChapters || []).map((ch, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 10, background: C.bg, border: `1px solid ${C.border}` }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <CheckCircle style={{ width: 15, height: 15, color: C.emerald }} />
-                    <span style={{ fontSize: 13, color: C.textPrimary }}>{ch}</span>
-                  </div>
-                  <button onClick={() => tutorDeleteChapterProgress(student.uid, assignment.subject, ch)}
-                    style={{ background: C.redLight, border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center" }}>
-                    <Trash2 style={{ width: 14, height: 14, color: C.red }} />
-                  </button>
-                </div>
-              ))}
+        <div style={{ height: 4, background: C.gradEmerald, flexShrink: 0 }} />
+        <div style={{ padding: "20px 24px 14px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary, display: "flex", alignItems: "center", gap: 7 }}>
+                <BookOpen style={{ width: 16, height: 16, color: C.emerald }} />
+                Curriculum &amp; Progress
+              </h3>
+            </div>
+            <button onClick={onClose} style={{ background: C.bg, border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+              <X style={{ width: 16, height: 16, color: C.textMuted }} />
+            </button>
           </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 13, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 17, flexShrink: 0 }}>
+              {student.name?.charAt(0)}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary }}>{student.name}</p>
+              <p style={{ fontSize: 12, color: C.textMuted }}>{student.customId} · Grade {student.classLevel || student.grade}</p>
+            </div>
+            {catInfo ? (
+              <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: catInfo.bg, color: catInfo.color, flexShrink: 0 }}>
+                {catInfo.label}
+              </span>
+            ) : (
+              <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: C.bg, color: C.textMuted, border: `1px solid ${C.border}`, flexShrink: 0 }}>
+                No Category Set
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Subject tabs */}
+        {subjects.length > 1 && (
+          <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, flexShrink: 0, overflowX: "auto" }}>
+            {subjects.map(subj => (
+              <button key={subj} onClick={() => setSelSubject(subj)}
+                style={{ padding: "10px 16px", border: "none", cursor: "pointer", fontWeight: selSubject === subj ? 700 : 500, fontSize: 13,
+                  background: selSubject === subj ? C.emeraldLight : "transparent",
+                  color: selSubject === subj ? C.emerald : C.textMuted,
+                  borderBottom: selSubject === subj ? `2px solid ${C.emerald}` : "2px solid transparent",
+                  whiteSpace: "nowrap", flexShrink: 0 }}>
+                {subj}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Stats bar */}
+        <div style={{ display: "flex", gap: 16, padding: "12px 24px", background: C.bg, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: C.emerald, display: "inline-block" }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.emerald }}>{completedCount} Completed</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: C.amber, display: "inline-block" }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.amber }}>{ongoingCount} Ongoing</span>
+          </div>
+          <span style={{ fontSize: 11, color: C.textMuted, marginLeft: "auto", lineHeight: 2 }}>Click to cycle status</span>
+        </div>
+
+        {/* Lessons list */}
+        <div style={{ overflowY: "auto", flex: 1 }}>
+          {loadingCurr ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
+              <Loader2 style={{ width: 24, height: 24, color: C.emerald, animation: "spin 1s linear infinite" }} />
+            </div>
+          ) : modules.length === 0 ? (
+            <div style={{ padding: 32, textAlign: "center" }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: C.amberLight, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                <BookOpen style={{ width: 22, height: 22, color: C.amber }} />
+              </div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, marginBottom: 4 }}>No Curriculum Found</p>
+              <p style={{ fontSize: 12, color: C.textMuted }}>
+                {student.category
+                  ? `No modules found for ${catInfo?.label || student.category}. Ask admin to seed the curriculum.`
+                  : "This student has no category assigned. Ask admin to set a category (Little Pearls / Bright Pearls / Rising Pearls)."}
+              </p>
+            </div>
+          ) : (
+            modules.map((mod, mIdx) => {
+              const isOpen = expandedMods[mod.id];
+              const modLessons = mod.lessons || [];
+              const modCompleted = modLessons.filter(l => getLessonStatus(selSubject, `M${mod.moduleNumber}:L${l.lessonNumber} ${l.title}`) === "completed").length;
+              const modOngoing   = modLessons.filter(l => getLessonStatus(selSubject, `M${mod.moduleNumber}:L${l.lessonNumber} ${l.title}`) === "ongoing").length;
+
+              return (
+                <div key={mod.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <div onClick={() => setExpandedMods(p => ({ ...p, [mod.id]: !p[mod.id] }))}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 24px", cursor: "pointer", background: isOpen ? C.bg : C.card, userSelect: "none" }}>
+                    <span style={{ fontSize: 18 }}>{mod.moduleEmoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>M{mod.moduleNumber}: {mod.moduleName}</p>
+                      <p style={{ fontSize: 11, color: C.textMuted }}>{modLessons.length} lessons</p>
+                    </div>
+                    <div style={{ display: "flex", gap: 5 }}>
+                      {modOngoing > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.amber, background: C.amberLight, padding: "2px 7px", borderRadius: 20 }}>🔄 {modOngoing}</span>}
+                      {modCompleted > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "2px 7px", borderRadius: 20 }}>✅ {modCompleted}/{modLessons.length}</span>}
+                    </div>
+                    {isOpen ? <ChevronDown style={{ width: 14, height: 14, color: C.textMuted }} /> : <ChevronRight style={{ width: 14, height: 14, color: C.textMuted }} />}
+                  </div>
+
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} style={{ overflow: "hidden" }}>
+                        <div style={{ padding: "8px 24px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                          {modLessons.sort((a, b) => a.lessonNumber - b.lessonNumber).map(lesson => {
+                            const key = `M${mod.moduleNumber}:L${lesson.lessonNumber} ${lesson.title}`;
+                            const st = getLessonStatus(selSubject, key);
+                            const isSaving = saving === key;
+                            const isCompleted = st === "completed";
+                            const isOngoing   = st === "ongoing";
+                            const rowBg = isCompleted ? C.emeraldLight : isOngoing ? C.amberLight : C.bg;
+                            const rowBorder = isCompleted ? `${C.emerald}35` : isOngoing ? `${C.amber}35` : C.border;
+
+                            return (
+                              <div key={lesson.id}
+                                onClick={() => !isSaving && cycleLesson(selSubject, mod, lesson)}
+                                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, cursor: "pointer",
+                                  background: rowBg, border: `1px solid ${rowBorder}`, transition: "all 0.12s", opacity: isSaving ? 0.6 : 1 }}>
+                                {/* Status circle */}
+                                <div style={{ width: 24, height: 24, borderRadius: 7, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                                  background: isCompleted ? C.emerald : isOngoing ? C.amber : "#E2E8F0",
+                                  transition: "all 0.12s" }}>
+                                  {isSaving
+                                    ? <Loader2 style={{ width: 12, height: 12, color: "#fff", animation: "spin 1s linear infinite" }} />
+                                    : isCompleted ? <span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>✓</span>
+                                    : isOngoing   ? <span style={{ color: "#fff", fontSize: 11 }}>↻</span>
+                                    : <span style={{ color: "#94A3B8", fontSize: 11 }}>{lesson.lessonNumber}</span>}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ fontSize: 12, fontWeight: st ? 700 : 400, color: C.textPrimary, lineHeight: 1.4 }}>
+                                    <span style={{ color: C.textMuted, fontSize: 11 }}>L{lesson.lessonNumber} · </span>
+                                    {lesson.title}
+                                  </p>
+                                  <p style={{ fontSize: 11, color: C.cyan, marginTop: 2 }}>{lesson.platform}</p>
+                                </div>
+                                {isOngoing   && <span style={{ fontSize: 10, fontWeight: 700, color: C.amber,   background: C.amberLight,   padding: "3px 8px", borderRadius: 20, flexShrink: 0 }}>🔄 Ongoing</span>}
+                                {isCompleted && <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "3px 8px", borderRadius: 20, flexShrink: 0 }}>✅ Done</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })
+          )}
         </div>
       </motion.div>
     </motion.div>
@@ -547,240 +753,9 @@ function CurriculumView() {
   );
 }
 
-// ── Progress Tracker View ─────────────────────────────────────
-function ProgressTrackerView({ students, tutorId }) {
-  const [selectedStudent, setSelectedStudent] = useState(students[0]?.uid || null);
-  const [currModules, setCurrModules] = useState([]);
-  const [currLoading, setCurrLoading] = useState(false);
-  const [lessonProgress, setLessonProgress] = useState({}); // { subject: { [lessonKey]: status } }
-  const [expandedModules, setExpandedModules] = useState({});
-
-  const student = students.find(s => s.uid === selectedStudent);
-
-  // Load curriculum for student's category whenever student changes
-  useEffect(() => {
-    if (!student?.category) { setCurrModules([]); return; }
-    setCurrLoading(true);
-    const q = query(collection(db, "curriculum"), where("category", "==", student.category));
-    const unsub = onSnapshot(q, snap => {
-      const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
-      setCurrModules(mods);
-      if (mods.length > 0) setExpandedModules({ [mods[0].id]: true });
-      setCurrLoading(false);
-    }, () => setCurrLoading(false));
-    return () => unsub();
-  }, [student?.uid, student?.category]);
-
-  // Load live lesson progress for each assignment subject
-  useEffect(() => {
-    if (!student) return;
-    const unsubs = {};
-    const prog = {};
-    (student.assignments || []).forEach(a => {
-      unsubs[a.subject] = onSnapshot(
-        getProgressRef(student.uid, a.subject),
-        snap => {
-          const lessons = snap.exists() ? (snap.data().lessons || []) : [];
-          prog[a.subject] = {};
-          lessons.forEach(l => { prog[a.subject][l.key] = l.status; });
-          setLessonProgress({ ...prog });
-        }
-      );
-    });
-    return () => Object.values(unsubs).forEach(u => u());
-  }, [student?.uid, student?.assignments]);
-
-  const subjects = (student?.assignments || []).map(a => a.subject);
-  const [activeSubject, setActiveSubject] = useState(null);
-  const subjectProgress = lessonProgress[activeSubject] || {};
-
-  // Auto-select first subject when student changes
-  useEffect(() => {
-    if (subjects.length > 0) setActiveSubject(subjects[0]);
-  }, [selectedStudent]);
-
-  // Stats for selected subject
-  const allTagged = Object.values(subjectProgress);
-  const completedCount = allTagged.filter(s => s === "completed").length;
-  const ongoingCount = allTagged.filter(s => s === "ongoing").length;
-  const totalLessons = currModules.reduce((s, m) => s + (m.lessons?.length || 0), 0);
-  const pct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
-
-  const catInfo = catLabel[student?.category];
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Student selector */}
-      <div style={{ background: C.card, borderRadius: 16, padding: 16, border: `1px solid ${C.border}`, boxShadow: C.shadowCard }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>Select Student</p>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {students.map(s => {
-            const active = s.uid === selectedStudent;
-            const ci = catLabel[s.category];
-            const totalDone = Object.values(s.progress || {}).reduce((sum, p) => sum + (p.completedChapters?.length || 0), 0);
-            return (
-              <button key={s.uid} onClick={() => setSelectedStudent(s.uid)}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 30, border: `2px solid ${active ? C.emerald : C.border}`, background: active ? C.emeraldLight : C.bg, cursor: "pointer", transition: "all 0.15s" }}>
-                <div style={{ width: 28, height: 28, borderRadius: 10, background: active ? C.gradPrimary : C.border, display: "flex", alignItems: "center", justifyContent: "center", color: active ? "#fff" : C.textMuted, fontWeight: 800, fontSize: 12 }}>{s.name?.charAt(0)}</div>
-                <div style={{ textAlign: "left" }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: active ? C.textPrimary : C.textSecondary, lineHeight: 1 }}>{s.name}</p>
-                  <p style={{ fontSize: 10, color: ci?.color || C.textMuted, marginTop: 2 }}>{ci?.label || `Grade ${s.classLevel}`}</p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {student && (
-        <>
-          {/* Subject tabs */}
-          {subjects.length > 1 && (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {subjects.map(subj => {
-                const active = subj === activeSubject;
-                const prog = lessonProgress[subj] || {};
-                const done = Object.values(prog).filter(s => s === "completed").length;
-                const ongoing = Object.values(prog).filter(s => s === "ongoing").length;
-                return (
-                  <button key={subj} onClick={() => setActiveSubject(subj)}
-                    style={{ padding: "8px 16px", borderRadius: 30, border: `2px solid ${active ? C.indigo : C.border}`, background: active ? C.indigoLight : C.card, color: active ? C.indigo : C.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 6 }}>
-                    {subj}
-                    {(done > 0 || ongoing > 0) && (
-                      <span style={{ fontSize: 10, background: active ? C.indigo : C.border, color: active ? "#fff" : C.textMuted, padding: "1px 6px", borderRadius: 20 }}>
-                        {done}✓{ongoing > 0 ? ` ${ongoing}⏳` : ""}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Progress header card */}
-          <div style={{ background: C.card, borderRadius: 16, padding: "16px 20px", border: `1px solid ${C.border}`, boxShadow: C.shadowCard }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 11, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 15 }}>{student.name?.charAt(0)}</div>
-                  <div>
-                    <p style={{ fontWeight: 800, fontSize: 15, color: C.textPrimary }}>{student.name}</p>
-                    {catInfo && <span style={{ fontSize: 10, fontWeight: 700, color: catInfo.color, background: catInfo.bg, padding: "2px 8px", borderRadius: 20 }}>{catInfo.label}</span>}
-                  </div>
-                </div>
-                <p style={{ fontSize: 12, color: C.textMuted }}>
-                  {activeSubject} · {completedCount} lessons completed · {ongoingCount} ongoing
-                </p>
-              </div>
-              {/* Progress ring */}
-              <div style={{ textAlign: "center", flexShrink: 0 }}>
-                <div style={{ position: "relative", width: 64, height: 64 }}>
-                  <svg width="64" height="64" style={{ transform: "rotate(-90deg)" }}>
-                    <circle cx="32" cy="32" r="26" fill="none" stroke={C.emeraldLight} strokeWidth="6" />
-                    <circle cx="32" cy="32" r="26" fill="none" stroke={C.emerald} strokeWidth="6"
-                      strokeDasharray={`${2 * Math.PI * 26}`}
-                      strokeDashoffset={`${2 * Math.PI * 26 * (1 - pct / 100)}`}
-                      strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.8s ease" }} />
-                  </svg>
-                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: C.emerald }}>{pct}%</span>
-                  </div>
-                </div>
-                <p style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>complete</p>
-              </div>
-            </div>
-
-            {/* Compact progress bar */}
-            <div style={{ marginTop: 14 }}>
-              <div style={{ height: 8, borderRadius: 8, background: C.bg, overflow: "hidden", border: `1px solid ${C.border}` }}>
-                <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8 }}
-                  style={{ height: "100%", borderRadius: 8, background: C.gradEmerald }} />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                <span style={{ fontSize: 10, color: C.textMuted }}>{completedCount} / {totalLessons} lessons done</span>
-                {ongoingCount > 0 && <span style={{ fontSize: 10, color: C.amber, fontWeight: 600 }}>⏳ {ongoingCount} in progress</span>}
-              </div>
-            </div>
-          </div>
-
-          {/* Curriculum with lesson statuses */}
-          {currLoading ? (
-            <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 style={{ width: 24, height: 24, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
-          ) : currModules.length === 0 ? (
-            <Empty icon={BookOpen} msg="No curriculum data for this student's category." />
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {currModules.map(mod => {
-                const modLessons = mod.lessons || [];
-                const modCompleted = modLessons.filter(l => subjectProgress[`M${mod.moduleNumber}:L${l.lessonNumber} ${l.title}`] === "completed").length;
-                const modOngoing = modLessons.filter(l => subjectProgress[`M${mod.moduleNumber}:L${l.lessonNumber} ${l.title}`] === "ongoing").length;
-                const isOpen = expandedModules[mod.id];
-                const modDonePct = modLessons.length > 0 ? Math.round((modCompleted / modLessons.length) * 100) : 0;
-                const hasActivity = modCompleted > 0 || modOngoing > 0;
-
-                return (
-                  <div key={mod.id} style={{ background: C.card, border: `1px solid ${hasActivity ? C.emerald + "30" : C.border}`, borderRadius: 16, overflow: "hidden", boxShadow: C.shadowCard }}>
-                    <div onClick={() => setExpandedModules(p => ({ ...p, [mod.id]: !p[mod.id] }))}
-                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", cursor: "pointer", userSelect: "none" }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 12, background: modDonePct === 100 ? C.gradEmerald : modOngoing > 0 ? C.gradAmber : C.bg, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
-                        {modDonePct === 100 ? "✅" : mod.moduleEmoji}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontWeight: 800, fontSize: 13, color: C.textPrimary }}>Module {mod.moduleNumber}: {mod.moduleName}</p>
-                        <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
-                          {modCompleted > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "2px 7px", borderRadius: 20 }}>✓ {modCompleted} done</span>}
-                          {modOngoing > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.amber, background: C.amberLight, padding: "2px 7px", borderRadius: 20 }}>⏳ {modOngoing} ongoing</span>}
-                          {!hasActivity && <span style={{ fontSize: 10, color: C.textMuted }}>Not started</span>}
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                        <span style={{ fontSize: 11, color: modDonePct > 0 ? C.emerald : C.textMuted, fontWeight: 700 }}>{modDonePct}%</span>
-                        {isOpen ? <ChevronDown style={{ width: 14, height: 14, color: C.textMuted }} /> : <ChevronRight style={{ width: 14, height: 14, color: C.textMuted }} />}
-                      </div>
-                    </div>
-                    <AnimatePresence>
-                      {isOpen && (
-                        <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} style={{ overflow: "hidden" }}>
-                          <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
-                            {modLessons.sort((a, b) => a.lessonNumber - b.lessonNumber).map(lesson => {
-                              const key = `M${mod.moduleNumber}:L${lesson.lessonNumber} ${lesson.title}`;
-                              const st = subjectProgress[key] || "not_covered";
-                              return (
-                                <div key={lesson.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 10, background: st === "completed" ? C.emeraldLight : st === "ongoing" ? C.amberLight : C.bg, border: `1px solid ${st === "completed" ? C.emerald + "30" : st === "ongoing" ? C.amber + "40" : C.border}` }}>
-                                  {/* Status icon */}
-                                  <div style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: st === "completed" ? C.emerald : st === "ongoing" ? C.amber : C.border, fontSize: 11 }}>
-                                    {st === "completed" ? <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> : st === "ongoing" ? <span style={{ fontSize: 10 }}>⏳</span> : <span style={{ fontSize: 10, color: "#fff" }}>–</span>}
-                                  </div>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <p style={{ fontSize: 12, fontWeight: st !== "not_covered" ? 700 : 500, color: st === "not_covered" ? C.textMuted : C.textPrimary, lineHeight: 1.3 }}>
-                                      <span style={{ color: C.textMuted, fontSize: 10, fontWeight: 500 }}>L{lesson.lessonNumber} · </span>{lesson.title}
-                                    </p>
-                                    <p style={{ fontSize: 10, color: C.cyan, marginTop: 1 }}>{lesson.platform}</p>
-                                  </div>
-                                  <span style={{ fontSize: 10, fontWeight: 700, color: st === "completed" ? C.emerald : st === "ongoing" ? C.amber : C.textMuted, flexShrink: 0 }}>
-                                    {st === "completed" ? "Done" : st === "ongoing" ? "In Progress" : ""}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 // ── Main Dashboard ────────────────────────────────────────────
 export default function TutorDashboard() {
-  const { userId, logout, tutorMarkAttendance, tutorUpdateChapterProgress, tutorDeleteChapterProgress } = useAuth();
+  const { userId, logout, tutorMarkAttendance, tutorUpdateChapterProgress, tutorDeleteChapterProgress, tutorSaveLessonProgress } = useAuth();
 
   const [tutorData, setTutorData]           = useState(null);
   const [students, setStudents]             = useState([]);
@@ -1036,16 +1011,24 @@ export default function TutorDashboard() {
                       : students.length === 0 ? <Empty icon={Users} msg="No students assigned" /> : (
                         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                           {studentsWP.slice(0, 4).map(s => {
-                            const total = Object.values(s.progress || {}).reduce((sum, p) => sum + (p.completedChapters?.length || 0), 0);
+                            const lp = s.progress || {};
+                            const allLessons = Object.values(lp).flatMap(p => p.lessonProgress || []);
+                            const totalCompleted = allLessons.filter(l => l.lessonStatus === "completed").length;
+                            const totalOngoing   = allLessons.filter(l => l.lessonStatus === "ongoing").length;
                             const catInfo = catLabel[s.category];
                             return (
-                              <div key={s.uid} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, background: C.bg }}>
+                              <div key={s.uid} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, background: C.bg, cursor: "pointer" }}
+                                onClick={() => { setSelProgress({ student: s }); setShowProgress(true); }}>
                                 <div style={{ width: 36, height: 36, borderRadius: 10, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{s.name?.charAt(0)}</div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>{s.name}</p>
-                                  <p style={{ fontSize: 11, color: C.textMuted }}>{catInfo ? catInfo.label : `Grade ${s.classLevel}`}</p>
+                                  <p style={{ fontSize: 11, color: catInfo?.color || C.textMuted }}>{catInfo ? catInfo.label : `Grade ${s.classLevel}`}</p>
                                 </div>
-                                <span style={{ background: C.emeraldLight, color: C.emerald, fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 20, flexShrink: 0 }}>{total} done</span>
+                                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                  {totalCompleted > 0 && <span style={{ background: C.emeraldLight, color: C.emerald, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, display: "block" }}>{totalCompleted} done</span>}
+                                  {totalOngoing > 0 && <span style={{ background: C.amberLight, color: C.amber, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, display: "block", marginTop: 2 }}>{totalOngoing} ongoing</span>}
+                                  {totalCompleted === 0 && totalOngoing === 0 && <span style={{ fontSize: 11, color: C.textMuted }}>No progress</span>}
+                                </div>
                               </div>
                             );
                           })}
@@ -1058,46 +1041,86 @@ export default function TutorDashboard() {
 
             {activeTab === "students" && (
               <motion.div key="st" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
+                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 16 }}>
                 {loadingStudents
                   ? <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", padding: 60 }}><Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
                   : studentsWP.length === 0 ? <div style={{ gridColumn: "1/-1" }}><Empty icon={Users} msg="No students assigned yet" /></div>
                   : studentsWP.map(s => {
-                    const progress = s.progress || {};
-                    const totalDone = Object.values(progress).reduce((sum, p) => sum + (p.completedChapters?.length || 0), 0);
+                    const lp = s.progress || {};
+                    const allLessons = Object.values(lp).flatMap(p => p.lessonProgress || []);
+                    const totalCompleted = allLessons.filter(l => l.lessonStatus === "completed").length;
+                    const totalOngoing   = allLessons.filter(l => l.lessonStatus === "ongoing").length;
                     const catInfo = catLabel[s.category];
                     return (
                       <motion.div key={s.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -3, boxShadow: C.shadowHover }}
-                        style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, boxShadow: C.shadowCard }}>
+                        style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: 20, boxShadow: C.shadowCard, display: "flex", flexDirection: "column" }}>
+
+                        {/* Header */}
                         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                          <div style={{ width: 44, height: 44, borderRadius: 14, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 18, flexShrink: 0 }}>{s.name?.charAt(0)}</div>
+                          <div style={{ width: 46, height: 46, borderRadius: 14, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 19, flexShrink: 0 }}>
+                            {s.name?.charAt(0)}
+                          </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</p>
                             <p style={{ fontSize: 12, color: C.textMuted }}>{s.customId} · Grade {s.classLevel || s.grade}</p>
                           </div>
-                          <div style={{ textAlign: "right" }}>
-                            <p style={{ fontSize: 22, fontWeight: 800, color: C.emerald }}>{totalDone}</p>
-                            <p style={{ fontSize: 11, color: C.textMuted }}>modules</p>
-                          </div>
                         </div>
+
+                        {/* Category badge */}
                         {catInfo && (
-                          <div style={{ padding: "5px 10px", borderRadius: 20, background: catInfo.bg, display: "inline-block", marginBottom: 10 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: catInfo.color }}>{catInfo.label}</span>
+                          <div style={{ marginBottom: 12 }}>
+                            <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: catInfo.bg, color: catInfo.color }}>
+                              {catInfo.label}
+                            </span>
                           </div>
                         )}
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {(s.assignments || []).map((a, i) => {
-                            const done = (progress[a.subject]?.completedChapters?.length) || 0;
-                            return (
-                              <button key={i} onClick={() => { setSelProgress({ student: s, assignment: a }); setShowProgress(true); }}
-                                style={{ padding: "5px 12px", borderRadius: 20, background: C.indigoLight, color: C.indigo, border: `1px solid ${C.indigo}20`, fontWeight: 600, fontSize: 12, cursor: "pointer" }}
-                                onMouseEnter={e => { e.currentTarget.style.background = C.indigo; e.currentTarget.style.color = "#fff"; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = C.indigoLight; e.currentTarget.style.color = C.indigo; }}>
-                                {a.subject} · {done}
-                              </button>
-                            );
-                          })}
+
+                        {/* Progress summary pills */}
+                        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                          <div style={{ flex: 1, padding: "8px 6px", borderRadius: 10, background: C.emeraldLight, textAlign: "center" }}>
+                            <p style={{ fontSize: 18, fontWeight: 800, color: C.emerald, lineHeight: 1 }}>{totalCompleted}</p>
+                            <p style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>Completed</p>
+                          </div>
+                          <div style={{ flex: 1, padding: "8px 6px", borderRadius: 10, background: C.amberLight, textAlign: "center" }}>
+                            <p style={{ fontSize: 18, fontWeight: 800, color: C.amber, lineHeight: 1 }}>{totalOngoing}</p>
+                            <p style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>Ongoing</p>
+                          </div>
+                          <div style={{ flex: 1, padding: "8px 6px", borderRadius: 10, background: C.indigoLight, textAlign: "center" }}>
+                            <p style={{ fontSize: 18, fontWeight: 800, color: C.indigo, lineHeight: 1 }}>{(s.assignments || []).length}</p>
+                            <p style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>Subjects</p>
+                          </div>
                         </div>
+
+                        {/* Subjects list */}
+                        {(s.assignments || []).length > 0 && (
+                          <div style={{ marginBottom: 14 }}>
+                            <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Subjects</p>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                              {(s.assignments || []).map((a, i) => {
+                                const subLessons = lp[a.subject]?.lessonProgress || [];
+                                const subDone    = subLessons.filter(l => l.lessonStatus === "completed").length;
+                                const subOngoing = subLessons.filter(l => l.lessonStatus === "ongoing").length;
+                                return (
+                                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, background: C.bg, border: `1px solid ${C.border}` }}>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: C.textSecondary }}>{a.subject}</span>
+                                    {subDone > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald }}>{"\u2713"}{subDone}</span>}
+                                    {subOngoing > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.amber }}>{"\u23f3"}{subOngoing}</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* View Curriculum & Progress button */}
+                        <button
+                          onClick={() => { setSelProgress({ student: s }); setShowProgress(true); }}
+                          style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: "1.5px solid " + C.indigo + "30", background: C.indigoLight, color: C.indigo, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.15s", marginTop: "auto" }}
+                          onMouseEnter={e => { e.currentTarget.style.background = C.indigo; e.currentTarget.style.color = "#fff"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = C.indigoLight; e.currentTarget.style.color = C.indigo; }}>
+                          <BookOpen style={{ width: 15, height: 15 }} />
+                          View Curriculum &amp; Progress
+                        </button>
                       </motion.div>
                     );
                   })
@@ -1118,11 +1141,82 @@ export default function TutorDashboard() {
             )}
 
             {activeTab === "progress" && (
-              <motion.div key="pr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                {studentsWP.length === 0
-                  ? <div style={{ gridColumn: "1/-1" }}><Empty icon={TrendingUp} msg="No progress data" /></div>
-                  : <ProgressTrackerView students={studentsWP} tutorId={userId} />
-                }
+              <motion.div key="pr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 16 }}>
+                {studentsWP.length === 0 ? <div style={{ gridColumn: "1/-1" }}><Empty icon={TrendingUp} msg="No progress data" /></div>
+                  : studentsWP.map(s => {
+                    const lp = s.progress || {};
+                    // Collect all lesson statuses across all subjects
+                    const allLessons = Object.values(lp).flatMap(p => p.lessonProgress || []);
+                    const totalCompleted = allLessons.filter(l => l.lessonStatus === "completed").length;
+                    const totalOngoing   = allLessons.filter(l => l.lessonStatus === "ongoing").length;
+                    const catInfo = catLabel[s.category];
+                    return (
+                      <motion.div key={s.uid} whileHover={{ y: -3, boxShadow: C.shadowHover }}
+                        style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, boxShadow: C.shadowCard }}>
+                        {/* Student header */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                          <div style={{ width: 38, height: 38, borderRadius: 12, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16 }}>{s.name?.charAt(0)}</div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary }}>{s.name}</p>
+                            <p style={{ fontSize: 11, color: C.textMuted }}>Grade {s.classLevel || s.grade}</p>
+                          </div>
+                        </div>
+                        {catInfo && (
+                          <span style={{ display: "inline-block", padding: "3px 9px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: catInfo.bg, color: catInfo.color, marginBottom: 12 }}>
+                            {catInfo.label}
+                          </span>
+                        )}
+                        {/* Summary stats */}
+                        <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                          <div style={{ flex: 1, padding: "8px 10px", borderRadius: 10, background: C.emeraldLight, textAlign: "center" }}>
+                            <p style={{ fontSize: 18, fontWeight: 800, color: C.emerald }}>{totalCompleted}</p>
+                            <p style={{ fontSize: 10, color: C.textMuted }}>Completed</p>
+                          </div>
+                          <div style={{ flex: 1, padding: "8px 10px", borderRadius: 10, background: C.amberLight, textAlign: "center" }}>
+                            <p style={{ fontSize: 18, fontWeight: 800, color: C.amber }}>{totalOngoing}</p>
+                            <p style={{ fontSize: 10, color: C.textMuted }}>Ongoing</p>
+                          </div>
+                        </div>
+                        {/* Per-subject recent lessons */}
+                        {(s.assignments || []).map((a, i) => {
+                          const subjectProgress = lp[a.subject]?.lessonProgress || [];
+                          const subjectCompleted = subjectProgress.filter(l => l.lessonStatus === "completed").length;
+                          const subjectOngoing   = subjectProgress.filter(l => l.lessonStatus === "ongoing").length;
+                          const recentOngoing = subjectProgress.filter(l => l.lessonStatus === "ongoing").slice(-2);
+                          const recentCompleted = subjectProgress.filter(l => l.lessonStatus === "completed").slice(-3);
+                          return (
+                            <div key={i} style={{ marginBottom: i < s.assignments.length - 1 ? 14 : 0 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: C.textSecondary }}>{a.subject}</span>
+                                <button onClick={() => { setSelProgress({ student: s, assignment: a }); setShowProgress(true); }}
+                                  style={{ padding: "3px 10px", borderRadius: 20, background: C.indigoLight, color: C.indigo, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                                  View All
+                                </button>
+                              </div>
+                              {/* Ongoing lessons */}
+                              {recentOngoing.map((l, li) => (
+                                <div key={li} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 8px", borderRadius: 8, background: C.amberLight, marginBottom: 4 }}>
+                                  <span style={{ fontSize: 11 }}>🔄</span>
+                                  <span style={{ fontSize: 11, color: "#92400E", fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>L{l.lessonNumber} {l.title}</span>
+                                </div>
+                              ))}
+                              {/* Recently completed */}
+                              {recentCompleted.map((l, li) => (
+                                <div key={li} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 8px", borderRadius: 8, background: C.emeraldLight, marginBottom: 4 }}>
+                                  <span style={{ fontSize: 11 }}>✅</span>
+                                  <span style={{ fontSize: 11, color: C.emeraldDark, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>L{l.lessonNumber} {l.title}</span>
+                                </div>
+                              ))}
+                              {subjectCompleted === 0 && subjectOngoing === 0 && (
+                                <p style={{ fontSize: 11, color: C.textMuted, fontStyle: "italic" }}>No lessons tracked yet</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </motion.div>
+                    );
+                  })}
               </motion.div>
             )}
 
@@ -1180,15 +1274,13 @@ export default function TutorDashboard() {
 
       <AnimatePresence>
         {showAttendance && selClass && (
-          <AttendanceModal classItem={selClass} students={students} timezone={tutorData?.timezone}
+          <AttendanceModal classItem={selClass}
             onClose={() => { setShowAttendance(false); setSelClass(null); }}
             markAttendance={tutorMarkAttendance} />
         )}
         {showProgress && selProgress && (
-          <ProgressUpdateModal student={selProgress.student} assignment={selProgress.assignment}
-            onClose={() => { setShowProgress(false); setSelProgress(null); }}
-            tutorUpdateChapterProgress={tutorUpdateChapterProgress}
-            tutorDeleteChapterProgress={tutorDeleteChapterProgress} />
+          <ProgressUpdateModal student={selProgress.student}
+            onClose={() => { setShowProgress(false); setSelProgress(null); }} />
         )}
       </AnimatePresence>
 

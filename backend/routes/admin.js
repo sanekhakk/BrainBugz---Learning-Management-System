@@ -46,9 +46,9 @@ router.post("/create-user", verifyIdToken, requireAdmin, async (req, res) => {
 
     // Validate student category
     if (role === 'student') {
-      const validCategories = ['little_pearls', 'bright_pearls', 'rising_pearls'];
+      const validCategories = ['little_pearls', 'bright_pearls', 'rising_pearls', 'academic_tuition'];
       if (!category || !validCategories.includes(category)) {
-        return res.status(400).json({ success: false, error: "Student category is required (little_pearls, bright_pearls, or rising_pearls)" });
+        return res.status(400).json({ success: false, error: "Student category is required (little_pearls, bright_pearls, rising_pearls, or academic_tuition)" });
       }
     }
 

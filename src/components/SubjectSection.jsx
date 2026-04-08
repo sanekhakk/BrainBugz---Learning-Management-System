@@ -276,7 +276,7 @@ const SubjectSection = () => (
                 When children finally transition to Python or JavaScript, it feels <strong style={{ color:T.ink }}>natural, not scary.</strong>
               </p>
               <div className="flex gap-3 flex-wrap">
-                <a href="https://wa.link/5pk793"
+                <a href="https://wa.link/2sqe3g"
                   className="flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm text-white"
                   style={{ background:`linear-gradient(135deg,${T.green},${T.sky})`,boxShadow:"0 6px 24px rgba(16,185,129,0.3)" }}>
                   Book Free Trial <ArrowRight className="w-4 h-4" />

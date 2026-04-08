@@ -86,7 +86,7 @@ const WebServicesSection = () => (
             </div>
 
             <motion.a
-              href="https://wa.link/ctfbjv"
+              href="https://wa.link/2sqe3g"
               whileHover={{ scale: 1.04, boxShadow: SHADOWS.glowCyan }}
               whileTap={{ scale: 0.97 }}
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-bold transition-all"

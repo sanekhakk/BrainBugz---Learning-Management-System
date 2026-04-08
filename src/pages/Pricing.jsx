@@ -298,7 +298,7 @@ const CodingSection = () => {
                   <span className="opacity-50">·</span>
                   <span>{pkg.d}% off</span>
                 </div>
-                <a href="https://wa.link/5pk793"
+                <a href="https://wa.link/2sqe3g"
                   className="flex items-center justify-center gap-1 w-full py-2.5 rounded-xl text-xs font-bold text-white"
                   style={{ background: g.color }}>
                   Get This <ArrowRight className="w-3 h-3" />
@@ -384,7 +384,7 @@ const CSTuitionSection = () => {
         </div>
       </div>
 
-      <a href="https://wa.link/5pk793"
+      <a href="https://wa.link/2sqe3g"
         className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-white text-sm"
         style={{ background: `linear-gradient(135deg,${g.color},${g.textColor})`, boxShadow: `0 8px 28px ${g.color}30` }}>
         📚 Book CS Tuition Session <ArrowRight className="w-4 h-4" />
@@ -430,7 +430,7 @@ const WebDevSection = () => (
                 </li>
               ))}
             </ul>
-            <a href="https://wa.link/5pk793"
+            <a href="https://wa.link/2sqe3g"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold text-white"
               style={{ background: pkg.color }}>
               Get Quote <ArrowRight className="w-4 h-4" />
@@ -630,13 +630,13 @@ const Pricing = () => {
               We'll understand your child's grade, board, and learning goals before recommending the perfect plan.
             </p>
             <div className="flex gap-3 justify-center flex-wrap">
-              <motion.a href="https://wa.link/5pk793"
+              <motion.a href="https://wa.link/2sqe3g"
                 whileHover={{ scale: 1.03, boxShadow: `0 8px 30px ${T.gold}40` }}
                 className="px-7 py-3.5 rounded-2xl text-sm font-black text-slate-900"
                 style={{ background: `linear-gradient(135deg,${T.gold},#A07830)`, boxShadow: `0 4px 20px ${T.gold}30` }}>
                 🎁 Book Free Demo Class
               </motion.a>
-              <motion.a href="https://wa.link/5pk793"
+              <motion.a href="https://wa.link/2sqe3g"
                 whileHover={{ scale: 1.03 }}
                 className="px-7 py-3.5 rounded-2xl text-sm font-bold border-2 transition-all bg-white"
                 style={{ color: T.ink, borderColor: "rgba(15,23,42,0.15)" }}>

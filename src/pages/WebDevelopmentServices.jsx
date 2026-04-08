@@ -168,7 +168,7 @@ const WebDevelopmentServices = () => (
           ))}
         </motion.div>
         <div className="flex gap-4 justify-center flex-wrap">
-          <a href="https://wa.link/5pk793"
+          <a href="https://wa.link/2sqe3g"
             className="flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white"
             style={{background:`linear-gradient(135deg,${T.gold},#8B6914)`,boxShadow:`0 8px 32px ${T.gold}40`}}>
             🎯 Get Free Quote <ArrowRight className="w-5 h-5" />
@@ -261,7 +261,7 @@ const WebDevelopmentServices = () => (
                   </li>
                 ))}
               </ul>
-              <a href="https://wa.link/5pk793"
+              <a href="https://wa.link/2sqe3g"
                 className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-white"
                 style={{background:pkg.color,boxShadow:`0 6px 20px ${pkg.color}35`}}>
                 Get This Package <ArrowRight className="w-4 h-4" />
@@ -406,7 +406,7 @@ const WebDevelopmentServices = () => (
               Tell us about your project and get a free quote in 24 hours. No commitment, no pressure — just honest advice.
             </p>
             <div className="flex gap-3 justify-center lg:justify-start flex-wrap">
-              <motion.a href="https://wa.link/5pk793"
+              <motion.a href="https://wa.link/2sqe3g"
                 whileHover={{scale:1.04,boxShadow:`0 8px 30px ${T.gold}50`}}
                 className="px-7 py-3.5 rounded-2xl text-sm font-black"
                 style={{background:`linear-gradient(135deg,${T.gold},#8B6914)`,color:"#0E0E0E",

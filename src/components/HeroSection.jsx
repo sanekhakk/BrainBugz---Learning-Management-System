@@ -239,7 +239,7 @@ const HeroSection = () => {
               className="flex flex-wrap gap-4 mb-12"
             >
               <motion.a
-                href="https://wa.link/5pk793"
+                href="https://wa.link/2sqe3g"
                 whileHover={{ scale: 1.05, boxShadow: "0 16px 40px rgba(16,185,129,0.4)" }}
                 whileTap={{ scale: 0.95 }}
                 className="flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white"

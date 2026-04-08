@@ -223,7 +223,7 @@ const LevelCard = ({level,index}) => {
             </motion.div>
           )}
         </AnimatePresence>
-        <a href="https://wa.link/5pk793"
+        <a href="https://wa.link/2sqe3g"
           className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-white text-sm mt-4"
           style={{background:level.color,boxShadow:`0 6px 24px ${level.glow}`}}>
           Join {level.name} <ArrowRight className="w-4 h-4" />
@@ -324,7 +324,7 @@ const ComputerScienceClasses = () => (
         </motion.div>
         <motion.div initial={{opacity:0}} whileInView={{opacity:1}} viewport={{once:true}}
           transition={{delay:0.4}} className="flex gap-4 justify-center flex-wrap">
-          <a href="https://wa.link/5pk793"
+          <a href="https://wa.link/2sqe3g"
             className="flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white"
             style={{background:`linear-gradient(135deg,${T.green},${T.sky})`,boxShadow:"0 8px 32px rgba(16,185,129,0.35)"}}>
             🎯 Book Free Trial Class <ArrowRight className="w-5 h-5" />
@@ -458,13 +458,13 @@ const ComputerScienceClasses = () => (
               Every level ends in a <strong style={{color:T.ink}}>Capstone Project</strong> — students present their story, game, app, and website to parents and peers. Real certificates. Real pride. 🎓
             </p>
             <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
-              <motion.a href="https://wa.link/5pk793"
+              <motion.a href="https://wa.link/2sqe3g"
                 whileHover={{scale:1.04,boxShadow:"0 12px 36px rgba(167,139,250,0.5)"}}
                 className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-bold text-white"
                 style={{background:`linear-gradient(135deg,${T.purple},#7C3AED)`,boxShadow:"0 4px 20px rgba(167,139,250,0.3)"}}>
                 Join a Level <ArrowRight className="w-4 h-4" />
               </motion.a>
-              <motion.a href="https://wa.link/5pk793"
+              <motion.a href="https://wa.link/2sqe3g"
                 whileHover={{scale:1.04}}
                 className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-bold border-2"
                 style={{color:"#7C3AED",borderColor:"rgba(167,139,250,0.35)",background:"rgba(167,139,250,0.06)"}}>

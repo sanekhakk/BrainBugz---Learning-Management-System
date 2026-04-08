@@ -292,7 +292,7 @@ export const ProgramPlans = () => {
                     </li>
                   ))}
                 </ul>
-                <a href="https://wa.link/5pk793"
+                <a href="https://wa.link/2sqe3g"
                   className="flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold transition-all"
                   style={{ background:p.highlight?p.color:`${p.color}18`,color:p.highlight?"#000":p.color }}>
                   Enrol Now <ArrowRight className="w-4 h-4" />

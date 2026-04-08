@@ -219,7 +219,7 @@ const ProcessSection = () => (
           className="text-center mt-14">
           <p className="text-slate-500 mb-4 font-medium">Ready to start the journey? 🚀</p>
           <div className="flex gap-4 justify-center flex-wrap">
-            <a href="https://wa.link/5pk793"
+            <a href="https://wa.link/2sqe3g"
               className="flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white"
               style={{ background:`linear-gradient(135deg,${T.green},${T.sky})`,boxShadow:"0 8px 28px rgba(16,185,129,0.3)" }}>
               Book Free Demo Class <ArrowRight className="w-5 h-5" />

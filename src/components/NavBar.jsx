@@ -122,7 +122,7 @@ const NavBar = () => {
                     Log in
                   </button>
                   <motion.a
-                    href="https://wa.link/5pk793"
+                    href="https://wa.link/2sqe3g"
                     whileHover={{ scale: 1.05, boxShadow: "0 0 24px rgba(16,185,129,0.5)" }}
                     whileTap={{ scale: 0.95 }}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-slate-900"

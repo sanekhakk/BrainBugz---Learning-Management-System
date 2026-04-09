@@ -11,6 +11,7 @@ import {
   Loader2, User, CheckCircle, XCircle, X, Trash2, Calendar, Clock,
   TrendingUp, LogOut, Users, AlertCircle, Video, ArrowRight, Menu,
   Home, BarChart2, Bell, Award, Phone, BookOpen, ChevronDown, ChevronRight,
+  GraduationCap, Play, Zap,
 } from "lucide-react";
 import { getProgressRef } from "../utils/paths";
 import { getDisplayTime } from "../utils/timeUtils";
@@ -41,6 +42,21 @@ const catLabel = {
   bright_pearls: { label: "🌱 Bright Pearls", color: "#16A34A", bg: "#F0FDF4" },
   rising_pearls: { label: "🦋 Rising Pearls", color: "#2563EB", bg: "#EFF6FF" },
 };
+
+// ── Helper: get next/ongoing lesson from progress map ──────────
+function getNextLessonLabel(modules, lessonProgressMap) {
+  if (!modules || modules.length === 0) return null;
+  for (const mod of modules) {
+    const lessons = [...(mod.lessons || [])].sort((a, b) => a.lessonNumber - b.lessonNumber);
+    for (const lesson of lessons) {
+      const key = `M${mod.moduleNumber}:L${lesson.lessonNumber} ${lesson.title}`;
+      const status = lessonProgressMap?.[key];
+      if (status === "ongoing") return { label: lesson.title, mod: mod.moduleName, status: "ongoing", emoji: mod.moduleEmoji };
+      if (!status || status === "not_covered") return { label: lesson.title, mod: mod.moduleName, status: "next", emoji: mod.moduleEmoji };
+    }
+  }
+  return null;
+}
 
 const isClassDue = (cls) => {
   if (!cls.classDate || !cls.classTime) return false;
@@ -599,46 +615,162 @@ const ProgressUpdateModal = ({ student, onClose }) => {
 };
 
 // ── Class Card ────────────────────────────────────────────────
-const ClassCard = ({ cls, onMark, studentLinkMap, timezone }) => {
+const ClassCard = ({ cls, onMark, studentLinkMap, timezone, nextLesson }) => {
   const due = isClassDue(cls);
   const time = getDisplayTime(cls.classDate, cls.classTime, timezone);
-  const date = cls.classDate ? new Date(cls.classDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "TBD";
+  const timeParts = time.split(" ");
+  const timeNum = timeParts[0];
+  const timePeriod = timeParts[1] || "";
+
+  const dateObj = cls.classDate ? new Date(cls.classDate) : null;
+  const dayName = dateObj ? dateObj.toLocaleDateString("en-US", { weekday: "long" }) : "TBD";
+  const dateStr = dateObj ? dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+  const isToday = dateObj ? dateObj.toDateString() === new Date().toDateString() : false;
+  const isTomorrow = dateObj ? (() => { const t = new Date(); t.setDate(t.getDate()+1); return dateObj.toDateString() === t.toDateString(); })() : false;
+  const dayLabel = isToday ? "Today" : isTomorrow ? "Tomorrow" : dayName;
+
   const classLink = studentLinkMap[cls.studentId] || "";
 
+  // Colors
+  const accentColor = due ? C.red : C.indigo;
+  const accentGrad  = due ? C.gradRed : C.gradIndigo;
+  const accentLight = due ? C.redLight : C.indigoLight;
+
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2, boxShadow: C.shadowHover }}
-      style={{ background: C.card, border: `1px solid ${due ? C.red + "50" : C.border}`, borderRadius: 16, padding: "18px 20px", boxShadow: C.shadowCard, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", left: 0, top: 12, bottom: 12, width: 3, borderRadius: "0 4px 4px 0", background: due ? C.gradRed : C.gradPrimary }} />
-      <div style={{ display: "flex", alignItems: "center", gap: 14, paddingLeft: 12 }}>
-        <div style={{ width: 58, height: 58, borderRadius: 16, background: due ? C.gradRed : C.gradIndigo, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0 }}>
-          <Clock style={{ width: 14, height: 14, opacity: 0.8, marginBottom: 2 }} />
-          <span style={{ fontSize: 13, fontWeight: 800 }}>{time.split(" ")[0]}</span>
-          <span style={{ fontSize: 10, opacity: 0.8 }}>{time.split(" ")[1] || ""}</span>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary }}>{cls.subject}</span>
-            {due && <span style={{ background: C.red, color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 20 }}>ATTENDANCE DUE</span>}
-            {cls.isRescheduled && !due && <span style={{ background: C.amberLight, color: C.amber, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20 }}>RESCHEDULED</span>}
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -3, boxShadow: "0 16px 40px rgba(15,23,42,0.12)" }}
+      style={{
+        background: C.card,
+        border: `1px solid ${due ? C.red + "45" : C.border}`,
+        borderRadius: 20,
+        overflow: "hidden",
+        boxShadow: C.shadowCard,
+        position: "relative",
+      }}
+    >
+      {/* Top accent bar */}
+      <div style={{ height: 3, background: accentGrad }} />
+
+      {/* Badges */}
+      <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 6, zIndex: 2 }}>
+        {due && (
+          <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }}
+            style={{ background: C.red, color: "#fff", fontSize: 10, fontWeight: 800, padding: "4px 10px", borderRadius: 20, letterSpacing: "0.05em" }}>
+            ⚡ ATTENDANCE DUE
+          </motion.div>
+        )}
+        {cls.isRescheduled && !due && (
+          <div style={{ background: C.amberLight, color: C.amber, fontSize: 10, fontWeight: 800, padding: "4px 10px", borderRadius: 20 }}>
+            RESCHEDULED
           </div>
-          <p style={{ fontSize: 13, color: C.cyan, fontWeight: 600, marginBottom: 2 }}>{cls.studentName}</p>
-          <p style={{ fontSize: 12, color: C.textMuted }}>{date}</p>
-          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+        )}
+      </div>
+
+      <div style={{ display: "flex", minHeight: 130 }}>
+        {/* ── LEFT: Content ── */}
+        <div style={{ flex: 1, padding: "20px 22px 20px 22px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
+          <div>
+            {/* Subject */}
+            <h3 style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary, lineHeight: 1.1, marginBottom: 8, letterSpacing: "-0.02em" }}>
+              {cls.subject}
+            </h3>
+
+            {/* Student name — prominent */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: 9, background: accentGrad,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontWeight: 900, fontSize: 14, flexShrink: 0,
+              }}>
+                {cls.studentName?.charAt(0)}
+              </div>
+              <div>
+                <p style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary, lineHeight: 1 }}>{cls.studentName}</p>
+                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Student</p>
+              </div>
+            </div>
+
+            {/* Next lesson chip — only for coding students */}
+            {nextLesson && (
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "8px 12px", borderRadius: 12,
+                background: nextLesson.status === "ongoing" ? C.amberLight : C.indigoLight,
+                border: `1px solid ${nextLesson.status === "ongoing" ? C.amber + "40" : C.indigo + "30"}`,
+                maxWidth: "100%",
+              }}>
+                <span style={{ fontSize: 15, flexShrink: 0 }}>{nextLesson.emoji}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ marginBottom: 1 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.05em",
+                      color: nextLesson.status === "ongoing" ? C.amber : C.indigo }}>
+                      {nextLesson.status === "ongoing" ? "⏳ CONTINUING" : "▶ NEXT LESSON"}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 230 }}>
+                    {nextLesson.label}
+                  </p>
+                  <p style={{ fontSize: 10, color: C.textMuted, marginTop: 1 }}>{nextLesson.mod}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
             {classLink ? (
               <a href={classLink} target="_blank" rel="noopener noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
-                <Video style={{ width: 14, height: 14 }} /> Join
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12, background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 12, textDecoration: "none", boxShadow: "0 4px 12px rgba(16,185,129,0.25)" }}>
+                <Play style={{ width: 13, height: 13 }} /> Join Class
               </a>
             ) : (
-              <span style={{ padding: "8px 12px", borderRadius: 10, background: C.redLight, color: C.red, fontSize: 12, fontWeight: 600 }}>No Link</span>
+              <span style={{ padding: "9px 12px", borderRadius: 12, background: C.redLight, color: C.red, fontSize: 12, fontWeight: 600 }}>No Link</span>
             )}
             <button onClick={() => onMark(cls)}
-              style={{ padding: "8px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, color: C.indigo, fontWeight: 700, fontSize: 12, cursor: "pointer" }}
-              onMouseEnter={e => { e.currentTarget.style.background = C.indigoLight; }}
-              onMouseLeave={e => { e.currentTarget.style.background = C.bg; }}>
-              Mark Attendance
+              style={{ padding: "9px 16px", borderRadius: 12, border: `1px solid ${due ? C.red + "40" : C.border}`, background: due ? C.redLight : C.bg, color: due ? C.red : C.indigo, fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all 0.15s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = due ? C.red : C.indigo; e.currentTarget.style.color = "#fff"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = due ? C.redLight : C.bg; e.currentTarget.style.color = due ? C.red : C.indigo; }}>
+              {due ? "⚡ Mark Now" : "Mark Attendance"}
             </button>
           </div>
+        </div>
+
+        {/* ── RIGHT: Big Time Block ── */}
+        <div style={{
+          flexShrink: 0, width: 120,
+          background: `linear-gradient(160deg, ${accentColor}12 0%, ${accentColor}04 100%)`,
+          borderLeft: `1px solid ${accentColor}20`,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          padding: "20px 10px", gap: 2,
+        }}>
+          <Clock style={{ width: 14, height: 14, color: accentColor, opacity: 0.7, marginBottom: 6 }} />
+          <span style={{
+            fontSize: 32, fontWeight: 900, color: accentColor,
+            lineHeight: 1, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums",
+          }}>
+            {timeNum}
+          </span>
+          {timePeriod && (
+            <span style={{ fontSize: 14, fontWeight: 800, color: accentColor, opacity: 0.8, letterSpacing: "0.06em", marginTop: 2 }}>
+              {timePeriod}
+            </span>
+          )}
+          <div style={{ marginTop: 10, textAlign: "center" }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: isToday ? accentColor : C.textPrimary, marginBottom: 2 }}>
+              {dayLabel}
+            </p>
+            <p style={{ fontSize: 11, color: C.textMuted, fontWeight: 500 }}>{dateStr}</p>
+          </div>
+          {isToday && (
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              style={{ marginTop: 8, padding: "4px 8px", borderRadius: 20, background: accentColor, color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "0.06em" }}>
+              TODAY
+            </motion.div>
+          )}
         </div>
       </div>
     </motion.div>
@@ -766,6 +898,10 @@ export default function TutorDashboard() {
   const [studentLinkMap, setLinkMap]        = useState({});
   const [loadingStudents, setLS]            = useState(true);
   const [loadingClasses, setLC]             = useState(true);
+  // For next-lesson chips: { category: [module,...] }
+  const [categoryModulesMap, setCatModules] = useState({});
+  // Per-student lesson progress: { uid: { subject: { key: status } } }
+  const [studentLessonProgress, setStudentLessonProgress] = useState({});
   const [activeTab, setActiveTab]           = useState("overview");
   const [showAttendance, setShowAttendance] = useState(false);
   const [selClass, setSelClass]             = useState(null);
@@ -845,6 +981,48 @@ export default function TutorDashboard() {
       setLC(false);
     });
   }, [userId]);
+
+  // ── Load curriculum modules per category (for next-lesson chips) ──
+  useEffect(() => {
+    if (!students.length) return;
+    const codingCategories = [...new Set(
+      students
+        .filter(s => s.category && s.category !== "academic_tuition")
+        .map(s => s.category)
+    )];
+    const unsubs = codingCategories.map(cat => {
+      const q = query(collection(db, "curriculum"), where("category", "==", cat));
+      return onSnapshot(q, snap => {
+        const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
+        setCatModules(prev => ({ ...prev, [cat]: mods }));
+      }, () => {});
+    });
+    return () => unsubs.forEach(u => u());
+  }, [students]);
+
+  // ── Load per-student per-subject lesson progress ──
+  useEffect(() => {
+    if (!students.length) return;
+    const unsubs = [];
+    students.forEach(st => {
+      if (st.category === "academic_tuition") return;
+      (st.assignments || []).forEach(a => {
+        const unsub = onSnapshot(getProgressRef(st.uid, a.subject), snap => {
+          if (snap.exists()) {
+            const lessonList = snap.data().lessons || [];
+            const map = {};
+            lessonList.forEach(l => { map[l.key] = l.status; });
+            setStudentLessonProgress(prev => ({
+              ...prev,
+              [st.uid]: { ...(prev[st.uid] || {}), [a.subject]: map }
+            }));
+          }
+        }, () => {});
+        unsubs.push(unsub);
+      });
+    });
+    return () => unsubs.forEach(u => u());
+  }, [students]);
 
   const dueCount = activeClasses.filter(isClassDue).length;
   const totalModules = studentsWP.reduce((s, st) => s + Object.values(st.progress || {}).reduce((s2, p) => s2 + (p.completedChapters?.length || 0), 0), 0);
@@ -982,20 +1160,25 @@ export default function TutorDashboard() {
                     </div>
                     {loadingClasses ? <div style={{ display: "flex", justifyContent: "center", padding: 24 }}><Loader2 style={{ width: 22, height: 22, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
                       : activeClasses.length === 0 ? <Empty icon={Calendar} msg="No active classes" /> : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                           {activeClasses.slice(0, 4).map(cls => {
                             const time = getDisplayTime(cls.classDate, cls.classTime, tutorData?.timezone);
+                            const timeParts = time.split(" ");
                             const due = isClassDue(cls);
+                            const isToday = cls.classDate ? new Date(cls.classDate).toDateString() === new Date().toDateString() : false;
                             return (
-                              <div key={cls.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, background: due ? C.redLight : C.bg, border: `1px solid ${due ? C.red + "30" : C.border}` }}>
-                                <div style={{ width: 36, height: 36, borderRadius: 10, background: due ? C.gradRed : C.gradIndigo, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                  <Clock style={{ width: 16, height: 16, color: "#fff" }} />
+                              <div key={cls.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, background: due ? C.redLight : C.bg, border: `1px solid ${due ? C.red + "30" : C.border}`, overflow: "hidden", position: "relative" }}>
+                                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: due ? C.gradRed : C.gradIndigo, borderRadius: "0 2px 2px 0" }} />
+                                <div style={{ flex: 1, minWidth: 0, paddingLeft: 4 }}>
+                                  <p style={{ fontWeight: 800, fontSize: 13, color: C.textPrimary, marginBottom: 2 }}>{cls.subject}</p>
+                                  <p style={{ fontSize: 12, fontWeight: 600, color: due ? C.red : C.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cls.studentName}</p>
+                                  {isToday && <span style={{ fontSize: 9, fontWeight: 800, color: due ? C.red : C.indigo, letterSpacing: "0.05em" }}>TODAY</span>}
                                 </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>{cls.subject}</p>
-                                  <p style={{ fontSize: 12, color: C.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cls.studentName} · {time}</p>
+                                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                  <p style={{ fontSize: 18, fontWeight: 900, color: due ? C.red : C.indigo, lineHeight: 1, letterSpacing: "-0.02em" }}>{timeParts[0]}</p>
+                                  <p style={{ fontSize: 11, fontWeight: 700, color: due ? C.red : C.indigo, opacity: 0.8 }}>{timeParts[1] || ""}</p>
                                 </div>
-                                {due && <span style={{ background: C.red, color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 20, flexShrink: 0 }}>DUE</span>}
+                                {due && <span style={{ background: C.red, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 20, flexShrink: 0, letterSpacing: "0.04em" }}>DUE</span>}
                               </div>
                             );
                           })}
@@ -1129,13 +1312,27 @@ export default function TutorDashboard() {
             )}
 
             {activeTab === "activeClasses" && (
-              <motion.div key="ac" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <motion.div key="ac" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {loadingClasses
                   ? <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
                   : activeClasses.length === 0 ? <Empty icon={Calendar} msg="No active classes" />
-                  : activeClasses.map(cls => (
-                    <ClassCard key={cls.id} cls={cls} timezone={tutorData?.timezone} studentLinkMap={studentLinkMap} onMark={c => { setSelClass(c); setShowAttendance(true); }} />
-                  ))
+                  : activeClasses.map(cls => {
+                    // Compute next lesson for this specific student + subject
+                    const student = studentsWP.find(s => s.uid === cls.studentId);
+                    const isCoding = student?.category && student.category !== "academic_tuition";
+                    let nextLesson = null;
+                    if (isCoding && student) {
+                      const modules = categoryModulesMap[student.category] || [];
+                      const subjectProgress = studentLessonProgress[student.uid]?.[cls.subject] || {};
+                      nextLesson = getNextLessonLabel(modules, subjectProgress);
+                    }
+                    return (
+                      <ClassCard key={cls.id} cls={cls} timezone={tutorData?.timezone} studentLinkMap={studentLinkMap}
+                        onMark={c => { setSelClass(c); setShowAttendance(true); }}
+                        nextLesson={nextLesson}
+                      />
+                    );
+                  })
                 }
               </motion.div>
             )}

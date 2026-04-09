@@ -1,5 +1,5 @@
 // src/pages/StudentDashboard.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -8,14 +8,16 @@ import {
   onSnapshot, 
   collection, 
   query, 
-  where, 
-  onSnapshot as dbOnSnapshot 
+  where,
+  getDoc,
+  getDocs,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import {
   BookOpen, User, Loader2, CheckCircle, XCircle, TrendingUp,
   Calendar, Clock, LogOut, Award, Target, Video, ArrowRight,
   Bell, Home, BarChart2, Star, Menu, X, ChevronDown, ChevronRight,
+  Zap, BookMarked, GraduationCap, Play,
 } from "lucide-react";
 import { CATEGORIES } from "../utils/curriculumData";
 import { getProgressRef } from "../utils/paths";
@@ -77,48 +79,162 @@ const StatCard = ({ icon: Icon, label, value, light, iconColor }) => (
   </motion.div>
 );
 
-const ClassCard = ({ cls, type, permanentClassLink, timezone }) => {
+// ── Helper: get the next lesson to cover from progress data ──
+function getNextLessonLabel(modules, lessonProgressMap) {
+  if (!modules || modules.length === 0) return null;
+  for (const mod of modules) {
+    const lessons = [...(mod.lessons || [])].sort((a, b) => a.lessonNumber - b.lessonNumber);
+    for (const lesson of lessons) {
+      const key = `M${mod.moduleNumber}:L${lesson.lessonNumber} ${lesson.title}`;
+      const status = lessonProgressMap?.[key];
+      if (status === "ongoing") return { label: lesson.title, mod: mod.moduleName, status: "ongoing", emoji: mod.moduleEmoji };
+      if (!status || status === "not_covered") return { label: lesson.title, mod: mod.moduleName, status: "next", emoji: mod.moduleEmoji };
+    }
+  }
+  return null; // all done
+}
+
+const ClassCard = ({ cls, type, permanentClassLink, timezone, nextLesson }) => {
   const cfg = statusCfg[type];
   const Icon = cfg.icon;
   const time = getDisplayTime(cls.classDate, cls.classTime, timezone);
-  const date = cls.classDate ? new Date(cls.classDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "TBD";
+  const timeParts = time.split(" ");
+  const timeNum = timeParts[0];   // e.g. "3:45"
+  const timePeriod = timeParts[1] || ""; // e.g. "PM"
+
+  const dateObj = cls.classDate ? new Date(cls.classDate) : null;
+  const dayName  = dateObj ? dateObj.toLocaleDateString("en-US", { weekday: "long" }) : "TBD";
+  const dateStr  = dateObj ? dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+  const isToday  = dateObj ? dateObj.toDateString() === new Date().toDateString() : false;
+  const isTomorrow = dateObj ? (() => { const t = new Date(); t.setDate(t.getDate()+1); return dateObj.toDateString() === t.toDateString(); })() : false;
+
+  const dayLabel = isToday ? "Today" : isTomorrow ? "Tomorrow" : dayName;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2, boxShadow: C.shadowHover }}
-      style={{ background: C.card, border: `1px solid ${cfg.border}`, borderRadius: 16, padding: "18px 20px", boxShadow: C.shadowCard, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", left: 0, top: 12, bottom: 12, width: 3, borderRadius: "0 4px 4px 0", background: cfg.accent }} />
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -3, boxShadow: "0 16px 40px rgba(15,23,42,0.12)" }}
+      style={{
+        background: C.card,
+        border: `1px solid ${cfg.border}`,
+        borderRadius: 20,
+        overflow: "hidden",
+        boxShadow: C.shadowCard,
+        position: "relative",
+      }}
+    >
+      {/* Top accent bar */}
+      <div style={{ height: 3, background: cfg.grad }} />
+
+      {/* Rescheduled badge */}
       {cls.isRescheduled && (
-        <span style={{ position: "absolute", top: 14, right: 14, background: C.amberLight, color: C.amber, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20 }}>RESCHEDULED</span>
-      )}
-      <div style={{ display: "flex", gap: 14, paddingLeft: 12 }}>
-        <div style={{ width: 56, height: 56, borderRadius: 16, background: cfg.grad, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0 }}>
-          <Clock style={{ width: 13, height: 13, opacity: 0.8, marginBottom: 2 }} />
-          <span style={{ fontSize: 12, fontWeight: 800 }}>{time.split(" ")[0]}</span>
-          <span style={{ fontSize: 9, opacity: 0.8 }}>{time.split(" ")[1] || ""}</span>
+        <div style={{ position: "absolute", top: 16, right: 16, background: C.amberLight, color: C.amber, fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 20, letterSpacing: "0.04em", zIndex: 2 }}>
+          RESCHEDULED
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary }}>{cls.subject}</span>
-            <span style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, background: cfg.badgeBg, color: cfg.badgeText, fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
-              <Icon style={{ width: 11, height: 11 }} />{cfg.label}
-            </span>
+      )}
+
+      <div style={{ display: "flex", minHeight: 120 }}>
+
+        {/* ── LEFT: Subject + Tutor + Lesson chip ── */}
+        <div style={{ flex: 1, padding: "20px 22px 20px 22px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
+          <div>
+            {/* Status badge */}
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, background: cfg.badgeBg, marginBottom: 10 }}>
+              <Icon style={{ width: 11, height: 11, color: cfg.badgeText }} />
+              <span style={{ fontSize: 11, fontWeight: 800, color: cfg.badgeText, letterSpacing: "0.04em" }}>{cfg.label.toUpperCase()}</span>
+            </div>
+
+            {/* Subject */}
+            <h3 style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary, lineHeight: 1.1, marginBottom: 6, letterSpacing: "-0.02em" }}>
+              {cls.subject}
+            </h3>
+
+            {/* Tutor name */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: type === "upcoming" ? 14 : 10 }}>
+              <div style={{ width: 22, height: 22, borderRadius: 7, background: cfg.grad, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <GraduationCap style={{ width: 12, height: 12, color: "#fff" }} />
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary }}>with <span style={{ color: C.textPrimary, fontWeight: 700 }}>{cls.tutorName}</span></span>
+            </div>
+
+            {/* Next lesson chip — only for upcoming coding classes */}
+            {type === "upcoming" && nextLesson && (
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "8px 12px", borderRadius: 12,
+                background: nextLesson.status === "ongoing" ? C.amberLight : C.indigoLight,
+                border: `1px solid ${nextLesson.status === "ongoing" ? C.amber + "40" : C.indigo + "30"}`,
+                maxWidth: "100%",
+              }}>
+                <span style={{ fontSize: 15, flexShrink: 0 }}>{nextLesson.emoji}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 1 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.05em",
+                      color: nextLesson.status === "ongoing" ? C.amber : C.indigo }}>
+                      {nextLesson.status === "ongoing" ? "⏳ CONTINUING" : "▶ NEXT UP"}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>
+                    {nextLesson.label}
+                  </p>
+                  <p style={{ fontSize: 10, color: C.textMuted, marginTop: 1 }}>{nextLesson.mod}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Completed/missed summary */}
+            {cls.summary && (type === "completed" || type === "missed") && (
+              <div style={{ padding: "9px 13px", borderRadius: 12, fontSize: 12, background: cfg.badgeBg, color: cfg.badgeText, lineHeight: 1.5, marginTop: 4 }}>
+                {type === "completed" ? "📋 " : "⚠️ "}{cls.summary}
+              </div>
+            )}
           </div>
-          <p style={{ fontSize: 13, color: C.textSecondary, marginBottom: 2, display: "flex", alignItems: "center", gap: 5 }}>
-            <User style={{ width: 13, height: 13 }} />with {cls.tutorName}
-          </p>
-          <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
-            <Calendar style={{ width: 12, height: 12 }} />{date}
-          </p>
-          {cls.summary && (type === "completed" || type === "missed") && (
-            <div style={{ padding: "8px 12px", borderRadius: 10, fontSize: 12, marginBottom: 10, background: cfg.badgeBg, color: cfg.badgeText }}>
-              {type === "completed" ? "📋 " : "⚠️ "}{cls.summary}
+
+          {/* Join button */}
+          {type === "upcoming" && permanentClassLink && (
+            <div style={{ marginTop: 14 }}>
+              <a href={permanentClassLink} target="_blank" rel="noopener noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 12, background: cfg.grad, color: "#fff", fontWeight: 700, fontSize: 13, textDecoration: "none", boxShadow: `0 4px 14px ${cfg.accent}35` }}>
+                <Play style={{ width: 13, height: 13 }} /> Join Class <ArrowRight style={{ width: 13, height: 13 }} />
+              </a>
             </div>
           )}
-          {type === "upcoming" && permanentClassLink && (
-            <a href={permanentClassLink} target="_blank" rel="noopener noreferrer"
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 12, background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 12, textDecoration: "none", boxShadow: "0 4px 12px rgba(16,185,129,0.25)" }}>
-              <Video style={{ width: 13, height: 13 }} />Join Class <ArrowRight style={{ width: 12, height: 12 }} />
-            </a>
+        </div>
+
+        {/* ── RIGHT: Big Time Block ── */}
+        <div style={{
+          flexShrink: 0, width: 120,
+          background: `linear-gradient(160deg, ${cfg.accent}12 0%, ${cfg.accent}05 100%)`,
+          borderLeft: `1px solid ${cfg.accent}20`,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          padding: "20px 10px", gap: 2,
+        }}>
+          <Clock style={{ width: 14, height: 14, color: cfg.accent, opacity: 0.7, marginBottom: 6 }} />
+          <span style={{
+            fontSize: 32, fontWeight: 900, color: cfg.accent,
+            lineHeight: 1, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums",
+          }}>
+            {timeNum}
+          </span>
+          {timePeriod && (
+            <span style={{ fontSize: 14, fontWeight: 800, color: cfg.accent, opacity: 0.8, letterSpacing: "0.06em", marginTop: 2 }}>
+              {timePeriod}
+            </span>
+          )}
+          <div style={{ marginTop: 10, textAlign: "center" }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: isToday ? cfg.accent : C.textPrimary, marginBottom: 2 }}>
+              {dayLabel}
+            </p>
+            <p style={{ fontSize: 11, color: C.textMuted, fontWeight: 500 }}>{dateStr}</p>
+          </div>
+          {isToday && (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              style={{ marginTop: 8, padding: "4px 8px", borderRadius: 20, background: cfg.accent, color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "0.06em" }}>
+              TODAY
+            </motion.div>
           )}
         </div>
       </div>
@@ -267,6 +383,10 @@ export default function StudentDashboard() {
   const [activeTab, setActiveTab]     = useState("overview");
   const [isMobile, setIsMobile]       = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Curriculum & lesson state for next-lesson chips
+  const [currModules, setCurrModules]         = useState([]);  // for coding students
+  const [lessonProgressMap, setLessonProgress] = useState({}); // { key: status }
+  const [academicLessons, setAcademicLessons] = useState({}); // { subject: [lesson] }
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -306,12 +426,47 @@ export default function StudentDashboard() {
     return () => unsubs.forEach(u => u());
   }, [userId, profile]);
 
+  // ── Load curriculum modules for coding students (for next-lesson chip) ──
+  useEffect(() => {
+    const isCoding = profile?.category && profile.category !== "academic_tuition";
+    if (!isCoding) return;
+    const q = query(collection(db, "curriculum"), where("category", "==", profile.category));
+    const unsub = onSnapshot(q, snap => {
+      const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
+      setCurrModules(mods);
+    }, () => {});
+    return () => unsub();
+  }, [profile?.category]);
+
+  // ── Load per-lesson progress for coding students ──
+  useEffect(() => {
+    if (!userId || !profile) return;
+    const isCoding = profile?.category && profile.category !== "academic_tuition";
+    if (!isCoding) return;
+    // Listen to all subjects' lesson progress
+    const subjects = (profile.assignments || []).map(a => a.subject);
+    const unsubs = subjects.map(sub =>
+      onSnapshot(getProgressRef(userId, sub), snap => {
+        if (snap.exists()) {
+          const lessons = snap.data().lessons || [];
+          const map = {};
+          lessons.forEach(l => { map[l.key] = l.status; });
+          setLessonProgress(prev => ({ ...prev, ...map }));
+        }
+      }, () => {})
+    );
+    return () => unsubs.forEach(u => u());
+  }, [userId, profile]);
+
   const assignments = profile?.assignments || [];
   const permanentClassLink = profile?.permanentClassLink || "";
   const totalModules = Object.values(progressData).reduce((s, p) => s + (p.completedChapters?.length || 0), 0);
   const attendanceRate = completed.length + missed.length > 0
     ? Math.round((completed.length / (completed.length + missed.length)) * 100) : 100;
   const nextClass = upcoming[0];
+  const isCodingStudent = profile?.category && profile.category !== "academic_tuition";
+  // Compute the single "next lesson" across all modules for the coding curriculum
+  const nextLessonInfo = isCodingStudent ? getNextLessonLabel(currModules, lessonProgressMap) : null;
 
   const tabs = [
     { id: "overview",    label: "Overview",    icon: Home },
@@ -490,7 +645,7 @@ export default function StudentDashboard() {
                         <Calendar style={{ width: 15, height: 15, color: C.indigo }} />Next Class
                       </h3>
                       {loadingClasses ? <div style={{ display: "flex", justifyContent: "center", padding: 24 }}><Loader2 style={{ width: 22, height: 22, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
-                        : nextClass ? <ClassCard cls={nextClass} type="upcoming" permanentClassLink={permanentClassLink} timezone={profile?.timezone} />
+                        : nextClass ? <ClassCard cls={nextClass} type="upcoming" permanentClassLink={permanentClassLink} timezone={profile?.timezone} nextLesson={isCodingStudent ? nextLessonInfo : null} />
                         : <Empty icon={Calendar} msg="No upcoming classes scheduled" />}
                     </div>
 
@@ -555,10 +710,59 @@ export default function StudentDashboard() {
 
               {/* ── UPCOMING ── */}
               {activeTab === "upcoming" && (
-                <motion.div key="up" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {loadingClasses ? <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
-                    : upcoming.length === 0 ? <Empty icon={Calendar} msg="No upcoming classes scheduled" />
-                    : upcoming.map(cls => <ClassCard key={cls.id} cls={cls} type="upcoming" permanentClassLink={permanentClassLink} timezone={profile?.timezone} />)}
+                <motion.div key="up" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                  {loadingClasses ? (
+                    <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
+                      <Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite" }} />
+                    </div>
+                  ) : upcoming.length === 0 ? (
+                    <Empty icon={Calendar} msg="No upcoming classes scheduled" />
+                  ) : (
+                    <>
+                      {/* Summary header */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
+                        <div>
+                          <h2 style={{ fontSize: 18, fontWeight: 900, color: C.textPrimary, marginBottom: 3, letterSpacing: "-0.02em" }}>
+                            {upcoming.length} Upcoming {upcoming.length === 1 ? "Class" : "Classes"}
+                          </h2>
+                          <p style={{ fontSize: 13, color: C.textMuted }}>
+                            {upcoming.filter(c => {
+                              const d = new Date(c.classDate);
+                              return d.toDateString() === new Date().toDateString();
+                            }).length > 0
+                              ? `${upcoming.filter(c => new Date(c.classDate).toDateString() === new Date().toDateString()).length} class${upcoming.filter(c => new Date(c.classDate).toDateString() === new Date().toDateString()).length > 1 ? "es" : ""} today`
+                              : "Next: " + new Date(upcoming[0].classDate).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
+                            }
+                          </p>
+                        </div>
+                        {/* Next lesson summary pill — coding students only */}
+                        {isCodingStudent && nextLessonInfo && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", borderRadius: 14, background: nextLessonInfo.status === "ongoing" ? C.amberLight : C.indigoLight, border: `1px solid ${nextLessonInfo.status === "ongoing" ? C.amber + "30" : C.indigo + "20"}` }}>
+                            <Zap style={{ width: 14, height: 14, color: nextLessonInfo.status === "ongoing" ? C.amber : C.indigo }} />
+                            <div>
+                              <p style={{ fontSize: 10, fontWeight: 800, color: nextLessonInfo.status === "ongoing" ? C.amber : C.indigo, letterSpacing: "0.05em" }}>
+                                {nextLessonInfo.status === "ongoing" ? "IN PROGRESS" : "UP NEXT"}
+                              </p>
+                              <p style={{ fontSize: 12, fontWeight: 700, color: C.textPrimary }}>{nextLessonInfo.label}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                        {upcoming.map(cls => (
+                          <ClassCard
+                            key={cls.id}
+                            cls={cls}
+                            type="upcoming"
+                            permanentClassLink={permanentClassLink}
+                            timezone={profile?.timezone}
+                            nextLesson={isCodingStudent ? nextLessonInfo : null}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </motion.div>
               )}
 
@@ -602,17 +806,17 @@ export default function StudentDashboard() {
 
               {/* ── COMPLETED ── */}
               {activeTab === "completed" && (
-                <motion.div key="co" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <motion.div key="co" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {completed.length === 0 ? <Empty icon={CheckCircle} msg="No completed classes yet" />
-                    : completed.map(cls => <ClassCard key={cls.id} cls={cls} type="completed" permanentClassLink={permanentClassLink} timezone={profile?.timezone} />)}
+                    : completed.map(cls => <ClassCard key={cls.id} cls={cls} type="completed" permanentClassLink={permanentClassLink} timezone={profile?.timezone} nextLesson={null} />)}
                 </motion.div>
               )}
 
               {/* ── MISSED ── */}
               {activeTab === "missed" && (
-                <motion.div key="mi" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <motion.div key="mi" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {missed.length === 0 ? <Empty icon={CheckCircle} msg="No missed classes — great work! 🎉" color={C.emerald} />
-                    : missed.map(cls => <ClassCard key={cls.id} cls={cls} type="missed" permanentClassLink={permanentClassLink} timezone={profile?.timezone} />)}
+                    : missed.map(cls => <ClassCard key={cls.id} cls={cls} type="missed" permanentClassLink={permanentClassLink} timezone={profile?.timezone} nextLesson={null} />)}
                 </motion.div>
               )}
 

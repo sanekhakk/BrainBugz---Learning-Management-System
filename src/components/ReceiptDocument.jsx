@@ -1,6 +1,7 @@
 import React, { forwardRef } from "react";
 import { GraduationCap } from "lucide-react";
 import { convertTo12Hour } from "../utils/timeUtils";
+import PearlxLogo from "../assets/flat_logo_dark.webp";
 
 const C = {
   border: "#E2E8F0",
@@ -65,10 +66,10 @@ const ReceiptDocument = forwardRef(({ receipt }, ref) => {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `2px solid ${C.emerald}`, paddingBottom: 18, marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <GraduationCap style={{ width: 24, height: 24, color: "#fff" }} />
+            <img src={PearlxLogo} alt="Pearlx" className="h-12 w-auto object-contain" style={{width: 24, height: 24,filter: "drop-shadow(0 0 8px rgba(255,255,255,0.25))" }} />
           </div>
           <div>
-            <p style={{ fontSize: 18, fontWeight: 800, letterSpacing: "0.01em" }}>PearlX Coding Academy</p>
+            <p style={{ fontSize: 18, fontWeight: 800, letterSpacing: "0.01em" }}>Pearlx</p>
             <p style={{ fontSize: 11, color: C.textMuted }}>www.pearlx.in</p>
           </div>
         </div>

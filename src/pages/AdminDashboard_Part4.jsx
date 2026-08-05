@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar, Clock, Search, Filter, CheckCircle, XCircle,
   AlertCircle, Trash2, User, BookOpen, Loader2, TrendingUp,
-  ArrowLeft, ChevronRight, GraduationCap,
+  ArrowLeft, ChevronRight, GraduationCap, Receipt,
 } from "lucide-react";
 import { collection, onSnapshot, query, orderBy, where } from "firebase/firestore";
 import { db } from "../firebase";
 import { convertTo12Hour } from "../utils/timeUtils";
+import GenerateReceiptModal from "../components/GenerateReceiptModal";
 
 const C = {
   bg: "#F4F6FB", card: "#FFFFFF", border: "#E5E9F2",
@@ -156,6 +157,7 @@ const StudentCard = ({ student, classCount, onSelect }) => {
 // Student Detail View 
 const StudentDetailView = ({ student, classes, onBack, onDeleteClass, isDeletingId }) => {
   const [filterStatus, setFilterStatus] = useState("all");
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   const studentClasses = classes.filter(c => c.studentId === student.uid);
   const filtered = studentClasses.filter(c => filterStatus === "all" || c.status === filterStatus);
@@ -174,16 +176,27 @@ const StudentDetailView = ({ student, classes, onBack, onDeleteClass, isDeleting
   return (
     <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }}>
       {/* Back + title */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-        <motion.button onClick={onBack} whileHover={{ scale: 1.05 }}
-          style={{ width: 38, height: 38, borderRadius: 11, border: `1px solid ${C.border}`, background: C.card, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-          <ArrowLeft style={{ width: 16, height: 16, color: C.textMuted }} />
-        </motion.button>
-        <div>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{student.name}'s Classes</h2>
-          <p style={{ fontSize: 12, color: C.textMuted }}>{student.customId} · Grade {student.classLevel}</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <motion.button onClick={onBack} whileHover={{ scale: 1.05 }}
+            style={{ width: 38, height: 38, borderRadius: 11, border: `1px solid ${C.border}`, background: C.card, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            <ArrowLeft style={{ width: 16, height: 16, color: C.textMuted }} />
+          </motion.button>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{student.name}'s Classes</h2>
+            <p style={{ fontSize: 12, color: C.textMuted }}>{student.customId} · Grade {student.classLevel}</p>
+          </div>
         </div>
+
+        <motion.button onClick={() => setShowReceiptModal(true)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 12, border: "none", background: C.gradEmerald, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          <Receipt style={{ width: 15, height: 15 }} /> Generate Receipt
+        </motion.button>
       </div>
+
+      {showReceiptModal && (
+        <GenerateReceiptModal student={student} onClose={() => setShowReceiptModal(false)} />
+      )}
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 20 }}>

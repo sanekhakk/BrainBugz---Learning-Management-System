@@ -32,6 +32,9 @@ const demoBookingRoutes = require("./routes/demoBooking");
 const notesRoutes = require("./routes/notes");
 app.use("/notes", notesRoutes);
 
+const receiptsRoutes = require("./routes/receipts");
+app.use("/receipts", receiptsRoutes);
+
 app.use("/api", demoBookingRoutes);
 app.use("/admin", adminRoutes);
 

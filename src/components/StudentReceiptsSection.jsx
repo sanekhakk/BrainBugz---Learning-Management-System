@@ -1,0 +1,163 @@
+import React, { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { auth } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import { Receipt, X, Calendar, IndianRupee, Loader2, ChevronRight, Download } from "lucide-react";
+import ReceiptDocument from "./ReceiptDocument";
+import { downloadReceiptAsPdf } from "../utils/downloadReceiptPdf";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://brainbugz-learning-management-system.onrender.com";
+
+const C = {
+  bg: "#F4F6FB", card: "#FFFFFF", border: "#E5E9F2",
+  textPrimary: "#0F172A", textSecondary: "#475569", textMuted: "#94A3B8",
+  emerald: "#10B981", emeraldLight: "#ECFDF5", emeraldDark: "#059669",
+  cyan: "#0EA5E9", cyanLight: "#E0F2FE",
+  amber: "#F59E0B", amberLight: "#FFFBEB",
+  shadowCard: "0 1px 4px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.04)",
+  shadowModal: "0 24px 64px rgba(15,23,42,0.18)",
+  gradEmerald: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+};
+
+function formatUploadDate(ts) {
+  if (!ts) return "";
+  const date = ts._seconds ? new Date(ts._seconds * 1000) : new Date(ts);
+  if (isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatCurrency(amount) {
+  return `₹${Number(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+const ReceiptCard = ({ receipt, onClick }) => (
+  <motion.button onClick={onClick} whileHover={{ y: -2, boxShadow: C.shadowCard }} whileTap={{ scale: 0.98 }}
+    style={{ textAlign: "left", width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, cursor: "pointer" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, marginBottom: 4 }}>{receipt.receiptId}</p>
+        <p style={{ fontSize: 11, color: C.textMuted, display: "flex", alignItems: "center", gap: 4 }}>
+          <Calendar style={{ width: 11, height: 11 }} /> Generated {formatUploadDate(receipt.generatedAt)}
+        </p>
+      </div>
+      <ChevronRight style={{ width: 16, height: 16, color: C.textMuted, flexShrink: 0, marginTop: 2 }} />
+    </div>
+
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <span style={{ fontSize: 11, color: C.textSecondary }}>{receipt.totalClasses} classes billed</span>
+      <span style={{ fontSize: 16, fontWeight: 800, color: C.emerald, display: "flex", alignItems: "center", gap: 2 }}>
+        {formatCurrency(receipt.totalAmount)}
+      </span>
+    </div>
+
+    <span style={{ display: "inline-block", marginTop: 8, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: receipt.status === "paid" ? C.emeraldLight : C.amberLight, color: receipt.status === "paid" ? C.emerald : C.amber }}>
+      {receipt.status === "paid" ? "PAID" : "UNPAID"}
+    </span>
+  </motion.button>
+);
+
+export default function StudentReceiptsSection() {
+  const [receipts, setReceipts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [error, setError] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const { userId: uid } = useAuth();
+  const receiptRef = useRef(null);
+
+  useEffect(() => {
+    if (!uid) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const token = await auth.currentUser.getIdToken();
+        const res = await fetch(`${API_BASE}/receipts/student`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || "Failed to load receipts");
+        setReceipts(data.receipts);
+      } catch (err) {
+        console.error("load student receipts err:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [uid]);
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      await downloadReceiptAsPdf(receiptRef.current, `PearlX-Receipt-${selected.receiptId}.pdf`);
+    } catch (err) {
+      console.error("download receipt err:", err);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ padding: 40, textAlign: "center" }}>
+        <Loader2 style={{ width: 24, height: 24, color: C.emerald, animation: "spin 1s linear infinite" }} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <p style={{ fontSize: 13, color: "#DC2626", textAlign: "center", padding: 20 }}>{error}</p>;
+  }
+
+  if (receipts.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "40px 20px", borderRadius: 16, background: C.bg, border: `1px solid ${C.border}` }}>
+        <Receipt style={{ width: 32, height: 32, color: C.textMuted, opacity: 0.5, margin: "0 auto 10px" }} />
+        <p style={{ fontSize: 13, color: C.textMuted, fontWeight: 500 }}>No fee receipts yet</p>
+        <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Receipts generated by your admin will show up here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+        {receipts.map(r => <ReceiptCard key={r.id} receipt={r} onClick={() => setSelected(r)} />)}
+      </div>
+
+      <AnimatePresence>
+        {selected && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}
+            onClick={() => setSelected(null)}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              style={{ background: C.card, borderRadius: 20, boxShadow: C.shadowModal, width: "100%", maxWidth: 800, maxHeight: "90vh", overflowY: "auto" }}>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, background: C.card, zIndex: 1 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>{selected.receiptId}</h2>
+                <button onClick={() => setSelected(null)} style={{ background: "none", border: "none", cursor: "pointer" }}>
+                  <X style={{ width: 20, height: 20, color: C.textMuted }} />
+                </button>
+              </div>
+
+              <div style={{ padding: 24 }}>
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", marginBottom: 18, background: "#F8FAFC" }}>
+                  <div style={{ transform: "scale(0.92)", transformOrigin: "top center", padding: "16px 0" }}>
+                    <ReceiptDocument ref={receiptRef} receipt={selected} />
+                  </div>
+                </div>
+
+                <motion.button onClick={handleDownload} disabled={isDownloading} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 12, border: "none", background: C.gradEmerald, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: isDownloading ? 0.7 : 1 }}>
+                  {isDownloading ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : <Download style={{ width: 16, height: 16 }} />}
+                  {isDownloading ? "Preparing PDF..." : "Download PDF"}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

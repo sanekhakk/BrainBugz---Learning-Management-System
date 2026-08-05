@@ -16,13 +16,14 @@ import {
   BookOpen, User, Loader2, CheckCircle, XCircle, TrendingUp,
   Calendar, Clock, LogOut, Award, Target, Video, ArrowRight,
   Bell, Home, BarChart2, Star, Menu, X, ChevronDown, ChevronRight,
-  Zap, BookMarked, GraduationCap, Play,FileText
+  Zap, BookMarked, GraduationCap, Play, FileText, Receipt
 } from "lucide-react";
 import { CATEGORIES } from "../utils/curriculumData";
 import { getProgressRef } from "../utils/paths";
 import { getDisplayTime } from "../utils/timeUtils";
 import PearlxLogo from "../assets/flat_logo.webp";
 import StudentNotesSection from "./StudentNotesSection";
+import StudentReceiptsSection from "../components/StudentReceiptsSection";
 
 const C = {
   bg: "#F4F6FB",
@@ -578,7 +579,8 @@ export default function StudentDashboard() {
     { id: "overview",    label: "Overview",    icon: Home },
     { id: "upcoming",    label: "Upcoming",    icon: Calendar,    count: upcoming.length },
     { id: "progress",    label: "Progress",    icon: TrendingUp },
-    { id: "notes", label: "Notes", icon: FileText, icon: BookOpen },
+    { id: "notes", label: "Notes", icon: FileText },
+    { id: "receipts", label: "Fee Receipts", icon: Receipt },
     { id: "completed",   label: "Completed",   icon: CheckCircle, count: completed.length },
     { id: "missed",      label: "Missed",      icon: XCircle,     count: missed.length },
     { id: "curriculum",  label: "My Curriculum", icon: BookOpen },
@@ -817,6 +819,8 @@ export default function StudentDashboard() {
               )}
 
               {activeTab === "notes" && <StudentNotesSection />}
+
+              {activeTab === "receipts" && <StudentReceiptsSection />}
 
               {/* UPCOMING  */}
               {activeTab === "upcoming" && (

@@ -93,7 +93,6 @@ const Footer = () => {
               {[
                 { label: "About Us", to: "/" },
                 { label: "Pricing", to: "/pricing" },
-                { label: "Web Dev Services", to: "/services/web-development" },
                 { label: "Contact", href: "https://wa.link/5pk793" },
               ].map((item, i) => (
                 <li key={i}>

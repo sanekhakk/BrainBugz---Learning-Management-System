@@ -11,7 +11,7 @@ import Footer from "./components/Footer";
 import HeroSection from "./components/HeroSection";
 import ServicesSection from "./components/ServicesSection";
 import SubjectSection from "./components/SubjectSection";
-import WebServicesSection from "./components/WebServicesSection";
+// import WebServicesSection from "./components/WebServicesSection";
 import ProcessSection from "./components/ProcessSection";
 import WhyPearlxSection from "./components/WhyPearlxSection";
 import AuthModal from "./components/AuthModal";
@@ -21,7 +21,6 @@ import TutorDashboard from "./pages/TutorDashboard";
 import ComputerScienceClasses from "./pages/ComputerScienceClasses";
 import AcademicTuition from "./pages/AcademicTuition";
 import Courses from "./pages/Courses";
-import WebDevelopmentServices from "./pages/WebDevelopmentServices";
 import Pricing from "./pages/Pricing";
 
 function GuestHome({ openDemoModal }) {
@@ -32,7 +31,7 @@ function GuestHome({ openDemoModal }) {
       <ServicesSection />
       <WhyPearlxSection />
       <ProcessSection openDemoModal={openDemoModal} />
-      <WebServicesSection />
+      {/* <WebServicesSection /> */}
     </>
   );
 }
@@ -74,7 +73,7 @@ function MainApp() {
           <Route path="/services/education" element={<ComputerScienceClasses openDemoModal={openDemoModal} />} />
           <Route path="/courses" element={<Courses openDemoModal={openDemoModal} />} />
           <Route path="/services/academic-tuition" element={<AcademicTuition openDemoModal={openDemoModal} />} />
-          <Route path="/services/web-development" element={<WebDevelopmentServices openDemoModal={openDemoModal} />} />
+          {/* <Route path="/services/web-development" element={<WebDevelopmentServices openDemoModal={openDemoModal} />} /> */}
           <Route path="/pricing" element={<Pricing openDemoModal={openDemoModal} />} />
         </Routes>
       </main>

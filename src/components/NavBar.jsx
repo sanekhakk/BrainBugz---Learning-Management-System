@@ -11,7 +11,6 @@ const navLinks = [
   { label: "Courses", to: "/courses" },
   { label: "Academic Tuition", to: "/services/academic-tuition" },
   { label: "Pricing", to: "/pricing" },
-  { label: "Web Dev", to: "/services/web-development" },
 ];
 
 

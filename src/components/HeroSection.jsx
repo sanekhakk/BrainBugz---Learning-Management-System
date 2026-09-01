@@ -129,6 +129,13 @@ const HeroSection = ({ openDemoModal }) => {
 
       {/* CSS keyframe animations injected once */}
       <style>{`
+        @media (max-width: 640px) {
+          .pearlx-hero-title {
+            font-size: 2.35rem !important;
+            line-height: 1.08;
+          }
+        }
+
         @keyframes slowPulse {
           0%, 100% { transform: scale(1); opacity: 1; }
           50% { transform: scale(1.12); opacity: 0.85; }
@@ -174,8 +181,8 @@ const HeroSection = ({ openDemoModal }) => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.7 }}
-              className="font-extrabold leading-[1.05] py-2 tracking-tight"
-              style={{ fontSize: "clamp(2.8rem, 4.0vw, 4.5rem)", color: "#0F172A" }}
+              className="pearlx-hero-title font-extrabold leading-[1.05] py-2 tracking-tight"
+              style={{ fontSize: "clamp(2.4rem, 4.0vw, 4.5rem)", color: "#0F172A" }}
             >
               Building Future Coders{" "}
               <br />
@@ -223,9 +230,9 @@ const HeroSection = ({ openDemoModal }) => {
               className="text-lg leading-relaxed mb-10 max-w-lg font-medium"
               style={{ color: "#475569" }}
             >
-              Pearlx helps students excel through{" "}
-              <strong className="text-emerald-600">Coding, Math Mastery, and Academic Tuition</strong>, all built on the same Little Pearls → Bright Pearls → Rising Pearls learning path.{" "}
-              <strong className="text-slate-900">Whether your child wants to build apps, master numbers, or improve school grades,</strong> we've got them covered.
+              Pearlx helps kids learn, build, and achieve through{" "}
+              <strong className="text-emerald-600">Coding, Maths, and Academic Tuition</strong>.{" "}
+              <strong className="text-slate-900">Fun, structured classes designed to build strong skills and confidence.</strong>
             </motion.p>
 
             {/* CTA buttons */}

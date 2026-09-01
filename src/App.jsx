@@ -22,6 +22,7 @@ import ComputerScienceClasses from "./pages/ComputerScienceClasses";
 import AcademicTuition from "./pages/AcademicTuition";
 import Courses from "./pages/Courses";
 import Pricing from "./pages/Pricing";
+import MathsClasses from "./pages/mathsClasses";
 
 function GuestHome({ openDemoModal }) {
   return (
@@ -72,6 +73,7 @@ function MainApp() {
           <Route path="/" element={<GuestHome openDemoModal={openDemoModal} />} />
           <Route path="/services/education" element={<ComputerScienceClasses openDemoModal={openDemoModal} />} />
           <Route path="/courses" element={<Courses openDemoModal={openDemoModal} />} />
+          <Route path="/mathsclasses" element={<MathsClasses openDemoModal={openDemoModal} />} />
           <Route path="/services/academic-tuition" element={<AcademicTuition openDemoModal={openDemoModal} />} />
           {/* <Route path="/services/web-development" element={<WebDevelopmentServices openDemoModal={openDemoModal} />} /> */}
           <Route path="/pricing" element={<Pricing openDemoModal={openDemoModal} />} />

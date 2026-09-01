@@ -7,7 +7,8 @@ import PearlxLogo from "../assets/flat_logo_dark.webp";
 
 const navLinks = [
   { label: "Home", to: "/" },
-  { label: "Coding for Kids", to: "/services/education" },
+  { label: "Coding", to: "/services/education" },
+  { label: "math", to: "/mathsclasses" },
   { label: "Courses", to: "/courses" },
   { label: "Academic Tuition", to: "/services/academic-tuition" },
   { label: "Pricing", to: "/pricing" },

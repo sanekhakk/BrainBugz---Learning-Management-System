@@ -4,7 +4,7 @@ import {
   Code2, GraduationCap, Globe, Check, MessageCircle, Gift,
   ChevronDown, ChevronUp, Zap, BookOpen, Video, BarChart3, RefreshCw,
   PlayCircle, Award, HelpCircle, Rocket, Lock, Phone, Flame, Cpu,
-  Terminal, Users,
+  Terminal, Users, Calculator,
 } from "lucide-react";
 
 import { COLORS } from "../utils/theme";
@@ -34,9 +34,10 @@ const T = {
 // Data 
 const TABS = [
   { id: "coding",   label: "Kids Coding",      icon: Code2,         sub: "Ages 1–15",                    color: T.indigo, light: T.indigoLight },
+  { id: "maths",    label: "Maths Classes",    icon: Calculator,    sub: "Ages 1–15",                    color: T.bronze, light: T.bronzeLight },
   { id: "courses",  label: "Courses",     icon: GraduationCap, sub: "12th Passed & Above",          color: T.sky,    light: T.skyLight },
   { id: "academic", label: "Academic Tuition", icon: BookOpen,      sub: "Classes 1–12 · All Subjects",  color: T.green,  light: T.greenLight },
-  { id: "web",      label: "Web Dev",          icon: Globe,         sub: "For Brands",                   color: T.gold,   light: T.goldLight },
+  // { id: "web",      label: "Web Dev",          icon: Globe,         sub: "For Brands",                   color: T.gold,   light: T.goldLight },
 ];
 
 const CODING_TIERS = [
@@ -78,6 +79,46 @@ const CODING_TIERS = [
   },
 ];
 
+// Maths Classes pricing — same rates & bundles as Kids Coding
+const MATHS_TIERS = [
+  {
+    label: "Ages 1–3", tagline: "Number sense through play & pictures",
+    hourly: 350, monthly: 2800, grpHourly: 210, grpMonthly: 1680,
+    packages:    [{ c: 30, p: 8499,  d: 19, label: "Starter"  },
+                  { c: 45, p: 12499, d: 21, label: "Explorer" },
+                  { c: 90, p: 23499, d: 23, label: "Builder"  },
+                  { c: 150, p: 37499, d: 27, label: "Champion", popular: true }],
+    grpPackages: [{ c: 30, p: 5499,  d: 13, label: "Starter"  },
+                  { c: 45, p: 8499,  d: 10, label: "Explorer" },
+                  { c: 90, p: 17499, d: 7,  label: "Builder"  },
+                  { c: 150, p: 28999, d: 8,  label: "Champion", popular: true }],
+  },
+  {
+    label: "Ages 4–6", tagline: "Arithmetic, fractions & first geometry",
+    hourly: 400, monthly: 3200, grpHourly: 240, grpMonthly: 1920,
+    packages:    [{ c: 30, p: 9499,  d: 21, label: "Starter"  },
+                  { c: 45, p: 14499, d: 19, label: "Explorer" },
+                  { c: 90, p: 27499, d: 24, label: "Builder"  },
+                  { c: 150, p: 43999, d: 27, label: "Champion", popular: true }],
+    grpPackages: [{ c: 30, p: 6499,  d: 10, label: "Starter"  },
+                  { c: 45, p: 9999,  d: 7,  label: "Explorer" },
+                  { c: 90, p: 19999, d: 7,  label: "Builder"  },
+                  { c: 150, p: 33499, d: 7,  label: "Champion", popular: true }],
+  },
+  {
+    label: "Ages 7+", tagline: "Algebra, advanced geometry & olympiad math",
+    hourly: 500, monthly: 4000, grpHourly: 300, grpMonthly: 2400,
+    packages:    [{ c: 30, p: 11999, d: 20, label: "Starter"  },
+                  { c: 45, p: 17999, d: 20, label: "Explorer" },
+                  { c: 90, p: 33999, d: 24, label: "Builder"  },
+                  { c: 150, p: 54999, d: 27, label: "Champion", popular: true }],
+    grpPackages: [{ c: 30, p: 7999,  d: 11, label: "Starter"  },
+                  { c: 45, p: 12499, d: 7,  label: "Explorer" },
+                  { c: 90, p: 24999, d: 7,  label: "Builder"  },
+                  { c: 150, p: 41999, d: 7,  label: "Champion", popular: true }],
+  },
+];
+
 const ACADEMIC_TIERS = [
   { label: "Classes 1–7",   boards: "CBSE · ICSE · State Boards",         hourly: 250, monthly: 2000, grpHourly: 150, grpMonthly: 1200 },
   { label: "Classes 8–10",  boards: "CBSE · ICSE · IGCSE · State Boards", hourly: 300, monthly: 2400, grpHourly: 180, grpMonthly: 1440 },
@@ -107,26 +148,26 @@ const CS_COURSES = [
   },
 ];
 
-const WEB_PACKAGES = [
-  {
-    name: "Starter Site", tier: "Silver", price: 14999, timeline: "2–3 weeks",
-    desc: "Personal brands, portfolios & small businesses.",
-    color: T.silver, textColor: "#57606F", bgColor: T.silverLight,
-    features: ["Up to 5 pages", "Mobile responsive", "Contact form", "Basic SEO", "1-month support"],
-  },
-  {
-    name: "Business Pro", tier: "Gold", price: 29999, timeline: "3–5 weeks", popular: true,
-    desc: "Full-featured site for growing businesses.",
-    color: T.gold, textColor: T.goldDeep, bgColor: T.goldLight,
-    features: ["Up to 12 pages", "Custom UI/UX design", "CMS (admin panel)", "Google SEO setup", "Blog / News section", "3-month support"],
-  },
-  {
-    name: "E-commerce", tier: "Bronze", price: 49999, timeline: "5–7 weeks",
-    desc: "Complete shopping experience with payments.",
-    color: T.bronze, textColor: "#8A4B22", bgColor: T.bronzeLight,
-    features: ["Unlimited products", "Payment gateway", "Order management", "Product catalog", "Inventory tracking", "6-month support"],
-  },
-];
+// const WEB_PACKAGES = [
+//   {
+//     name: "Starter Site", tier: "Silver", price: 14999, timeline: "2–3 weeks",
+//     desc: "Personal brands, portfolios & small businesses.",
+//     color: T.silver, textColor: "#57606F", bgColor: T.silverLight,
+//     features: ["Up to 5 pages", "Mobile responsive", "Contact form", "Basic SEO", "1-month support"],
+//   },
+//   {
+//     name: "Business Pro", tier: "Gold", price: 29999, timeline: "3–5 weeks", popular: true,
+//     desc: "Full-featured site for growing businesses.",
+//     color: T.gold, textColor: T.goldDeep, bgColor: T.goldLight,
+//     features: ["Up to 12 pages", "Custom UI/UX design", "CMS (admin panel)", "Google SEO setup", "Blog / News section", "3-month support"],
+//   },
+//   {
+//     name: "E-commerce", tier: "Bronze", price: 49999, timeline: "5–7 weeks",
+//     desc: "Complete shopping experience with payments.",
+//     color: T.bronze, textColor: "#8A4B22", bgColor: T.bronzeLight,
+//     features: ["Unlimited products", "Payment gateway", "Order management", "Product catalog", "Inventory tracking", "6-month support"],
+//   },
+// ];
 
 const ALWAYS_INCLUDED = [
   { icon: Video,         label: "Live Classes" },
@@ -282,6 +323,21 @@ const CodingSection = () => (
   </div>
 );
 
+const MathsSection = () => (
+  <div>
+    <div className="flex items-center gap-3 mb-6">
+      <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: T.bronzeLight }}>
+        <Calculator className="w-5 h-5" style={{ color: T.bronze }} />
+      </div>
+      <div>
+        <h3 className="font-black text-lg" style={{ color: T.ink }}>Maths Classes — Ages 1 to 15+</h3>
+        <p className="text-sm text-slate-500">Same trusted pricing as Kids Coding · tap a tier for bundle pricing</p>
+      </div>
+    </div>
+    <TierPriceList tiers={MATHS_TIERS} color={T.bronze} />
+  </div>
+);
+
 const AcademicSection = () => (
   <div>
     <div className="flex items-center gap-3 mb-4">
@@ -392,60 +448,60 @@ const CSCoursesSection = ({ openDemoModal }) => (
   </div>
 );
 
-const WebDevSection = () => (
-  <div>
-    <div className="flex items-center gap-3 mb-6">
-      <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: T.goldLight }}>
-        <Globe className="w-5 h-5" style={{ color: T.gold }} />
-      </div>
-      <div>
-        <h3 className="font-black text-lg" style={{ color: T.ink }}>Web Development — For Brands</h3>
-        <p className="text-sm text-slate-500">Custom websites, designed &amp; built by our developers</p>
-      </div>
-    </div>
+// const WebDevSection = () => (
+//   <div>
+//     <div className="flex items-center gap-3 mb-6">
+//       <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: T.goldLight }}>
+//         <Globe className="w-5 h-5" style={{ color: T.gold }} />
+//       </div>
+//       <div>
+//         <h3 className="font-black text-lg" style={{ color: T.ink }}>Web Development — For Brands</h3>
+//         <p className="text-sm text-slate-500">Custom websites, designed &amp; built by our developers</p>
+//       </div>
+//     </div>
 
-    <div className="grid sm:grid-cols-3 gap-4">
-      {WEB_PACKAGES.map((pkg, i) => (
-        <div key={i} className="rounded-[1.75rem] border-2 p-6 relative flex flex-col"
-          style={{
-            borderColor: pkg.popular ? pkg.color : T.border,
-            background: pkg.popular ? pkg.bgColor : "#fff",
-            boxShadow: pkg.popular ? `0 16px 40px ${pkg.color}25` : "0 4px 16px rgba(15,23,42,0.04)",
-          }}>
-          {pkg.popular && (
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black text-white"
-              style={{ background: pkg.color }}>MOST POPULAR</div>
-          )}
-          <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: pkg.color }}>{pkg.tier}</div>
-          <h4 className="font-black text-lg mb-1" style={{ color: T.ink }}>{pkg.name}</h4>
-          <p className="text-xs text-slate-500 mb-4 leading-relaxed">{pkg.desc}</p>
-          <div className="mb-5">
-            <span className="font-black text-2xl" style={{ color: T.ink }}>₹{pkg.price.toLocaleString()}</span>
-            <span className="text-xs text-slate-400 ml-1.5">· {pkg.timeline}</span>
-          </div>
-          <div className="space-y-2 mb-5 flex-1">
-            {pkg.features.map((f, fi) => (
-              <div key={fi} className="flex items-start gap-2 text-xs" style={{ color: T.textSecondary }}>
-                <Check className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: pkg.color }} />
-                {f}
-              </div>
-            ))}
-          </div>
-          <a href={getWhatsAppLink(`Hi! I'm interested in the ${pkg.name} (${pkg.tier}) website package at Pearlx. Please share more details.`)}
-            target="_blank" rel="noopener noreferrer"
-            className="w-full py-2.5 rounded-xl text-xs font-black text-center"
-            style={{
-              background: pkg.popular ? pkg.color : "#fff",
-              color: pkg.popular ? "#fff" : pkg.color,
-              border: `2px solid ${pkg.color}`,
-            }}>
-            Get Started
-          </a>
-        </div>
-      ))}
-    </div>
-  </div>
-);
+//     <div className="grid sm:grid-cols-3 gap-4">
+//       {WEB_PACKAGES.map((pkg, i) => (
+//         <div key={i} className="rounded-[1.75rem] border-2 p-6 relative flex flex-col"
+//           style={{
+//             borderColor: pkg.popular ? pkg.color : T.border,
+//             background: pkg.popular ? pkg.bgColor : "#fff",
+//             boxShadow: pkg.popular ? `0 16px 40px ${pkg.color}25` : "0 4px 16px rgba(15,23,42,0.04)",
+//           }}>
+//           {pkg.popular && (
+//             <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black text-white"
+//               style={{ background: pkg.color }}>MOST POPULAR</div>
+//           )}
+//           <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: pkg.color }}>{pkg.tier}</div>
+//           <h4 className="font-black text-lg mb-1" style={{ color: T.ink }}>{pkg.name}</h4>
+//           <p className="text-xs text-slate-500 mb-4 leading-relaxed">{pkg.desc}</p>
+//           <div className="mb-5">
+//             <span className="font-black text-2xl" style={{ color: T.ink }}>₹{pkg.price.toLocaleString()}</span>
+//             <span className="text-xs text-slate-400 ml-1.5">· {pkg.timeline}</span>
+//           </div>
+//           <div className="space-y-2 mb-5 flex-1">
+//             {pkg.features.map((f, fi) => (
+//               <div key={fi} className="flex items-start gap-2 text-xs" style={{ color: T.textSecondary }}>
+//                 <Check className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: pkg.color }} />
+//                 {f}
+//               </div>
+//             ))}
+//           </div>
+//           <a href={getWhatsAppLink(`Hi! I'm interested in the ${pkg.name} (${pkg.tier}) website package at Pearlx. Please share more details.`)}
+//             target="_blank" rel="noopener noreferrer"
+//             className="w-full py-2.5 rounded-xl text-xs font-black text-center"
+//             style={{
+//               background: pkg.popular ? pkg.color : "#fff",
+//               color: pkg.popular ? "#fff" : pkg.color,
+//               border: `2px solid ${pkg.color}`,
+//             }}>
+//             Get Started
+//           </a>
+//         </div>
+//       ))}
+//     </div>
+//   </div>
+// );
 
 const FAQ = () => {
   const [openIdx, setOpenIdx] = useState(null);
@@ -506,7 +562,7 @@ export default function Pricing({ openDemoModal }) {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }} className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-8">
+          viewport={{ once: true }} className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 mb-8">
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className="flex items-center gap-2.5 p-3.5 rounded-2xl border-2 text-left transition-all"
@@ -530,6 +586,7 @@ export default function Pricing({ openDemoModal }) {
           <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }} className="mb-14">
             {activeTab === "coding" && <CodingSection />}
+            {activeTab === "maths" && <MathsSection />}
             {activeTab === "courses" && <CSCoursesSection openDemoModal={openDemoModal} />}
             {activeTab === "academic" && <AcademicSection />}
             {activeTab === "web" && <WebDevSection />}

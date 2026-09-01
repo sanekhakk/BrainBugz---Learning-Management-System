@@ -291,10 +291,11 @@ setSuccess(true);
                           </label>
                           <div className="grid gap-3 sm:grid-cols-3">
                             {[
-                              { value: "coding", label: "Coding Classes" },
+                              { value: "coding", label: "Coding" },
+                              { value: "maths", label: "maths" },
                               { value: "academic_tuition", label: "Academic Tuition (Class 1–12)" },
                               { value: "courses", label: "Courses" },
-                            ].map(option => (
+                            ].map(option => (       
                               <label
                                 key={option.value}
                                 className="flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl border text-sm font-semibold transition-colors"
@@ -446,7 +447,7 @@ setSuccess(true);
                             name="contactNumber"
                             value={formData.contactNumber}
                             onChange={handleInputChange}
-                            placeholder="+91 98765 43210"
+                            placeholder="e.g., +916239434959"
                             className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none transition-colors focus:bg-white focus:border-cyan-500"
                           />
                         </div>

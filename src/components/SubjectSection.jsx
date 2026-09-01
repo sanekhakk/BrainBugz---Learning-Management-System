@@ -1,12 +1,15 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Star, Zap, Trophy, Heart, Users } from "lucide-react";
+import { ArrowRight, Sparkles, Star, Zap, Trophy, Heart, Users, Code2, Calculator } from "lucide-react";
 import { getWhatsAppLink } from "../utils/whatsapp";
 import lp1 from "../assets/kids/LP1.webp"
 import bp1 from "../assets/kids/BP1.webp"
 import rp1 from "../assets/kids/RP1.webp"
 import kid1 from "../assets/kids/KID1.webp"
 
+// TODO: point these at your actual router paths for the two level pages
+const CODING_ROUTE = "/services/education";
+const MATHS_ROUTE = "/mathsclasses";
 
 const STAT_ICON_MAP = { Users, Zap, Trophy, Heart };
 
@@ -16,34 +19,34 @@ const T = { bg:"#F0FFFE", ink:"#0F172A", green:"#10B981", sky:"#0EA5E9",
 const LEVELS = [
   {
     id:"little",customIcon: lp1 , name:"Little Pearls", age:"Ages 5–7", tag:"BEGINNER",
-    tagline:"Where every coder begins their journey!",
-    desc:"Drag-and-drop block magic — no typing needed. Kids build logic through animated stories, mini-games, and colourful puzzles. Pure joy from day one.",
-    tools:["Scratch Jr","Block Coding","CodiMath"],
+    tagline:"Where every learner begins their journey!",
+    desc:"Drag-and-drop block coding and hands-on number play — no typing, no worksheets. Kids build real logic through animated stories, mini-games, and colourful puzzles, in Coding or Maths.",
+    tools:["Block Coding","Number Play","Story-Based"],
     color:T.yellow, glow:"rgba(255,209,102,0.28)", border:"rgba(255,209,102,0.4)",
     textColor:"#A8760A", bg:"linear-gradient(145deg,#FFFBEB,#FFF3C4)",
     floatImg:"/images/kids/little-pearls-float.png",
     achievements:["Logic Builder","Loop Master","Story Coder"],
-    modules:9, lessons:44, projects:6,
+    modules:7, lessons:84, projects:6, dual:true,
   },
   {
     id:"bright", customIcon: bp1, name:"Bright Pearls", age:"Ages 8–11", tag:"INTERMEDIATE",
     tagline:"Real projects, real excitement, real skills!",
-    desc:"From Scratch to Python — students build actual games and apps. Every module ends with a project they're genuinely proud of showing parents.",
-    tools:["Scratch","Python Intro","Game Dev"],
+    desc:"Students move into real building — Scratch-to-Python games and apps, or fractions, geometry and word problems that click. Every module ends with a project they're proud to show parents.",
+    tools:["Scratch/Python","Fractions/Geometry","Real Projects"],
     color:T.green, glow:"rgba(16,185,129,0.25)", border:"rgba(16,185,129,0.4)",
     textColor:"#047857", bg:"linear-gradient(145deg,#ECFDF5,#D1FAE5)",
     floatImg:"/images/kids/bright-pearls-float.png",
-    modules:9, lessons:44, projects:8,
+    modules:6, lessons:72, projects:8, dual:true,
   },
   {
     id:"rising", customIcon: rp1, name:"Rising Pearls", age:"Ages 12–15", tag:"ADVANCED",
-    tagline:"Pro-grade coding — websites, apps & Python!",
-    desc:"Text-based programming that matters. Python OOP, full web dev with JS, and portfolio-ready capstone projects that impress universities.",
-    tools:["Python OOP","HTML/CSS/JS","GitHub"],
+    tagline:"Pro-grade coding & competitive maths!",
+    desc:"Text-based skills that matter — Python OOP and full web dev with JS, or algebra, trigonometry and olympiad-level problem solving. Portfolio-ready work that impresses universities.",
+    tools:["Python/Web Dev","Algebra/Olympiad","Portfolio Projects"],
     color:T.purple, glow:"rgba(167,139,250,0.25)", border:"rgba(167,139,250,0.4)",
     textColor:"#6D28D9", bg:"linear-gradient(145deg,#F5F3FF,#EDE9FE)",
     floatImg:"/images/kids/rising-pearls-float.png",
-    modules:9, lessons:44, projects:10,
+    modules:10, lessons:120, projects:10, dual:true,
   },
   {
     id:"academic", customIcon: kid1, name:"Academic Tuition", age:"Classes 1–12", tag:"ACADEMIC",
@@ -53,6 +56,7 @@ const LEVELS = [
     color:T.sky, glow:"rgba(14,165,233,0.25)", border:"rgba(14,165,233,0.4)",
     textColor:"#0284C7", bg:"linear-gradient(145deg,#F0F9FF,#E0F2FE)",
     floatImg:"/images/kids/cs-tuition-float.png",
+    dual:false,
   },
 ];
 
@@ -144,13 +148,28 @@ const LevelCard = ({ l, i }) => (
           ))}
         </div>
 
-        <a href={getWhatsAppLink(`Hi! I'd like to enrol in ${l.name} (${l.age}) at Pearlx.`)}
-          target="_blank" rel="noopener noreferrer"
-          className="flex justify-center items-center gap-2 w-full py-3.5 rounded-2xl font-bold text-sm text-white transition-all duration-300"
-          style={{ background:l.color, boxShadow:`0 6px 20px ${l.glow}` }}>
-          <Sparkles className="w-4 h-4" /> Enrol Now
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-        </a>
+        {l.dual ? (
+          <div className="flex gap-2">
+            <a href={`${CODING_ROUTE}#${l.id}`}
+              className="flex-1 flex justify-center items-center gap-1.5 py-3.5 rounded-2xl font-bold text-xs text-white transition-all duration-300"
+              style={{ background:l.color, boxShadow:`0 6px 20px ${l.glow}` }}>
+              <Code2 className="w-3.5 h-3.5" /> Coding
+            </a>
+            <a href={`${MATHS_ROUTE}#${l.id}`}
+              className="flex-1 flex justify-center items-center gap-1.5 py-3.5 rounded-2xl font-bold text-xs transition-all duration-300 border-2"
+              style={{ borderColor:l.border, color:l.textColor, background:"#fff" }}>
+              <Calculator className="w-3.5 h-3.5" /> Maths
+            </a>
+          </div>
+        ) : (
+          <a href={getWhatsAppLink(`Hi! I'd like to enrol in ${l.name} (${l.age}) at Pearlx.`)}
+            target="_blank" rel="noopener noreferrer"
+            className="flex justify-center items-center gap-2 w-full py-3.5 rounded-2xl font-bold text-sm text-white transition-all duration-300"
+            style={{ background:l.color, boxShadow:`0 6px 20px ${l.glow}` }}>
+            <Sparkles className="w-4 h-4" /> Enrol Now
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </a>
+        )}
       </div>
     </motion.div>
   </motion.div>
@@ -213,7 +232,7 @@ const SubjectSection = () => (
         </motion.h2>
         <motion.p initial={{ opacity:0 }} whileInView={{ opacity:1 }} viewport={{ once:true }} transition={{ delay:0.2 }}
           className="text-slate-500 max-w-2xl mx-auto text-base font-medium mb-8">
-            From school academics to coding and career-focused courses, Pearlx helps learners build knowledge, confidence, and future-ready skills through expert guidance and personalized support.
+            From school academics to coding, maths, and career-focused courses, Pearlx helps learners build knowledge, confidence, and future-ready skills through expert guidance and personalized support.
           </motion.p>
         {/* Stats row */}
         {/* <motion.div initial={{ opacity:0,y:12 }} whileInView={{ opacity:1,y:0 }} viewport={{ once:true }}
@@ -256,8 +275,8 @@ const SubjectSection = () => (
                 Logic-first. Always.
               </h3>
               <p className="text-slate-500 leading-relaxed mb-6">
-                We never rush kids to text coding before they're ready. Block coding isn't a shortcut — it's the foundation.
-                When children finally transition to Python or JavaScript, it feels <strong style={{ color:T.ink }}>natural, not scary.</strong>
+                We never rush kids into text coding or abstract maths before they're ready. Blocks and hands-on number play aren't a shortcut — they're the foundation.
+                When children transition to Python, JavaScript, or algebra, it feels <strong style={{ color:T.ink }}>natural, not scary.</strong>
               </p>
               <div className="flex gap-3 flex-wrap">
                 <a href={getWhatsAppLink("Hi! I'd like to book a free trial class at Pearlx.")}
@@ -275,8 +294,8 @@ const SubjectSection = () => (
             </div>
             <div className="lg:w-1/2 grid grid-cols-2 gap-4">
               {[
-                { label:"Block to Scratch",desc:"Ages 5–11 transition" },
-                { label:"Scratch to Python",desc:"Ages 8–15 transition" },
+                { label:"Little → Bright → Rising",desc:"One level system, every track" },
+                { label:"Coding & Maths",desc:"Take one, or take both" },
                 { label:"Board Excellence",desc:"Class 6–12 focused" },
                 { label:"Grand Showcase",desc:"Every level's finale" },
               ].map((item,i)=>(

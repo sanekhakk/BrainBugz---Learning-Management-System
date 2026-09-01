@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
-import { Check, ArrowRight, TerminalSquare, BookOpenCheck, Laptop, Star, Zap, Users } from "lucide-react";
+import { Check, ArrowRight, TerminalSquare, Calculator, BookOpenCheck, Laptop, Star, Zap, Users } from "lucide-react";
 import { getWhatsAppLink } from "../utils/whatsapp";
 
 const T = { bg:"#F8FAFC", ink:"#0F172A", green:"#10B981", sky:"#0EA5E9",
@@ -30,6 +30,18 @@ const OVERVIEW_CARDS = [
     stats:[{v:"3",l:"Levels"},{v:"132",l:"Lessons"},{v:"500+",l:"Students"}],
     emoji:null,
   },
+   {
+    icon:<Calculator size={32} />,
+    title:"Math Classes",
+    subtitle:"For Curious Young Minds",
+    badge:"Kids Program",
+    badgeColor:"#A07830",badgeBg:"rgba(201,168,76,0.12)",
+    desc:"Fun, engaging maths classes that help kids build strong concepts, sharpen problem-solving skills, and enjoy learning maths with confidence.",
+    cta:"Join a Class",page:"/mathsclasses",
+    color:"#C9A84C",glow:"rgba(201,168,76,0.2)",
+    stats:[{v:"100%",l:"Concept Focus"},{v:"Fun",l:"Learning"},{v:"1:1",l:"Attention"}],
+    emoji:null,
+  },
   {
     icon:<BookOpenCheck size={32} />,
     title:"Academic Tuition",
@@ -42,18 +54,7 @@ const OVERVIEW_CARDS = [
     stats:[{v:"4",l:"Boards"},{v:"6+",l:"Subjects"},{v:"100%",l:"Exam Focus"}],
     emoji:null,
   },
-  {
-    icon:<Laptop size={32} />,
-    title:"Web Dev Services",
-    subtitle:"For Brands & Startups",
-    badge:"Extra Service",
-    badgeColor:"#A07830",badgeBg:"rgba(201,168,76,0.12)",
-    desc:"Custom websites designed, developed, and deployed by expert developers — from UI/UX design and React development to ongoing maintenance.",
-    cta:"Get Free Quote",page:"/services/web-development",
-    color:"#C9A84C",glow:"rgba(201,168,76,0.2)",
-    stats:[{v:"20+",l:"Sites Built"},{v:"100%",l:"Responsive"},{v:"1mo",l:"Support"}],
-    emoji:null,
-  },
+ 
 ];
 
 const PLANS = [

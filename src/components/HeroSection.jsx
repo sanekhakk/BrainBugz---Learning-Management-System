@@ -14,6 +14,7 @@ const BLOCK_SNIPPETS = [
 
 const CYCLING_PHRASES = [
   "Coding for Kids",
+  "Math Mastery",
   "Academic Tuition",
   "Exam Preparation",
   "Professional & Skill-Based Courses",
@@ -22,7 +23,7 @@ const CYCLING_PHRASES = [
 
 const STATS = [
   { value: "50+", label: "Students Taught" },
-  { value: "3", label: "Structured Categories" },
+  { value: "3", label: "Learning Tracks" },
   { value: "100+", label: "Lessons" },
 ];
 
@@ -223,8 +224,8 @@ const HeroSection = ({ openDemoModal }) => {
               style={{ color: "#475569" }}
             >
               Pearlx helps students excel through{" "}
-              <strong className="text-emerald-600">Coding Programs, Academic Tuition, Exam Preparation</strong>, and Personalized Learning Paths.{" "}
-              <strong className="text-slate-900">Whether your child wants to build apps or improve school grades,</strong> we've got them covered.
+              <strong className="text-emerald-600">Coding, Math Mastery, and Academic Tuition</strong>, all built on the same Little Pearls → Bright Pearls → Rising Pearls learning path.{" "}
+              <strong className="text-slate-900">Whether your child wants to build apps, master numbers, or improve school grades,</strong> we've got them covered.
             </motion.p>
 
             {/* CTA buttons */}
@@ -355,8 +356,8 @@ const HeroSection = ({ openDemoModal }) => {
             >
               <div className="bg-cyan-100 text-cyan-600 p-3 rounded-xl flex items-center justify-center"><Layers className="w-6 h-6" /></div>
               <div>
-                <div className="text-sm font-extrabold text-slate-900">Block to Text</div>
-                <div className="text-xs text-slate-500 font-medium">Smooth Progression</div>
+                <div className="text-sm font-extrabold text-slate-900">Coding & Maths</div>
+                <div className="text-xs text-slate-500 font-medium">Same Level Journey</div>
               </div>
             </div>
 

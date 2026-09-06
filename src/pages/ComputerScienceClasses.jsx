@@ -1,382 +1,686 @@
-// src/pages/ComputerScienceClasses.jsx — CODING FOR KIDS ONLY
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ChevronDown, Trophy, Zap, Star, BookOpen, Users, Clock, Sprout, Bird, Medal, Code2, FlaskConical, Gamepad2, Smartphone, Globe, Award, Cpu } from "lucide-react";
+import {
+  ArrowRight, ChevronDown, Trophy, Zap, Star, BookOpen, Users, Clock,
+  Sprout, Bird, Medal, Code2, FlaskConical, Gamepad2, Smartphone, Globe,
+  Award, Cpu, Terminal, Sparkles, Rocket, Check, Play, Layers
+} from "lucide-react";
 import { getWhatsAppLink } from "../utils/whatsapp";
+import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
+
 import lp1 from "../assets/kids/LP1.webp";
 import bp1 from "../assets/kids/BP1.webp";
 import rp1 from "../assets/kids/RP1.webp";
 
-const T = {
-  bg: "#F0FFFE", ink: "#0F172A", green: "#10B981", sky: "#0EA5E9",
-  yellow: "#FFD166", pink: "#FF6B9D", purple: "#A78BFA",
-};
-
 const LEVELS = [
   {
-    LevelIcon: Sprout, name: "Little Pearls", age: "Ages 5–7", grade: "Grades K–2", tag: "BEGINNER",
-    tagline: "Where every coder begins!",
-    color: "#FFD166", glow: "rgba(255,209,102,0.28)", border: "rgba(255,209,102,0.45)",
-    textColor: "#A8760A", bg: "linear-gradient(145deg,#FFFBEB,#FFF3C4)",
+    id: "little",
+    LevelIcon: Sprout,
+    name: "Little Pearls",
+    tag: "START HERE",
+    color: COLORS.gold,
+    light: COLORS.goldLight,
+    image: lp1,
+    sticker: "🌱",
+    tagline: "Code feels like play.",
+    short: "Stories • Games • Logic",
+    highlight: "Drag, drop & discover",
     modules: [
-      { ModIcon: Cpu, label: "Coding Fundamentals" }, { ModIcon: FlaskConical, label: "Scientific Exploration" },
-      { ModIcon: Gamepad2, label: "Game Development" }, { ModIcon: Smartphone, label: "App Development" },
-      { ModIcon: Code2, label: "Python Basics" }, { ModIcon: Globe, label: "HTML & CSS" },
-      { ModIcon: Trophy, label: "Capstone Project" },
+      { icon: Cpu, label: "Coding Fundamentals" },
+      { icon: Gamepad2, label: "Game Development" },
+      { icon: Smartphone, label: "App Development" },
+      { icon: Code2, label: "Python Basics" },
+      { icon: Globe, label: "HTML & CSS" },
+      { icon: Trophy, label: "Capstone Project" },
     ],
-    moduleCount: 7, lessonCount: 84,
     tools: ["Scratch Jr", "Code.org", "Trinket.io"],
-    highlight: "Drag-and-drop blocks — no typing needed!",
-    kidImg: lp1,
-    desc: "A magic-first approach where children build logic through animated drag-and-drop blocks. No typing, no syntax stress — pure creative joy that builds real computational thinking.",
-    achievement: "Coder Badge", AchieveIcon: Award,
+    achievement: "Coder Badge",
   },
   {
-    LevelIcon: BookOpen, name: "Bright Pearls", age: "Ages 8–11", grade: "Grades 3–6", tag: "INTERMEDIATE",
-    tagline: "Growing into real projects!",
-    color: "#06D6A0", glow: "rgba(6,214,160,0.28)", border: "rgba(6,214,160,0.45)",
-    textColor: "#047857", bg: "linear-gradient(145deg,#ECFDF5,#D1FAE5)",
+    id: "bright",
+    LevelIcon: BookOpen,
+    name: "Bright Pearls",
+    tag: "LEVEL UP",
+    color: COLORS.emerald,
+    light: COLORS.emeraldLight,
+    image: bp1,
+    sticker: "🚀",
+    tagline: "Ideas become real projects.",
+    short: "Games • Apps • Python",
+    highlight: "Build, test & remix",
     modules: [
-      { ModIcon: Cpu, label: "Coding Fundamentals" }, { ModIcon: FlaskConical, label: "Scientific Exploration" },
-      { ModIcon: Gamepad2, label: "Game Development" }, { ModIcon: Smartphone, label: "App Development" },
-      { ModIcon: Code2, label: "Python Basics" }, { ModIcon: Globe, label: "HTML & CSS" },
-      { ModIcon: Trophy, label: "Capstone Project" },
+      { icon: Cpu, label: "Coding Fundamentals" },
+      { icon: Gamepad2, label: "Game Development" },
+      { icon: Smartphone, label: "App Development" },
+      { icon: Code2, label: "Python Basics" },
+      { icon: Globe, label: "HTML & CSS" },
+      { icon: Trophy, label: "Capstone Project" },
     ],
-    moduleCount: 6, lessonCount: 72,
-    tools: ["Scratch", "Code.org App Lab", "Thunkable", "Trinket.io"],
-    highlight: "Block coding + intro to real text code!",
-    kidImg: bp1,
-    desc: "Students start building real games and apps. Advanced Scratch projects transition naturally into Python, creating the confidence needed for text-based programming.",
-    achievement: "Builder Badge", AchieveIcon: Medal,
+    tools: ["Scratch", "App Lab", "Thunkable", "Trinket.io"],
+    achievement: "Builder Badge",
   },
   {
-    LevelIcon: Bird, name: "Rising Pearls", age: "Ages 12–15", grade: "Grades 7–10", tag: "ADVANCED",
-    tagline: "Building portfolio-ready apps!",
-    color: "#A78BFA", glow: "rgba(167,139,250,0.28)", border: "rgba(167,139,250,0.45)",
-    textColor: "#6D28D9", bg: "linear-gradient(145deg,#F5F3FF,#EDE9FE)",
+    id: "rising",
+    LevelIcon: Bird,
+    name: "Rising Pearls",
+    tag: "GO FURTHER",
+    color: COLORS.indigo,
+    light: COLORS.indigoLight,
+    image: rp1,
+    sticker: "⚡",
+    tagline: "Build like a pro.",
+    short: "Python • Web • Apps",
+    highlight: "Real code. Real portfolio.",
     modules: [
-      { ModIcon: Cpu, label: "Coding Fundamentals" }, { ModIcon: FlaskConical, label: "Scientific Exploration" },
-      { ModIcon: Gamepad2, label: "Game Development" }, { ModIcon: Smartphone, label: "App Development" },
-      { ModIcon: Code2, label: "Python Basics" }, { ModIcon: Code2, label: "Python Intermediate" },
-      { ModIcon: Code2, label: "Python Advanced" }, { ModIcon: BookOpen, label: "CodiMath" },
-      { ModIcon: Globe, label: "HTML & CSS" }, { ModIcon: Zap, label: "JavaScript" },
-      { ModIcon: Trophy, label: "Capstone Project" },
+      { icon: Cpu, label: "Python" },
+      { icon: Code2, label: "JavaScript" },
+      { icon: Globe, label: "Web Development" },
+      { icon: Smartphone, label: "Mobile Apps" },
+      { icon: Layers, label: "Full-Stack Projects" },
+      { icon: Trophy, label: "Capstone Project" },
     ],
-    moduleCount: 10, lessonCount: 120,
     tools: ["Replit", "GitHub Pages", "Thunkable", "VS Code"],
-    highlight: "Python, JS, web dev — real text coding!",
-    kidImg: rp1,
-    desc: "Pro-grade programming that matters. Python OOP, full-stack web development, mobile apps — students graduate with a real portfolio they can show universities and employers.",
-    achievement: "Pro Coder Badge", AchieveIcon: Trophy,
+    achievement: "Pro Coder Badge",
   },
 ];
 
 const FAQ = [
-  { q: "What age can my child start?", a: "We accept children from age 5! Little Pearls (5–7) uses pure drag-and-drop — no reading or typing required. The curriculum scales up perfectly by level." },
-  { q: "Do you offer a free trial?", a: "Absolutely! Book a free 30-minute demo class with no commitment. We'll assess your child's level and show you exactly how we teach before any payment." },
-  { q: "What platform do you use?", a: "All classes are live online via Zoom or Google Meet. Students use age-appropriate platforms: Scratch Jr, Scratch, Replit, and VS Code as they advance." },
-  { q: "How many classes per week?", a: "Standard is 2 classes per week (1 hour each), totaling 8 classes per month. We also offer intensive schedules for exam prep." },
-  { q: "Is there homework?", a: "Light, fun projects between classes — not heavy homework. Kids are encouraged to explore and build, not grind practice sheets." },
+  {
+    q: "Do you offer a free trial?",
+    a: "Yes. Book a free demo class and see how Pearlx works before enrolling.",
+  },
+  {
+    q: "How do classes work?",
+    a: "Live online classes with hands-on building, guided practice and projects.",
+  },
+  {
+    q: "Is there homework?",
+    a: "Only light, fun projects that encourage kids to keep building between classes.",
+  },
+  {
+    q: "What will my child build?",
+    a: "Depending on the level: stories, games, apps, websites and portfolio-ready projects.",
+  },
 ];
 
-const FloatImg = ({ src, FallbackIcon, color, style, delay = 0 }) => (
-  <motion.div animate={{ y: [0, -12, 0], rotate: [-1, 1, -1] }}
-    transition={{ duration: 5 + delay, repeat: Infinity, ease: "easeInOut", delay }}
-    className="absolute pointer-events-none select-none" style={style}>
-    <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", filter: "drop-shadow(0 14px 28px rgba(0,0,0,0.13))" }}
-      onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
-    <div style={{ display: "none", width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>
-      {FallbackIcon && <FallbackIcon style={{ width: "60%", height: "60%", color: color || "#94a3b8" }} />}
+const Feature = ({ icon: Icon, title, color }) => (
+  <div
+    className="flex items-center gap-3 rounded-2xl p-3.5 border bg-white"
+    style={{ borderColor: COLORS.border, boxShadow: SHADOWS.sm }}
+  >
+    <div
+      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+      style={{ background: `${color}18`, color }}
+    >
+      <Icon className="w-5 h-5" />
     </div>
-  </motion.div>
+    <span className="text-xs sm:text-sm font-black" style={{ color: COLORS.ink }}>
+      {title}
+    </span>
+  </div>
 );
 
 const FaqItem = ({ q, a, i }) => {
   const [open, setOpen] = useState(false);
+
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-      transition={{ delay: i * 0.06 }}
-      className="border-2 rounded-2xl overflow-hidden"
-      style={{ borderColor: open ? "rgba(16,185,129,0.35)" : "rgba(15,23,42,0.07)", transition: "border-color 0.3s" }}>
-      <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-5 text-left"
-        style={{ background: open ? "rgba(16,185,129,0.04)" : "#fff" }}>
-        <span className="font-bold text-sm pr-4" style={{ color: T.ink }}>{q}</span>
-        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }}>
-          <ChevronDown className="w-5 h-5 flex-shrink-0" style={{ color: T.green }} />
-        </motion.div>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: i * 0.05 }}
+      className="rounded-2xl border-2 overflow-hidden"
+      style={{ borderColor: open ? `${COLORS.emerald}45` : COLORS.border }}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-4 p-4 sm:p-5 text-left"
+        style={{ background: open ? COLORS.emeraldLight : COLORS.white }}
+      >
+        <span className="font-black text-sm" style={{ color: COLORS.ink }}>
+          {q}
+        </span>
+        <ChevronDown
+          className={`w-5 h-5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+          style={{ color: COLORS.emerald }}
+        />
       </button>
-      <AnimatePresence>
+
+      <AnimatePresence initial={false}>
         {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }}
-            className="px-5 pb-5 text-sm text-slate-500 leading-relaxed"
-            style={{ background: "rgba(16,185,129,0.04)" }}>{a}</motion.div>
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-4 sm:px-5 pb-5 text-sm leading-relaxed"
+            style={{ color: COLORS.textSecondary, background: COLORS.emeraldLight }}
+          >
+            {a}
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
   );
 };
 
-const LevelCard = ({ level, index }) => {
-  const [expanded, setExpanded] = useState(false);
+const ComputerScienceClasses = ({ openDemoModal }) => {
+  const [active, setActive] = useState(1);
+  const level = LEVELS[active];
+  const Icon = level.LevelIcon;
+
+  const next = () => setActive((v) => (v + 1) % LEVELS.length);
+
   return (
-    <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-      transition={{ delay: index * 0.1, duration: 0.7 }}
-      className="rounded-[2.5rem] overflow-hidden border-2 relative group"
-      style={{ background: level.bg, borderColor: level.border, boxShadow: `0 12px 48px ${level.glow}` }}>
-      <div className="absolute top-0 left-0 right-0 h-1.5" style={{ background: level.color }} />
-      <div className="p-8 flex flex-col lg:flex-row gap-8 items-start">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: level.color + "20", border: `2px solid ${level.border}` }}>
-              <level.LevelIcon className="w-7 h-7" style={{ color: level.textColor }} />
-            </div>
-            <div>
-              <div className="px-3 py-1 rounded-full text-[10px] font-black text-white inline-block mb-1"
-                style={{ background: level.color }}>{level.tag}</div>
-              <h3 className="font-black text-2xl" style={{ color: T.ink }}>{level.name}</h3>
-              <p className="text-sm font-bold" style={{ color: level.textColor }}>{level.age} · {level.grade}</p>
-            </div>
+    <main
+      className="min-h-screen overflow-hidden"
+      style={{ background: COLORS.bgSecondary, color: COLORS.ink }}
+    >
+      {/* HERO */}
+      <section className="relative pt-48 sm:pt-48 pb-10 sm:pb-14">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div
+            className="absolute -top-32 -left-28 w-80 h-80 rounded-full blur-3xl"
+            style={{ background: COLORS.cyanLight }}
+          />
+          <div
+            className="absolute top-40 -right-32 w-96 h-96 rounded-full blur-3xl"
+            style={{ background: COLORS.emeraldLight }}
+          />
+          <div
+            className="absolute top-20 right-[12%] text-3xl rotate-12"
+            style={{ color: COLORS.gold }}
+          >
+            ✦
           </div>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl mb-4 text-sm font-bold"
-            style={{ background: `${level.color}18`, color: level.textColor, border: `1px solid ${level.border}` }}>
-            <Zap className="w-4 h-4" /> {level.highlight}
+          <div
+            className="absolute top-[48%] left-[5%] text-2xl"
+            style={{ color: COLORS.indigo }}
+          >
+            +
           </div>
-          <p className="text-slate-600 text-sm leading-relaxed mb-4">{level.desc}</p>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {level.tools.map((t, ti) => (
-              <span key={ti} className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white border"
-                style={{ borderColor: level.border, color: level.textColor }}>{t}</span>
+        </div>
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="grid lg:grid-cols-[1fr_0.9fr] gap-8 lg:gap-14 items-center">
+            <div className="text-center lg:text-left">
+              {/* <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-[10px] font-black tracking-wider mb-4"
+                style={{
+                  color: COLORS.emerald,
+                  background: COLORS.emeraldLight,
+                }}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                CODING FOR KIDS
+              </motion.div> */}
+
+              <motion.h1
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08 }}
+                className="font-black tracking-tight leading-[0.94] text-5xl sm:text-6xl lg:text-7xl"
+                style={{ letterSpacing: "-0.065em" }}
+              >
+                Make.
+                <br />
+                <span
+                  style={{
+                    background: GRADIENTS.textGlow,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  Break.
+                </span>
+                <br />
+                Build again.
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.18 }}
+                className="max-w-lg mx-auto lg:mx-0 mt-5 text-sm sm:text-base font-medium leading-relaxed"
+                style={{ color: COLORS.textSecondary }}
+              >
+                A playful coding journey where kids learn by creating games,
+                apps and websites — not by memorising boring syntax.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.26 }}
+                className="flex flex-col sm:flex-row justify-center lg:justify-start gap-2.5 mt-6"
+              >
+                <button
+                  onClick={() => openDemoModal?.("kids-hero")}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-black text-white active:scale-[0.98] transition-transform"
+                  style={{ background: GRADIENTS.primary, boxShadow: SHADOWS.lg }}
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  Try a Free Class
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <a
+                  href="#levels"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-black border-2 bg-white"
+                  style={{ color: COLORS.emerald, borderColor: `${COLORS.emerald}30` }}
+                >
+                  Explore levels
+                </a>
+              </motion.div>
+
+              <div className="grid grid-cols-3 gap-2.5 mt-7 max-w-md mx-auto lg:mx-0">
+                <Feature icon={Users} title="Small groups" color={COLORS.emerald} />
+                <Feature icon={BookOpen} title="Project based" color={COLORS.cyan} />
+                <Feature icon={Trophy} title="Build & show" color={COLORS.gold} />
+              </div>
+            </div>
+
+            {/* Hero playground */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.55 }}
+              className="relative mx-auto w-full max-w-[520px]"
+            >
+              <div
+                className="absolute -inset-3 rounded-[2.8rem] opacity-70 blur-2xl"
+                style={{ background: COLORS.cyanLight }}
+              />
+
+              <div
+                className="relative rounded-[2.4rem] border-2 overflow-hidden bg-white"
+                style={{ borderColor: `${COLORS.cyan}30`, boxShadow: SHADOWS.lg }}
+              >
+                <div
+                  className="h-10 px-4 flex items-center justify-between border-b"
+                  style={{ background: COLORS.bgSecondary, borderColor: COLORS.border }}
+                >
+                  <div className="flex gap-1.5">
+                    {[COLORS.gold, COLORS.emerald, COLORS.cyan].map((c) => (
+                      <span key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />
+                    ))}
+                  </div>
+                  <span className="text-[9px] font-black tracking-widest" style={{ color: COLORS.textMuted }}>
+                    PEARLX PLAYGROUND
+                  </span>
+                </div>
+
+                <div
+                  className="relative min-h-[350px] sm:min-h-[420px] flex items-end justify-center"
+                  style={{
+                    background: `linear-gradient(145deg, ${COLORS.cyanLight}, ${COLORS.bgPrimary})`,
+                  }}
+                >
+                  <div className="absolute left-5 top-5">
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black text-white"
+                      style={{ background: COLORS.indigo }}
+                    >
+                      <Code2 className="w-3 h-3" />
+                      CREATE MODE
+                    </span>
+                  </div>
+
+                  <motion.div
+                    animate={{ y: [0, -10, 0], rotate: [-1, 1, -1] }}
+                    transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute right-5 top-16 w-14 h-14 rounded-2xl flex items-center justify-center bg-white border-2 rotate-6"
+                    style={{ borderColor: `${COLORS.gold}35`, boxShadow: SHADOWS.sm }}
+                  >
+                    <span className="text-2xl">🚀</span>
+                  </motion.div>
+
+                  <motion.img
+                    src={bp1}
+                    alt="Pearlx coding student"
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    className="relative z-10 h-[78%] sm:h-[82%] max-w-[82%] object-contain"
+                    style={{ filter: "drop-shadow(0 20px 24px rgba(15,23,42,0.15))" }}
+                  />
+
+                  <div
+                    className="absolute left-4 bottom-4 px-3 py-2.5 rounded-2xl bg-white border"
+                    style={{ borderColor: COLORS.border, boxShadow: SHADOWS.sm }}
+                  >
+                    <div className="text-[9px] font-black" style={{ color: COLORS.emerald }}>
+                      PROJECT UNLOCKED
+                    </div>
+                    <div className="text-xs font-black mt-0.5">My first game 🎮</div>
+                  </div>
+
+                  <div
+                    className="absolute right-4 bottom-4 px-3 py-2.5 rounded-2xl"
+                    style={{ background: COLORS.navDark, color: COLORS.white }}
+                  >
+                    <div className="text-[9px] opacity-60 font-bold">LEVEL</div>
+                    <div className="text-sm font-black">02 / 03</div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* LEVELS */}
+      <section id="levels" className="py-12 sm:py-16 lg:py-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center max-w-2xl mx-auto mb-7 sm:mb-9">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black mb-3"
+              style={{ color: COLORS.cyan, background: COLORS.cyanLight }}
+            >
+              <Rocket className="w-3.5 h-3.5" />
+              PICK A PATH
+            </div>
+            <h2
+              className="font-black text-3xl sm:text-5xl tracking-tight"
+              style={{ letterSpacing: "-0.05em" }}
+            >
+              Three levels.
+              <br />
+              <span style={{ color: COLORS.emerald }}>One coding adventure.</span>
+            </h2>
+          </div>
+
+          <div className="flex gap-2.5 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide">
+            {LEVELS.map((item, index) => {
+              const ItemIcon = item.LevelIcon;
+              const selected = active === index;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActive(index)}
+                  className="snap-start shrink-0 flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl border-2 transition-all"
+                  style={{
+                    background: selected ? COLORS.white : "rgba(255,255,255,0.6)",
+                    borderColor: selected ? item.color : COLORS.border,
+                    color: selected ? item.color : COLORS.textMuted,
+                    boxShadow: selected ? SHADOWS.sm : "none",
+                  }}
+                >
+                  <span
+                    className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: selected ? item.light : COLORS.bgTertiary }}
+                  >
+                    <ItemIcon className="w-4 h-4" />
+                  </span>
+                  <span className="text-left">
+                    <span className="block text-[11px] font-black">{item.name}</span>
+                    <span className="block text-[9px] font-bold mt-0.5" style={{ color: COLORS.textMuted }}>
+                      {item.short}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={level.id}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25 }}
+              className="mt-3 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border-2 bg-white"
+              style={{ borderColor: `${level.color}35`, boxShadow: SHADOWS.card }}
+            >
+              <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
+                <div
+                  className="relative min-h-[300px] sm:min-h-[370px] lg:min-h-[470px] flex items-end justify-center overflow-hidden"
+                  style={{ background: `linear-gradient(145deg, ${level.light}, ${COLORS.white})` }}
+                >
+                  <div className="absolute top-5 left-5">
+                    <span
+                      className="px-3 py-1.5 rounded-full text-[9px] font-black text-white"
+                      style={{ background: level.color }}
+                    >
+                      {level.tag}
+                    </span>
+                  </div>
+
+                  <motion.div
+                    animate={{ y: [0, -8, 0], rotate: [-1, 1, -1] }}
+                    transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute right-5 top-5 w-14 h-14 rounded-2xl flex items-center justify-center bg-white border-2 rotate-6"
+                    style={{ borderColor: `${level.color}30`, boxShadow: SHADOWS.sm }}
+                  >
+                    <span className="text-2xl">{level.sticker}</span>
+                  </motion.div>
+
+                  <img
+                    src={level.image}
+                    alt={level.name}
+                    className="relative z-10 h-[82%] sm:h-[88%] max-w-[86%] object-contain"
+                    style={{ filter: "drop-shadow(0 20px 26px rgba(15,23,42,0.13))" }}
+                  />
+
+                  <button
+                    onClick={next}
+                    aria-label="Next coding level"
+                    className="absolute right-4 bottom-4 w-11 h-11 rounded-full flex items-center justify-center text-white active:scale-95"
+                    style={{ background: level.color, boxShadow: SHADOWS.sm }}
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="p-6 sm:p-8 lg:p-11">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-[10px] font-black tracking-widest mb-2" style={{ color: level.color }}>
+                        {level.tag}
+                      </div>
+                      <h3 className="font-black text-3xl sm:text-4xl tracking-tight" style={{ letterSpacing: "-0.05em" }}>
+                        {level.name}
+                      </h3>
+                    </div>
+                    <div
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+                      style={{ background: level.light, color: level.color }}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </div>
+                  </div>
+
+                  <div
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl mt-4 text-xs font-black"
+                    style={{ background: level.light, color: level.color }}
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    {level.highlight}
+                  </div>
+
+                  <p className="text-lg font-black mt-4" style={{ color: COLORS.textPrimary }}>
+                    {level.tagline}
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2.5 mt-5">
+                    {level.modules.map((item) => {
+                      const ModIcon = item.icon;
+                      return (
+                        <div
+                          key={item.label}
+                          className="flex items-center gap-2.5 p-3 rounded-xl border"
+                          style={{ borderColor: COLORS.border, background: COLORS.bgSecondary }}
+                        >
+                          <ModIcon className="w-4 h-4 shrink-0" style={{ color: level.color }} />
+                          <span className="text-[10px] sm:text-[11px] font-black">{item.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mt-5">
+                    {level.tools.map((tool) => (
+                      <span
+                        key={tool}
+                        className="px-3 py-1.5 rounded-xl text-[10px] font-black"
+                        style={{ background: level.light, color: level.color }}
+                      >
+                        {tool}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div
+                    className="flex items-center gap-2 mt-5 p-3.5 rounded-2xl"
+                    style={{ background: COLORS.goldLight }}
+                  >
+                    <Medal className="w-5 h-5 shrink-0" style={{ color: COLORS.goldDeep }} />
+                    <span className="text-xs font-black">
+                      Finish with: <span style={{ color: COLORS.goldDeep }}>{level.achievement}</span>
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2.5 mt-6">
+                    <button
+                      onClick={() => openDemoModal?.(`kids-${level.id}`)}
+                      className="flex-1 inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-black text-white active:scale-[0.98]"
+                      style={{ background: level.color, boxShadow: SHADOWS.sm }}
+                    >
+                      Try this level
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <a
+                      href={getWhatsAppLink(`Hi! I'd like to know more about the ${level.name} coding program at Pearlx.`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 py-3.5 px-5 rounded-2xl border-2 text-sm font-black"
+                      style={{ borderColor: `${level.color}30`, color: level.color }}
+                    >
+                      Ask us
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="flex justify-center gap-2 mt-5">
+            {LEVELS.map((item, index) => (
+              <button
+                key={item.id}
+                onClick={() => setActive(index)}
+                aria-label={`Show ${item.name}`}
+                className="h-2.5 rounded-full transition-all"
+                style={{
+                  width: active === index ? 28 : 8,
+                  background: active === index ? item.color : COLORS.borderMed,
+                }}
+              />
             ))}
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold w-fit"
-            style={{ background: `${level.color}15`, color: level.textColor }}>
-            <Trophy className="w-4 h-4" /> Earn: {level.achievement}
-          </div>
         </div>
-        <div className="w-full lg:w-52 flex-shrink-0">
-          <div className="relative h-48 lg:h-52 rounded-2xl overflow-hidden"
-            style={{ background: `${level.color}10`, border: `2px solid ${level.border}` }}>
-            <img src={level.kidImg} alt={level.name}
-              className="absolute bottom-0 left-1/2 -translate-x-1/2 h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
-              onError={e => { e.target.style.display = "none"; }} />
-            <div className="absolute bottom-0 left-0 right-0 flex bg-white/80 backdrop-blur-sm p-2">
-              {[{ v: `${level.moduleCount}`, l: "Modules" }, { v: `${level.lessonCount}`, l: "Lessons" }, { v: "6+", l: "Projects" }].map((s, si) => (
-                <div key={si} className="flex-1 text-center">
-                  <div className="font-black text-sm" style={{ color: level.textColor }}>{s.v}</div>
-                  <div className="text-[9px] text-slate-400 uppercase tracking-wide font-semibold">{s.l}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="px-8 pb-8">
-        <button onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-2 text-sm font-bold mb-4"
-          style={{ color: level.textColor }}>
-          <motion.div animate={{ rotate: expanded ? 180 : 0 }}><ChevronDown className="w-4 h-4" /></motion.div>
-          {expanded ? "Hide" : "View"} all {level.moduleCount} modules
-        </button>
-        <AnimatePresence>
-          {expanded && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }}
-              className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-              {level.modules.map((m, mi) => (
-                <div key={mi} className="p-3 rounded-2xl text-center bg-white/80 border"
-                  style={{ borderColor: `${level.color}25` }}>
-                  <div className="flex justify-center mb-1">
-                    <m.ModIcon className="w-4 h-4" style={{ color: level.textColor }} />
+      </section>
+
+      {/* SIMPLE VALUE STRIP */}
+      <section className="pb-12 sm:pb-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div
+            className="rounded-[2rem] p-5 sm:p-7 border-2 bg-white"
+            style={{ borderColor: COLORS.border, boxShadow: SHADOWS.card }}
+          >
+            <div className="grid sm:grid-cols-3 gap-3">
+              {[
+                [Code2, "Learn by building", COLORS.cyan],
+                [Rocket, "Projects kids love", COLORS.emerald],
+                [Award, "Celebrate progress", COLORS.gold],
+              ].map(([I, text, color]) => (
+                <div key={text} className="flex items-center gap-3 p-3">
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+                    style={{ background: `${color}18`, color }}
+                  >
+                    <I className="w-5 h-5" />
                   </div>
-                  <div className="text-[10px] font-bold text-slate-600 leading-tight">{m.label}</div>
+                  <span className="text-sm font-black">{text}</span>
                 </div>
               ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <a href={getWhatsAppLink(`Hi! I'd like to join ${level.name} (${level.age}) at Pearlx.`)}
-          target="_blank" rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-white text-sm mt-4"
-          style={{ background: level.color, boxShadow: `0 6px 24px ${level.glow}` }}>
-          Join {level.name} <ArrowRight className="w-4 h-4" />
-        </a>
-      </div>
-    </motion.div>
-  );
-};
-
-const ComputerScienceClasses = ({ openDemoModal }) => (
-  <section className="min-h-screen relative overflow-hidden" style={{ background: T.bg }}>
-    {/* ── LIVE BG ── */}
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      <div className="absolute inset-0 opacity-20"
-        style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(16,185,129,0.14) 1px, transparent 0)", backgroundSize: "40px 40px" }} />
-      {[
-        { c: T.purple, x: "-5%", y: "-5%", s: "40vw", dur: 20 },
-        { c: T.green, right: true, y: "10%", s: "35vw", dur: 18 },
-        { c: T.yellow, x: "20%", y: "70%", s: "30vw", dur: 15 },
-        { c: T.pink, right: true, bottom: true, s: "28vw", dur: 22 },
-      ].map((o, i) => (
-        <motion.div key={i} animate={{ scale: [1, 1.2, 1] }} transition={{ duration: o.dur, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute rounded-full"
-          style={{
-            width: o.s, height: o.s, left: o.right ? "auto" : o.x, right: o.right ? "-5%" : undefined,
-            top: o.bottom ? "auto" : o.y, bottom: o.bottom ? "-5%" : undefined,
-            background: `radial-gradient(circle,${o.c}12 0%,transparent 70%)`, filter: "blur(50px)"
-          }} />
-      ))}
-      {[
-        { t: "def hello():", top: "6%", left: "4%", c: T.green },
-        { t: "for i in range(10):", top: "18%", right: "3%", c: T.sky },
-        { t: "<html>", bottom: "20%", left: "2%", c: T.purple },
-        { t: "import scratch", top: "45%", left: "1%", c: T.pink },
-      ].map((c, i) => (
-        <motion.div key={i} animate={{ y: [0, -18, 0], opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 7 + i, repeat: Infinity, delay: i * 0.9 }}
-          className="absolute font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-white/70 backdrop-blur-sm border"
-          style={{ top: c.top, left: c.left, right: c.right, bottom: c.bottom, borderColor: `${c.c}25`, color: c.c, boxShadow: `0 4px 12px ${c.c}15` }}>
-          {c.t}
-        </motion.div>
-      ))}
-    </div>
-
-    {/* Floating kid images */}
-    <FloatImg src="/images/kids/cs-hero-kid-1.png" FallbackIcon={Users} color={T.green}
-      style={{ width: 120, height: 165, top: "15%", right: "1.5%", zIndex: 1 }} delay={0} />
-    <FloatImg src="/images/kids/cs-hero-kid-2.png" FallbackIcon={Users} color={T.sky}
-      style={{ width: 100, height: 140, bottom: "20%", left: "0.5%", zIndex: 1 }} delay={1.5} />
-
-    <div className="max-w-7xl mx-auto px-6 py-50 relative z-10">
-
-      {/* ── PAGE HEADER ── */}
-      <div className="text-center mb-16">
-        <motion.div initial={{ opacity: 0, y: -12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="inline-flex items-center gap-2 px-5 py-2 rounded-full mb-6 border"
-          style={{ background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.3)", color: T.green }}>
-          <Zap className="w-4 h-4" />
-          <span className="text-xs font-black tracking-widest uppercase">Coding for Kids · Ages 5–15</span>
-        </motion.div>
-        <motion.h1 initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          transition={{ delay: 0.1 }} className="font-black mb-5 tracking-tight leading-none"
-          style={{ fontSize: "clamp(2.5rem,6vw,4.5rem)", color: T.ink, letterSpacing: "-0.04em" }}>
-          Master Logic.<br />
-          <span style={{ background: `linear-gradient(135deg,${T.sky},${T.green})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-            Create with Code
-          </span>
-        </motion.h1>
-        <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-          transition={{ delay: 0.2 }} className="text-slate-500 max-w-2xl mx-auto text-lg font-medium mb-8">
-          Our project-based curriculum takes kids from zero to confident coder.
-          Block coding always comes first — then text code when they're truly ready.
-        </motion.p>
-        <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          transition={{ delay: 0.3 }} className="flex flex-wrap justify-center gap-4 mb-8">
-          {[
-            { icon: <Users className="w-4 h-4" />, v: "50+", l: "Kids Taught", c: T.green },
-            { icon: <BookOpen className="w-4 h-4" />, v: "200+", l: "Lessons", c: T.sky },
-            { icon: <Star className="w-4 h-4" />, v: "4.9★", l: "Parent Rating", c: T.yellow },
-            { icon: <Clock className="w-4 h-4" />, v: "3", l: "Age Levels", c: T.purple },
-          ].map((s, i) => (
-            <div key={i} className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border"
-              style={{ borderColor: `${s.c}30`, boxShadow: `0 4px 16px ${s.c}15` }}>
-              <span style={{ color: s.c }}>{s.icon}</span>
-              <span className="font-black text-sm" style={{ color: T.ink }}>{s.v}</span>
-              <span className="text-xs text-slate-400 font-medium">{s.l}</span>
             </div>
-          ))}
-        </motion.div>
-        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-          transition={{ delay: 0.4 }} className="flex gap-4 justify-center flex-wrap">
-          <button
-            onClick={() => openDemoModal("kids-hero")}
-            className="flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white border-none cursor-pointer"
-            style={{ background: `linear-gradient(135deg,${T.green},${T.sky})`, boxShadow: "0 8px 32px rgba(16,185,129,0.35)" }}>
-            <Trophy className="w-4 h-4" /> Book Free Trial Class <ArrowRight className="w-5 h-5" />
-          </button>
-          <a href="#levels"
-            className="flex items-center gap-2 px-8 py-4 rounded-2xl font-bold border-2"
-            style={{ borderColor: "rgba(16,185,129,0.3)", color: T.green, background: "rgba(16,185,129,0.06)" }}>
-            View All Levels
-          </a>
-        </motion.div>
-      </div>
-
-      {/* ── LEVEL CARDS ── */}
-      <div id="levels" className="mb-20">
-        <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="font-black text-3xl mb-2 text-center" style={{ color: T.ink, letterSpacing: "-0.03em" }}>
-          3 Coding Levels for Kids{" "}
-          <span style={{ background: `linear-gradient(135deg,${T.sky},${T.green})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-            Ages 5–15
-          </span>
-        </motion.h2>
-        <p className="text-center text-slate-500 mb-10">Each level follows our project-based curriculum.</p>
-        <div className="grid gap-8">
-          {LEVELS.map((level, i) => <LevelCard key={i} level={level} index={i} />)}
-        </div>
-      </div>
-
-      {/* ── FAQ ── */}
-      <div className="mb-20">
-        <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="font-black text-3xl mb-8 text-center" style={{ color: T.ink, letterSpacing: "-0.03em" }}>
-          Questions parents ask
-        </motion.h2>
-        <div className="max-w-2xl mx-auto space-y-3">
-          {FAQ.map((f, i) => <FaqItem key={i} q={f.q} a={f.a} i={i} />)}
-        </div>
-      </div>
-
-      {/* ── CAPSTONE CTA ── */}
-      <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-        className="rounded-[2.5rem] overflow-hidden border-2 relative"
-        style={{ borderColor: "rgba(167,139,250,0.3)", boxShadow: "0 20px 64px rgba(167,139,250,0.15)" }}>
-        <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#F5F3FF,#FFF0FB,#F0FFF9)" }} />
-        <div className="absolute top-0 left-0 right-0 h-1.5"
-          style={{ background: `linear-gradient(90deg,${T.yellow},${T.green},${T.sky},${T.purple})` }} />
-        <div className="relative z-10 flex flex-col lg:flex-row items-center gap-8 p-10 lg:p-14">
-          <div className="lg:w-1/3 flex justify-center">
-            <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }}
-              className="relative w-44 h-44">
-              <div style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center", position: "absolute", inset: 0 }}>
-                <Trophy className="w-24 h-24" style={{ color: "#FFD166" }} />
-              </div>
-              <motion.div animate={{ rotate: [0, 8, 0, -8, 0] }} transition={{ duration: 4, repeat: Infinity }}
-                className="absolute -top-4 -right-4 w-12 h-12 rounded-full flex items-center justify-center"
-                style={{ background: `linear-gradient(135deg,#FFD166,#A8760A)`, boxShadow: `0 4px 16px rgba(255,209,102,0.5)` }}>
-                <Medal className="w-6 h-6 text-white" />
-              </motion.div>
-            </motion.div>
           </div>
-          <div className="lg:w-2/3 text-center lg:text-left">
-            <h3 className="font-black text-2xl mb-3" style={{ color: T.ink, letterSpacing: "-0.02em" }}>
-              Grand Showcase — Every Level
-            </h3>
-            <p className="text-sm max-w-md mx-auto lg:mx-0 mb-7 text-slate-500 leading-relaxed">
-              Every level ends in a <strong style={{ color: T.ink }}>Capstone Project</strong> — students present their story, game, app, and website to parents and peers. Real certificates. Real pride.
-            </p>
-            <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
-              <motion.a href={getWhatsAppLink("Hi! I'd like to join a coding level at Pearlx.")}
-                target="_blank" rel="noopener noreferrer"
-                whileHover={{ scale: 1.04, boxShadow: "0 12px 36px rgba(167,139,250,0.5)" }}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-bold text-white"
-                style={{ background: `linear-gradient(135deg,${T.purple},#7C3AED)`, boxShadow: "0 4px 20px rgba(167,139,250,0.3)" }}>
-                Join a Level <ArrowRight className="w-4 h-4" />
-              </motion.a>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-12 sm:py-16 lg:py-20" style={{ background: COLORS.white }}>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-7">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black"
+              style={{ color: COLORS.indigo, background: COLORS.indigoLight }}
+            >
+              <Star className="w-3.5 h-3.5" />
+              PARENTS ASK
+            </div>
+            <h2 className="font-black text-3xl sm:text-4xl tracking-tight mt-3" style={{ letterSpacing: "-0.045em" }}>
+              Quick answers.
+            </h2>
+          </div>
+
+          <div className="space-y-2.5">
+            {FAQ.map((item, i) => (
+              <FaqItem key={item.q} {...item} i={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="py-12 sm:py-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div
+            className="relative overflow-hidden rounded-[2.4rem] border-2 p-7 sm:p-10 text-center"
+            style={{
+              background: GRADIENTS.lightBg,
+              borderColor: `${COLORS.emerald}25`,
+              boxShadow: SHADOWS.lg,
+            }}
+          >
+            <div className="absolute -top-10 -right-8 text-6xl opacity-40" style={{ color: COLORS.gold }}>✦</div>
+            <div className="absolute -bottom-10 -left-8 text-7xl opacity-20" style={{ color: COLORS.cyan }}>+</div>
+
+            <div className="relative">
+              <div
+                className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ background: COLORS.emeraldLight, color: COLORS.emerald }}
+              >
+                <Rocket className="w-7 h-7" />
+              </div>
+
+              <h2 className="font-black text-3xl sm:text-5xl tracking-tight mt-4" style={{ letterSpacing: "-0.055em" }}>
+                Ready to build their
+                <span style={{ color: COLORS.emerald }}> first thing?</span>
+              </h2>
+
+              <p className="text-sm mt-3" style={{ color: COLORS.textSecondary }}>
+                Start with a free Pearlx trial class.
+              </p>
+
               <button
-                onClick={() => openDemoModal("kids-capstone")}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-bold border-2 cursor-pointer"
-                style={{ color: "#7C3AED", borderColor: "rgba(167,139,250,0.35)", background: "rgba(167,139,250,0.06)" }}>
-                Book Free Demo
+                onClick={() => openDemoModal?.("kids-final")}
+                className="mt-6 inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-black text-white"
+                style={{ background: GRADIENTS.primary, boxShadow: SHADOWS.lg }}
+              >
+                Book Free Trial
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         </div>
-      </motion.div>
-    </div>
-  </section>
-);
+      </section>
+    </main>
+  );
+};
 
 export default ComputerScienceClasses;

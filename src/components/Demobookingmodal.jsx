@@ -1,554 +1,1016 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2, CheckCircle2, AlertCircle, Calendar, Clock } from "lucide-react";
+import {
+  X,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  CalendarDays,
+  Clock3,
+  UserRound,
+  MapPin,
+  Languages,
+  Mail,
+  Phone,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Laptop,
+} from "lucide-react";
+
+import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
+
+/*
+  DemoBookingModal
+  ----------------
+  The UI is now a short, multi-step booking flow, but the submitted
+  formData shape is intentionally unchanged so the existing
+  /api/submit-demo-booking route and Google Sheets mapping continue
+  to receive the same fields.
+
+  Existing submitted fields:
+  source
+  studentName
+  studentGrade
+  country
+  state
+  languages
+  parentName
+  email
+  contactNumber
+  wantsDemoSession
+  preferredDate
+  preferredTime
+*/
+
+const STEPS = [
+  { id: 1, label: "Class", icon: Laptop },
+  { id: 2, label: "Student", icon: UserRound },
+  { id: 3, label: "About", icon: MapPin },
+  { id: 4, label: "Parent", icon: Mail },
+  { id: 5, label: "Schedule", icon: CalendarDays },
+];
+
+const PROGRAMS = [
+  { value: "coding", label: "Coding" },
+  { value: "maths", label: "Maths" },
+  { value: "academic_tuition", label: "Academic Tuition" },
+  { value: "courses", label: "Courses" },
+];
+
+const GRADES = [
+  ["K", "Kindergarten"],
+  ["1", "Grade 1"],
+  ["2", "Grade 2"],
+  ["3", "Grade 3"],
+  ["4", "Grade 4"],
+  ["5", "Grade 5"],
+  ["6", "Grade 6"],
+  ["7", "Grade 7"],
+  ["8", "Grade 8"],
+  ["9", "Grade 9"],
+  ["10", "Grade 10"],
+  ["11", "Grade 11"],
+  ["12", "Grade 12"],
+];
+
+const TIMES = Array.from({ length: 13 }, (_, i) => {
+  const hour = i + 9;
+  return `${String(hour).padStart(2, "0")}:00`;
+});
+
+const formatTime = (value) => {
+  const [hourString] = value.split(":");
+  const hour = Number(hourString);
+  if (hour === 12) return "12:00 PM";
+  if (hour > 12) return `${hour - 12}:00 PM`;
+  return `${hour}:00 AM`;
+};
+
+const formatDateLabel = (date) =>
+  new Intl.DateTimeFormat("en-IN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  }).format(date);
+
+const getDateOptions = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return [1, 2].map((offset) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + offset);
+
+    return {
+      value: [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0"),
+      ].join("-"),
+      label: formatDateLabel(date),
+      relative: offset === 1 ? "Tomorrow" : "Day after",
+    };
+  });
+};
+
+const getInitialForm = (source) => ({
+  source,
+  programInterest: "",
+  studentName: "",
+  studentGrade: "",
+  country: "",
+  state: "",
+  languages: "",
+  parentName: "",
+  email: "",
+  contactNumber: "",
+  wantsDemoSession: "yes",
+  preferredDate: "",
+  preferredTime: "",
+});
 
 const DemoBookingModal = ({ isOpen, onClose, source = "general" }) => {
-  const [formData, setFormData] = useState({
-    source: source,
-    programInterest: "",
-    studentName: "",
-    studentGrade: "",
-    country: "",
-    state: "",
-    languages: "",
-    parentName: "",
-    email: "",
-    contactNumber: "",
-    wantsDemoSession: "yes",
-    preferredDate: "",
-    preferredTime: "",
-  });
-  
-
+  const [formData, setFormData] = useState(() => getInitialForm(source));
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  const [showDateTimeFields, setShowDateTimeFields] = useState(formData.wantsDemoSession === "yes");
 
-  // Lock body scroll when modal is open
+  const dateOptions = useMemo(() => getDateOptions(), [isOpen]);
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
-      // Reset form on close
-      setFormData({
-        source: source,
-        programInterest: "",
-        studentName: "",
-        studentGrade: "",
-        country: "",
-        state: "",
-        languages: "",
-        parentName: "",
-        email: "",
-        contactNumber: "",
-        wantsDemoSession: "yes",
-        preferredDate: "",
-        preferredTime: "",
-      });
+      setFormData(getInitialForm(source));
+      setStep(1);
       setError(null);
       setSuccess(false);
-      setShowDateTimeFields(true);
     }
-    return () => { document.body.style.overflow = ""; };
+
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen, source]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+  const updateField = (name, value) => {
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-
-    // Show/hide date and time fields based on demo session preference
-    if (name === "wantsDemoSession") {
-      setShowDateTimeFields(value === "yes");
-      if (value === "no") {
-        setFormData(prev => ({
-          ...prev,
-          preferredDate: "",
-          preferredTime: "",
-        }));
-      }
-    }
+    setError(null);
   };
 
-  const validateForm = () => {
-    const requiredFields = ["programInterest", "studentName", "studentGrade", "country", "state", "languages", "parentName", "email", "contactNumber"];
-    
-    for (let field of requiredFields) {
-      if (!formData[field]?.trim()) {
-        setError(`${field.replace(/([A-Z])/g, " $1").trim()} is required`);
+  const validateStep = (currentStep) => {
+    if (currentStep === 1) {
+      if (!formData.programInterest) {
+        setError("Please choose what you'd like a demo for.");
         return false;
       }
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError("Please enter a valid email address");
-      return false;
+    if (currentStep === 2) {
+      if (!formData.studentName.trim()) {
+        setError("Please enter the student's name.");
+        return false;
+      }
+      if (!formData.studentGrade) {
+        setError("Please select the student's grade.");
+        return false;
+      }
     }
 
-    // Phone validation (basic)
-    const phoneRegex = /^[0-9\s\-\+\(\)]{10,}$/;
-    if (!phoneRegex.test(formData.contactNumber.replace(/\s/g, ""))) {
-      setError("Please enter a valid contact number");
-      return false;
+    if (currentStep === 3) {
+      if (!formData.country.trim()) {
+        setError("Please enter the country.");
+        return false;
+      }
+      if (!formData.state.trim()) {
+        setError("Please enter the state or region.");
+        return false;
+      }
+      if (!formData.languages.trim()) {
+        setError("Please tell us which languages the student is comfortable with.");
+        return false;
+      }
     }
 
-    // If demo session is wanted, check date and time
-    if (formData.wantsDemoSession === "yes") {
+    if (currentStep === 4) {
+      if (!formData.parentName.trim()) {
+        setError("Please enter the parent/guardian name.");
+        return false;
+      }
+
+      if (!formData.email.trim()) {
+        setError("Please enter an email address.");
+        return false;
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        setError("Please enter a valid email address.");
+        return false;
+      }
+
+      if (!formData.contactNumber.trim()) {
+        setError("Please enter a contact number.");
+        return false;
+      }
+
+      if (!/^[0-9\s\-\+\(\)]{10,}$/.test(formData.contactNumber.replace(/\s/g, ""))) {
+        setError("Please enter a valid contact number.");
+        return false;
+      }
+    }
+
+    if (currentStep === 5 && formData.wantsDemoSession === "yes") {
       if (!formData.preferredDate || !formData.preferredTime) {
-        setError("Please select preferred date and time for the demo session");
+        setError("Please choose a date and time for the demo.");
         return false;
       }
     }
 
+    setError(null);
     return true;
   };
 
+  const nextStep = () => {
+    if (!validateStep(step)) return;
+    setStep((current) => Math.min(5, current + 1));
+  };
+
+  const previousStep = () => {
+    setError(null);
+    setStep((current) => Math.max(1, current - 1));
+  };
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
+    if (loading) return;
+    setError(null);
 
-  if (loading) return;
+    if (!validateStep(5)) return;
 
-  setError(null);
+    setLoading(true);
 
-  if (!validateForm()) {
-    return;
-  }
+    try {
+      /*
+        IMPORTANT:
+        preferredDate is sent as YYYY-MM-DD and preferredTime as HH:MM,
+        exactly as the previous modal sent them. The backend already maps
+        these two values directly into the Google Sheets row.
+      */
+      const payload = {
+        ...formData,
+        source,
+      };
 
-  setLoading(true);
+      const response = await fetch(
+        "https://brainbugz-learning-management-system.onrender.com/api/submit-demo-booking",
+        {
+          method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+          body: JSON.stringify(payload),
+        }
+      );
 
-  try {
-    // backend URL
-    const response = await fetch(
-  "https://brainbugz-learning-management-system.onrender.com/api/submit-demo-booking",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(formData),
-  }
-);
+      const text = await response.text();
+      let result = {};
 
-const text = await response.text();
+      try {
+        result = JSON.parse(text);
+      } catch {
+        result = { message: text };
+      }
 
-let result = {};
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to submit booking");
+      }
 
-try {
-  result = JSON.parse(text);
-} catch {
-  result = { message: text };
-}
+      setSuccess(true);
 
-console.log("API RESPONSE:", result);
+      setTimeout(() => {
+        onClose();
+      }, 3000);
+    } catch (err) {
+      console.error("Booking submission error:", err);
+      setError(err.message || "Failed to submit booking. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-if (!response.ok) {
-  throw new Error(result.error || "Failed to submit booking");
-}
+  const progress = (step / STEPS.length) * 100;
 
-setSuccess(true);
-
-    setTimeout(() => {
-      onClose();
-    }, 3000);
-
-  } catch (err) {
-    console.error("Booking submission error:", err);
-
-    setError(
-      err.message ||
-      "Failed to submit booking. Please try again."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+  const sourceLabel =
+    source && source !== "general"
+      ? source.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+      : null;
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
             className="fixed inset-0 z-[9998]"
-            style={{ background: "rgba(10, 15, 30, 0.78)" }}
+            style={{ background: "rgba(15, 23, 42, 0.72)" }}
             onClick={onClose}
           />
 
-          {/* Modal */}
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 pointer-events-none">
             <motion.div
-              initial={{ scale: 0.94, y: 20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.94, y: 20, opacity: 0 }}
+              initial={{ opacity: 0, scale: 0.96, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 16 }}
               transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              className="relative w-full max-w-xl pointer-events-auto"
-              style={{ maxHeight: "90vh" }}
-              onClick={e => e.stopPropagation()}
+              className="relative w-full max-w-[620px] pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
             >
               <div
-                className="relative  bg-white flex flex-col"
-                style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.22), 0 4px 16px rgba(0,0,0,0.08)", maxHeight: "85vh" }}
+                className="relative overflow-hidden rounded-[1.75rem] sm:rounded-[2rem] bg-white border-2 flex flex-col"
+                style={{
+                  borderColor: COLORS.border,
+                  boxShadow: SHADOWS.lg,
+                  maxHeight: "min(720px, calc(100vh - 24px))",
+                }}
               >
-                {/* Top accent bar */}
+                {/* Branded top line */}
                 <div
-                  className="absolute top-0 left-0 right-0 h-1 z-10"
-                  style={{ background: "linear-gradient(90deg, #0EA5E9, #10B981)" }}
+                  className="absolute top-0 left-0 right-0 h-1.5"
+                  style={{ background: GRADIENTS.primary }}
                 />
 
-                {/* Close Button */}
-                <button
-                  onClick={onClose}
-                  className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors z-20"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                <div className="overflow-y-auto flex-1 p-8 md:p-10">
-                  {/* Success State */}
-                  {success ? (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="text-center py-12"
-                    >
-                      <motion.div
-                        animate={{ scale: [1, 1.1, 1] }}
-                        transition={{ duration: 0.6 }}
-                        className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6"
+                {/* Header */}
+                <div className="px-5 pt-6 pb-4 sm:px-7 sm:pt-7">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+                        style={{
+                          background: COLORS.emeraldLight,
+                          color: COLORS.emerald,
+                        }}
                       >
-                        <CheckCircle2 className="w-8 h-8 text-emerald-600" />
-                      </motion.div>
-                      <h3 className="text-2xl font-bold text-slate-900 mb-2">Booking Confirmed! ✨</h3>
-                      <p className="text-slate-600 mb-2">
-                        We've received your demo class booking request
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        Our team will contact you shortly to confirm your session details.
-                      </p>
-                    </motion.div>
-                  ) : (
-                    <>
-                      {/* Header */}
-                      <div className="mb-5">
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="inline-flex items-center justify-center w-11 h-11 rounded-2xl mb-3"
-                          style={{
-                            background: "linear-gradient(135deg, #e0f9f4, #e0f2fe)",
-                            border: "1px solid rgba(16,185,129,0.2)",
-                          }}
-                        >
-                          <Calendar className="w-7 h-7 text-emerald-600" />
-                        </motion.div>
-                        <h2 className="text-2xl font-extrabold mb-1 text-slate-900 tracking-tight">
-                          🚀 Launch Your Coding Journey
-                        </h2>
-                        <p className="text-slate-600 font-medium">
-                          Book your free demo class and discover how we help kids become confident coders!
-                        </p>
+                        <Sparkles className="w-5 h-5" />
                       </div>
 
-                      {/* Error Message */}
-                      <AnimatePresence>
-                        {error && (
+                      <div>
+                        <div
+                          className="text-[9px] font-black uppercase tracking-[0.16em]"
+                          style={{ color: COLORS.emerald }}
+                        >
+                          Free trial
+                        </div>
+                        <h2
+                          className="text-xl sm:text-2xl font-black leading-tight mt-0.5"
+                          style={{ letterSpacing: "-0.035em", color: COLORS.ink }}
+                        >
+                          Let's book a class!
+                        </h2>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      aria-label="Close"
+                      className="w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0"
+                      style={{
+                        borderColor: COLORS.border,
+                        color: COLORS.textSecondary,
+                      }}
+                    >
+                      <X className="w-4.5 h-4.5" />
+                    </button>
+                  </div>
+
+                  {!success && (
+                    <>
+                      <div className="flex items-center gap-2 mt-5">
+                        <div
+                          className="h-1.5 flex-1 rounded-full overflow-hidden"
+                          style={{ background: COLORS.bgTertiary }}
+                        >
                           <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.18 }}
-                            className="flex items-start gap-3 p-4 mb-6 rounded-2xl bg-red-50 border border-red-100 overflow-hidden"
-                          >
-                            <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500 mt-0.5" />
-                            <p className="text-sm font-semibold text-red-700">{error}</p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                            className="h-full rounded-full"
+                            animate={{ width: `${progress}%` }}
+                            transition={{ duration: 0.25 }}
+                            style={{ background: GRADIENTS.primary }}
+                          />
+                        </div>
 
-                      {/* Form */}
-                      <form onSubmit={handleSubmit} className="space-y-5">
-                        {/* Source (hidden/info field) */}
-                        {source !== "general" && (
-                          <div className="px-4 py-3 rounded-xl text-sm font-medium bg-blue-50 border border-blue-100 text-blue-700">
-                            Interest: <span className="font-bold capitalize">{source.replace("_", " ")}</span>
-                          </div>
-                        )}
+                        <span
+                          className="text-[10px] font-black whitespace-nowrap"
+                          style={{ color: COLORS.textMuted }}
+                        >
+                          {step} / {STEPS.length}
+                        </span>
+                      </div>
 
-                        {/* What are they booking a demo for? */}
-                        <div>
-                          <label className="block text-sm font-bold mb-3 text-slate-700">
-                            What would you like a demo for? *
-                          </label>
-                          <div className="grid gap-3 sm:grid-cols-3">
-                            {[
-                              { value: "coding", label: "Coding" },
-                              { value: "maths", label: "maths" },
-                              { value: "academic_tuition", label: "Academic Tuition (Class 1–12)" },
-                              { value: "courses", label: "Courses" },
-                            ].map(option => (       
-                              <label
-                                key={option.value}
-                                className="flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl border text-sm font-semibold transition-colors"
+                      <div className="flex gap-2 mt-3 overflow-x-auto">
+                        {STEPS.map((item) => {
+                          const Icon = item.icon;
+                          const active = step === item.id;
+                          const done = step > item.id;
+
+                          return (
+                            <div
+                              key={item.id}
+                              className="shrink-0 flex items-center gap-1.5 text-[9px] font-black"
+                              style={{
+                                color: active || done
+                                  ? COLORS.ink
+                                  : COLORS.textMuted,
+                              }}
+                            >
+                              <div
+                                className="w-6 h-6 rounded-lg flex items-center justify-center"
                                 style={{
-                                  background: formData.programInterest === option.value ? "#e0f9f4" : "#f8fafc",
-                                  borderColor: formData.programInterest === option.value ? "#10B981" : "#e2e8f0",
-                                  color: formData.programInterest === option.value ? "#047857" : "#334155",
+                                  background:
+                                    active || done
+                                      ? COLORS.emeraldLight
+                                      : COLORS.bgTertiary,
+                                  color:
+                                    active || done
+                                      ? COLORS.emerald
+                                      : COLORS.textMuted,
                                 }}
                               >
-                                <input
-                                  type="radio"
-                                  name="programInterest"
-                                  value={option.value}
-                                  checked={formData.programInterest === option.value}
-                                  onChange={handleInputChange}
-                                  className="w-4 h-4"
-                                />
-                                {option.label}
-                              </label>
-                            ))}
-                          </div>
-                        </div>
+                                <Icon className="w-3 h-3" />
+                              </div>
+                              {item.label}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
 
-                        {/* Row 1: Student Name & Grade */}
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-bold mb-2 text-slate-700">
-                              Student Name *
-                            </label>
-                            <input
-                              type="text"
-                              name="studentName"
-                              value={formData.studentName}
-                              onChange={handleInputChange}
-                              placeholder="e.g., Arjun Sharma"
-                              className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none transition-colors focus:bg-white focus:border-cyan-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-bold mb-2 text-slate-700">
-                              Student Grade *
-                            </label>
-                            <select
-                              name="studentGrade"
-                              value={formData.studentGrade}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 outline-none transition-colors focus:bg-white focus:border-cyan-500"
-                            >
-                              <option value="">Select grade</option>
-                              <option value="K">Kindergarten</option>
-                              <option value="1">Grade 1</option>
-                              <option value="2">Grade 2</option>
-                              <option value="3">Grade 3</option>
-                              <option value="4">Grade 4</option>
-                              <option value="5">Grade 5</option>
-                              <option value="6">Grade 6</option>
-                              <option value="7">Grade 7</option>
-                              <option value="8">Grade 8</option>
-                              <option value="9">Grade 9</option>
-                              <option value="10">Grade 10</option>
-                              <option value="11">Grade 11</option>
-                              <option value="12">Grade 12</option>
-                            </select>
-                          </div>
-                        </div>
+                {/* Content */}
+                <div className="overflow-y-auto px-5 sm:px-7 pb-5">
+                  {success ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="py-10 sm:py-14 text-center"
+                    >
+                      <motion.div
+                        animate={{ y: [0, -7, 0], rotate: [0, 3, 0] }}
+                        transition={{ duration: 1.2, repeat: 1 }}
+                        className="w-20 h-20 rounded-[1.7rem] mx-auto flex items-center justify-center"
+                        style={{
+                          background: COLORS.emeraldLight,
+                          color: COLORS.emerald,
+                        }}
+                      >
+                        <CheckCircle2 className="w-10 h-10" />
+                      </motion.div>
 
-                        {/* Row 2: Country & State */}
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-bold mb-2 text-slate-700">
-                              Country *
-                            </label>
-                            <input
-                              type="text"
-                              name="country"
-                              value={formData.country}
-                              onChange={handleInputChange}
-                              placeholder="e.g., India"
-                              className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none transition-colors focus:bg-white focus:border-cyan-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-bold mb-2 text-slate-700">
-                              State/Region *
-                            </label>
-                            <input
-                              type="text"
-                              name="state"
-                              value={formData.state}
-                              onChange={handleInputChange}
-                              placeholder="e.g., Punjab"
-                              className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none transition-colors focus:bg-white focus:border-cyan-500"
-                            />
-                          </div>
-                        </div>
+                      <h3
+                        className="text-2xl sm:text-3xl font-black mt-6"
+                        style={{ letterSpacing: "-0.045em" }}
+                      >
+                        You're booked! 🎉
+                      </h3>
 
-                        {/* Languages */}
-                        <div>
-                          <label className="block text-sm font-bold mb-2 text-slate-700">
-                            Languages Student is Proficient In *
-                          </label>
-                          <input
-                            type="text"
-                            name="languages"
-                            value={formData.languages}
-                            onChange={handleInputChange}
-                            placeholder="e.g., English, Hindi, Punjabi"
-                            className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none transition-colors focus:bg-white focus:border-cyan-500"
-                          />
-                        </div>
+                      <p
+                        className="text-sm font-medium mt-2 max-w-sm mx-auto"
+                        style={{ color: COLORS.textSecondary }}
+                      >
+                        We've received your request. Our team will contact you
+                        shortly to confirm the class.
+                      </p>
 
-                        {/* Row 3: Parent Name & Email */}
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-bold mb-2 text-slate-700">
-                              Parent/Guardian Name *
-                            </label>
-                            <input
-                              type="text"
-                              name="parentName"
-                              value={formData.parentName}
-                              onChange={handleInputChange}
-                              placeholder="e.g., Rajesh Sharma"
-                              className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none transition-colors focus:bg-white focus:border-cyan-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-bold mb-2 text-slate-700">
-                              Email Address *
-                            </label>
-                            <input
-                              type="email"
-                              name="email"
-                              value={formData.email}
-                              onChange={handleInputChange}
-                              placeholder="parent@example.com"
-                              className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none transition-colors focus:bg-white focus:border-cyan-500"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Contact Number */}
-                        <div>
-                          <label className="block text-sm font-bold mb-2 text-slate-700">
-                            Contact Number *
-                          </label>
-                          <input
-                            type="tel"
-                            name="contactNumber"
-                            value={formData.contactNumber}
-                            onChange={handleInputChange}
-                            placeholder="e.g., +916239434959"
-                            className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 outline-none transition-colors focus:bg-white focus:border-cyan-500"
-                          />
-                        </div>
-
-                        {/* Divider */}
-                        <div className="border-t border-slate-200 my-6" />
-
-                        {/* Demo Session Question */}
-                        <div>
-                          <label className="block text-sm font-bold mb-3 text-slate-700">
-                            Would you like to attend a demo session? *
-                          </label>
-                          <div className="flex gap-4">
-                            {["yes", "no"].map(option => (
-                              <label key={option} className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="wantsDemoSession"
-                                  value={option}
-                                  checked={formData.wantsDemoSession === option}
-                                  onChange={handleInputChange}
-                                  className="w-4 h-4"
-                                />
-                                <span className="text-sm font-medium text-slate-700 capitalize">
-                                  {option === "yes" ? "Yes, I want a demo!" : "Not right now"}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Conditional: Date & Time fields */}
-                        {showDateTimeFields && (
+                      <div
+                        className="inline-flex items-center gap-2 mt-5 px-4 py-2.5 rounded-full text-[10px] font-black"
+                        style={{
+                          background: COLORS.cyanLight,
+                          color: COLORS.cyan,
+                        }}
+                      >
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        {formData.preferredDate
+                          ? `${formData.preferredDate} · ${formatTime(formData.preferredTime || "09:00")}`
+                          : "Our team will contact you shortly"}
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <form onSubmit={handleSubmit}>
+                      <AnimatePresence mode="wait">
+                        {step === 1 && (
                           <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="space-y-4"
+                            key="step-1"
+                            initial={{ opacity: 0, x: 18 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -18 }}
+                            className="space-y-5"
                           >
-                            <div className="grid md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-bold mb-2 text-slate-700 flex items-center gap-2">
-                                  <Calendar className="w-4 h-4" />
-                                  Preferred Date *
-                                </label>
-                                <input
-                                  type="date"
-                                  name="preferredDate"
-                                  value={formData.preferredDate}
-                                  onChange={handleInputChange}
-                                  min={new Date().toISOString().split("T")[0]}
-                                  className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 outline-none transition-colors focus:bg-white focus:border-cyan-500"
-                                />
+                            <div>
+                              <div
+                                className="text-[9px] font-black uppercase tracking-widest"
+                                style={{ color: COLORS.cyan }}
+                              >
+                                Step 1
                               </div>
-                              <div>
-                                <label className="block text-sm font-bold mb-2 text-slate-700 flex items-center gap-2">
-                                  <Clock className="w-4 h-4" />
-                                  Preferred Time *
-                                </label>
-                                <input
-                                  type="time"
-                                  name="preferredTime"
-                                  value={formData.preferredTime}
-                                  onChange={handleInputChange}
-                                  className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 outline-none transition-colors focus:bg-white focus:border-cyan-500"
-                                />
+                              <h3
+                                className="text-2xl sm:text-3xl font-black mt-1"
+                                style={{ letterSpacing: "-0.045em" }}
+                              >
+                                What would you like to try?
+                              </h3>
+                              <p
+                                className="text-xs font-medium mt-1.5"
+                                style={{ color: COLORS.textMuted }}
+                              >
+                                Pick the class you'd like a free demo for.
+                              </p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              {PROGRAMS.map((program) => {
+                                const selected =
+                                  formData.programInterest === program.value;
+
+                                return (
+                                  <button
+                                    key={program.value}
+                                    type="button"
+                                    onClick={() =>
+                                      updateField(
+                                        "programInterest",
+                                        program.value
+                                      )
+                                    }
+                                    className="min-h-[76px] rounded-2xl border-2 px-4 py-3 text-left transition-all"
+                                    style={{
+                                      borderColor: selected
+                                        ? COLORS.emerald
+                                        : COLORS.border,
+                                      background: selected
+                                        ? COLORS.emeraldLight
+                                        : COLORS.white,
+                                      color: selected
+                                        ? COLORS.emerald
+                                        : COLORS.ink,
+                                    }}
+                                  >
+                                    <div className="text-sm font-black">
+                                      {program.label}
+                                    </div>
+                                    <div
+                                      className="text-[9px] font-bold mt-1"
+                                      style={{
+                                        color: selected
+                                          ? COLORS.emerald
+                                          : COLORS.textMuted,
+                                      }}
+                                    >
+                                      Free trial class
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {sourceLabel && (
+                              <div
+                                className="rounded-2xl px-4 py-3 flex items-center gap-3"
+                                style={{
+                                  background: COLORS.cyanLight,
+                                  color: COLORS.cyan,
+                                }}
+                              >
+                                <Laptop className="w-4 h-4 shrink-0" />
+                                <div>
+                                  <div className="text-[9px] font-black uppercase tracking-wider">
+                                    Opened from
+                                  </div>
+                                  <div className="text-xs font-black mt-0.5">
+                                    {sourceLabel}
+                                  </div>
+                                </div>
                               </div>
+                            )}
+                          </motion.div>
+                        )}
+
+                        {step === 2 && (
+                          <motion.div
+                            key="step-2"
+                            initial={{ opacity: 0, x: 18 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -18 }}
+                            className="space-y-5"
+                          >
+                            <div>
+                              <div
+                                className="text-[9px] font-black uppercase tracking-widest"
+                                style={{ color: COLORS.indigo }}
+                              >
+                                Step 2
+                              </div>
+                              <h3 className="text-2xl sm:text-3xl font-black mt-1" style={{ letterSpacing: "-0.045em" }}>
+                                Who's joining us?
+                              </h3>
+                              <p className="text-xs font-medium mt-1.5" style={{ color: COLORS.textMuted }}>
+                                Just the basics.
+                              </p>
+                            </div>
+
+                            <Field
+                              label="Student Name"
+                              required
+                              value={formData.studentName}
+                              onChange={(value) => updateField("studentName", value)}
+                              placeholder="e.g. Arjun Sharma"
+                              autoFocus
+                            />
+
+                            <div>
+                              <Label>
+                                Student Grade <span style={{ color: COLORS.emerald }}> *</span>
+                              </Label>
+                              <select
+                                value={formData.studentGrade}
+                                onChange={(e) =>
+                                  updateField("studentGrade", e.target.value)
+                                }
+                                className="w-full h-13 px-4 rounded-2xl border-2 outline-none font-bold text-sm appearance-none bg-white"
+                                style={{
+                                  borderColor: COLORS.border,
+                                  color: formData.studentGrade
+                                    ? COLORS.ink
+                                    : COLORS.textMuted,
+                                }}
+                              >
+                                <option value="">Select grade</option>
+                                {GRADES.map(([value, label]) => (
+                                  <option key={value} value={value}>
+                                    {label}
+                                  </option>
+                                ))}
+                              </select>
                             </div>
                           </motion.div>
                         )}
 
-                        {/* Submit Button */}
-                        <motion.button
-                          type="submit"
-                          disabled={loading}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="w-full py-3.5 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-70 transition-opacity mt-4"
+                        {step === 3 && (
+                          <motion.div
+                            key="step-3"
+                            initial={{ opacity: 0, x: 18 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -18 }}
+                            className="space-y-5"
+                          >
+                            <div>
+                              <div
+                                className="text-[9px] font-black uppercase tracking-widest"
+                                style={{ color: COLORS.cyan }}
+                              >
+                                Step 3
+                              </div>
+                              <h3 className="text-2xl sm:text-3xl font-black mt-1" style={{ letterSpacing: "-0.045em" }}>
+                                A little more about them.
+                              </h3>
+                              <p className="text-xs font-medium mt-1.5" style={{ color: COLORS.textMuted }}>
+                                This helps us prepare the right class experience.
+                              </p>
+                            </div>
+
+                            <div className="grid sm:grid-cols-2 gap-4">
+                              <Field
+                                label="Country"
+                                required
+                                value={formData.country}
+                                onChange={(value) => updateField("country", value)}
+                                placeholder="e.g. India"
+                              />
+
+                              <Field
+                                label="State / Region"
+                                required
+                                value={formData.state}
+                                onChange={(value) => updateField("state", value)}
+                                placeholder="e.g. Punjab"
+                              />
+                            </div>
+
+                            <Field
+                              label="Languages Student is Proficient In"
+                              required
+                              value={formData.languages}
+                              onChange={(value) => updateField("languages", value)}
+                              placeholder="e.g. English, Hindi, Punjabi"
+                              icon={Languages}
+                            />
+                          </motion.div>
+                        )}
+
+                        {step === 4 && (
+                          <motion.div
+                            key="step-4"
+                            initial={{ opacity: 0, x: 18 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -18 }}
+                            className="space-y-5"
+                          >
+                            <div>
+                              <div
+                                className="text-[9px] font-black uppercase tracking-widest"
+                                style={{ color: COLORS.emerald }}
+                              >
+                                Step 4
+                              </div>
+                              <h3 className="text-2xl sm:text-3xl font-black mt-1" style={{ letterSpacing: "-0.045em" }}>
+                                Where should we reach you?
+                              </h3>
+                              <p className="text-xs font-medium mt-1.5" style={{ color: COLORS.textMuted }}>
+                                A parent or guardian's contact details.
+                              </p>
+                            </div>
+
+                            <Field
+                              label="Parent / Guardian Name"
+                              required
+                              value={formData.parentName}
+                              onChange={(value) => updateField("parentName", value)}
+                              placeholder="e.g. Rajesh Sharma"
+                              icon={UserRound}
+                            />
+
+                            <Field
+                              label="Email Address"
+                              required
+                              type="email"
+                              value={formData.email}
+                              onChange={(value) => updateField("email", value)}
+                              placeholder="parent@example.com"
+                              icon={Mail}
+                            />
+
+                            <Field
+                              label="Contact Number"
+                              required
+                              type="tel"
+                              value={formData.contactNumber}
+                              onChange={(value) => updateField("contactNumber", value)}
+                              placeholder="+91 98765 43210"
+                              icon={Phone}
+                            />
+
+                            <div
+                              className="rounded-2xl px-4 py-3 text-[10px] font-bold"
+                              style={{
+                                background: COLORS.bgSecondary,
+                                color: COLORS.textMuted,
+                              }}
+                            >
+                              Please share the number you use for WhatsApp.
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {step === 5 && (
+                          <motion.div
+                            key="step-5"
+                            initial={{ opacity: 0, x: 18 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -18 }}
+                            className="space-y-5"
+                          >
+                            <div>
+                              <div
+                                className="text-[9px] font-black uppercase tracking-widest"
+                                style={{ color: COLORS.goldDeep }}
+                              >
+                                Step 5
+                              </div>
+                              <h3 className="text-2xl sm:text-3xl font-black mt-1" style={{ letterSpacing: "-0.045em" }}>
+                                Pick your class time.
+                              </h3>
+                              <p className="text-xs font-medium mt-1.5" style={{ color: COLORS.textMuted }}>
+                                Choose from the next two days.
+                              </p>
+                            </div>
+
+                            <div>
+                              <Label>Would you like to attend a demo session?</Label>
+                              <div className="grid grid-cols-2 gap-2.5">
+                                {[
+                                  ["yes", "Yes, book it!"],
+                                  ["no", "Not right now"],
+                                ].map(([value, label]) => {
+                                  const selected = formData.wantsDemoSession === value;
+                                  return (
+                                    <button
+                                      key={value}
+                                      type="button"
+                                      onClick={() => {
+                                        updateField("wantsDemoSession", value);
+                                        if (value === "no") {
+                                          updateField("preferredDate", "");
+                                          updateField("preferredTime", "");
+                                        }
+                                      }}
+                                      className="rounded-2xl border-2 px-4 py-3 text-left text-xs font-black transition-all"
+                                      style={{
+                                        borderColor: selected ? COLORS.emerald : COLORS.border,
+                                        background: selected ? COLORS.emeraldLight : COLORS.white,
+                                        color: selected ? COLORS.emerald : COLORS.textSecondary,
+                                      }}
+                                    >
+                                      {label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {formData.wantsDemoSession === "yes" && (
+                              <>
+                                <div>
+                                  <Label>
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <CalendarDays className="w-3.5 h-3.5" />
+                                      Select Date
+                                    </span>
+                                  </Label>
+
+                                  <div className="grid grid-cols-2 gap-2.5">
+                                    {dateOptions.map((date) => {
+                                      const selected = formData.preferredDate === date.value;
+                                      return (
+                                        <button
+                                          key={date.value}
+                                          type="button"
+                                          onClick={() => updateField("preferredDate", date.value)}
+                                          className="rounded-2xl border-2 p-3 text-left transition-all"
+                                          style={{
+                                            borderColor: selected ? COLORS.indigo : COLORS.border,
+                                            background: selected ? COLORS.indigoLight : COLORS.white,
+                                          }}
+                                        >
+                                          <div
+                                            className="text-[9px] font-black uppercase tracking-wider"
+                                            style={{ color: selected ? COLORS.indigo : COLORS.textMuted }}
+                                          >
+                                            {date.relative}
+                                          </div>
+                                          <div className="text-sm font-black mt-1">{date.label}</div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="flex items-center justify-between gap-3 mb-2.5">
+                                    <Label>
+                                      <span className="inline-flex items-center gap-1.5">
+                                        <Clock3 className="w-3.5 h-3.5" />
+                                        Select Time
+                                      </span>
+                                    </Label>
+                                    <span className="text-[9px] font-black" style={{ color: COLORS.textMuted }}>
+                                      9 AM – 9 PM
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                    {TIMES.map((time) => {
+                                      const selected = formData.preferredTime === time;
+                                      return (
+                                        <button
+                                          key={time}
+                                          type="button"
+                                          onClick={() => updateField("preferredTime", time)}
+                                          className="py-3 rounded-xl border-2 text-xs font-black transition-all"
+                                          style={{
+                                            borderColor: selected ? COLORS.indigo : COLORS.border,
+                                            background: selected ? COLORS.indigo : COLORS.white,
+                                            color: selected ? COLORS.white : COLORS.ink,
+                                          }}
+                                        >
+                                          {formatTime(time)}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div
+                                  className="flex items-center gap-2.5 px-3.5 py-3 rounded-2xl"
+                                  style={{ background: COLORS.bgSecondary, color: COLORS.textMuted }}
+                                >
+                                  <Clock3 className="w-4 h-4 shrink-0" />
+                                  <span className="text-[9px] font-bold">
+                                    Your demo class is 60 minutes. Laptop or desktop is compulsory for this class.
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                        <AnimatePresence>
+                        {error && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0, y: -4 }}
+                            animate={{ opacity: 1, height: "auto", y: 0 }}
+                            exit={{ opacity: 0, height: 0, y: -4 }}
+                            className="flex items-start gap-2.5 mt-4 p-3.5 rounded-2xl border-2 overflow-hidden"
+                            style={{
+                              background: COLORS.bgSecondary,
+                              borderColor: COLORS.borderMed,
+                            }}
+                          >
+                            <AlertCircle
+                              className="w-4 h-4 shrink-0 mt-0.5"
+                              style={{ color: COLORS.bronze }}
+                            />
+                            <p
+                              className="text-[10px] font-bold leading-relaxed"
+                              style={{ color: COLORS.textSecondary }}
+                            >
+                              {error}
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </form>
+                  )}
+                </div>
+
+                {/* Footer navigation */}
+                {!success && (
+                  <div
+                    className="px-5 py-4 sm:px-7 sm:py-5 border-t-2 bg-white"
+                    style={{ borderColor: COLORS.border }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      {step > 1 && (
+                        <button
+                          type="button"
+                          onClick={previousStep}
+                          className="w-12 h-12 rounded-2xl border-2 flex items-center justify-center shrink-0"
                           style={{
-                            background: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)",
-                            boxShadow: "0 6px 20px rgba(16,185,129,0.28)",
+                            borderColor: COLORS.border,
+                            color: COLORS.textSecondary,
                           }}
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                      )}
+
+                      {step < 5 ? (
+                        <button
+                          type="button"
+                          onClick={nextStep}
+                          className="flex-1 h-12 rounded-2xl text-sm font-black text-white inline-flex items-center justify-center gap-2"
+                          style={{ background: GRADIENTS.primary }}
+                        >
+                          Continue
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleSubmit}
+                          disabled={loading}
+                          className="flex-1 h-12 rounded-2xl text-sm font-black text-white inline-flex items-center justify-center gap-2 disabled:opacity-70"
+                          style={{ background: GRADIENTS.primary }}
                         >
                           {loading ? (
                             <>
-                              <Loader2 className="w-5 h-5 animate-spin" />
+                              <Loader2 className="w-4 h-4 animate-spin" />
                               Booking...
                             </>
                           ) : (
-                            "Complete Your Booking 🎉"
+                            <>
+                              <CalendarDays className="w-4 h-4" />
+                              Book Free Trial Class
+                            </>
                           )}
-                        </motion.button>
+                        </button>
+                      )}
+                    </div>
 
-                        <p className="text-xs text-center text-slate-500 mt-4">
-                          Your information is safe with us. We'll contact you within 24 hours.
-                        </p>
-                      </form>
-                    </>
-                  )}
-                </div>
+                    <div
+                      className="text-center text-[9px] font-bold mt-2.5"
+                      style={{ color: COLORS.textMuted }}
+                    >
+                      Free demo · No payment required
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
@@ -557,5 +1019,61 @@ setSuccess(true);
     </AnimatePresence>
   );
 };
+
+/* Small local form primitives keep the modal easy to maintain. */
+
+function Label({ children }) {
+  return (
+    <label
+      className="block text-[11px] font-black mb-2"
+      style={{ color: COLORS.ink }}
+    >
+      {children}
+    </label>
+  );
+}
+
+function Field({
+  label,
+  required = false,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  icon: Icon,
+  autoFocus = false,
+}) {
+  return (
+    <div>
+      <Label>
+        {label}
+        {required && <span style={{ color: COLORS.emerald }}> *</span>}
+      </Label>
+
+      <div className="relative">
+        {Icon && (
+          <Icon
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+            style={{ color: COLORS.textMuted }}
+          />
+        )}
+
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          className="w-full h-13 px-4 rounded-2xl border-2 outline-none font-bold text-sm bg-white placeholder:font-medium"
+          style={{
+            borderColor: COLORS.border,
+            color: COLORS.ink,
+            paddingLeft: Icon ? "2.75rem" : "1rem",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default DemoBookingModal;

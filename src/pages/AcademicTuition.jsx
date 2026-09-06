@@ -1,428 +1,790 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen, Award, Users, TrendingUp, Clock, Target,
-  CheckCircle2, Star, Zap, Heart, GraduationCap, ArrowRight,
-  ChevronDown, ChevronUp, Globe, FlaskConical, Calculator,
-  Landmark, MessageSquare, Monitor, BarChart2, Atom, Microscope,
-  DollarSign, ScrollText, Map, Building2, Cpu, Briefcase,
-  Sprout, Wallet, Sparkles, HelpCircle, Trophy, Flame
+  BookOpen, Calculator, FlaskConical, Globe, MessageSquare, Monitor,
+  Atom, Microscope, DollarSign, ScrollText, Map, Building2, BarChart2,
+  Briefcase, GraduationCap, Target, Users, TrendingUp, Clock,
+  CheckCircle2, Award, ArrowRight, ChevronDown, Wallet, Heart,
+  Star, Zap, Sparkles, Play, UserRound, CalendarDays, FileText
 } from "lucide-react";
-import { COLORS, GRADIENTS, SHADOWS, DARK } from "../utils/theme";
+import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
+import { getWhatsAppLink } from "../utils/whatsapp";
 
-const T = {
-  bg: "#FFFFFF",
-  ink: "#0F172A",
-  green: "#10B981",
-  sky: "#0EA5E9",
-  indigo: "#6366F1",
-  purple: "#A78BFA",
-  pink: "#FF6B9D",
-  yellow: "#FFD166",
-  teal: "#14B8A6",
-};
-
-const CLASSES_DATA = [
-  { range: "Classes 1-7", fee: "₹250/session", Icon: Sprout, SecondIcon: Users, color: T.green, desc: "Foundation building with fun learning" },
-  { range: "Classes 8-10", fee: "₹300/session", Icon: BookOpen, SecondIcon: Target, color: T.sky, desc: "Board exams preparation & concepts" },
-  { range: "Classes 11-12", fee: "₹350/session", Icon: GraduationCap, SecondIcon: Award, color: T.purple, desc: "Advanced concepts & competitive exams" },
+const CLASS_BANDS = [
+  {
+    id: "foundation",
+    label: "Classes 1–7",
+    short: "Foundation",
+    fee: "₹250",
+    note: "per 1-hour session",
+    color: COLORS.emerald,
+    light: COLORS.emeraldLight,
+    Icon: BookOpen,
+    focus: "Build strong basics",
+    subjects: [
+      ["English", BookOpen],
+      ["Mathematics", Calculator],
+      ["Science", FlaskConical],
+      ["Social Studies", Globe],
+      ["Hindi", MessageSquare],
+      ["Computer Basics", Monitor],
+    ],
+  },
+  {
+    id: "middle",
+    label: "Classes 8–10",
+    short: "Board Focus",
+    fee: "₹300",
+    note: "per 1-hour session",
+    color: COLORS.cyan,
+    light: COLORS.cyanLight,
+    Icon: Target,
+    focus: "Learn. Practise. Prepare.",
+    subjects: [
+      ["English", BookOpen],
+      ["Mathematics", Calculator],
+      ["Physics · Chemistry · Biology", FlaskConical],
+      ["History · Geography · Civics", Globe],
+      ["Hindi / Regional Language", MessageSquare],
+      ["Computer Science", Monitor],
+      ["Accountancy", BarChart2],
+    ],
+  },
+  {
+    id: "senior",
+    label: "Classes 11–12",
+    short: "Senior School",
+    fee: "₹350",
+    note: "per 1-hour session",
+    color: COLORS.indigo,
+    light: COLORS.indigoLight,
+    Icon: GraduationCap,
+    focus: "Go deeper with confidence",
+    subjects: [
+      ["Physics", Atom],
+      ["Chemistry", FlaskConical],
+      ["Mathematics", Calculator],
+      ["Biology", Microscope],
+      ["English", BookOpen],
+      ["Economics", DollarSign],
+      ["History", ScrollText],
+      ["Geography", Map],
+      ["Civics / Political Science", Building2],
+      ["Computer Science", Monitor],
+      ["Accountancy", BarChart2],
+      ["Business Studies", Briefcase],
+    ],
+  },
 ];
 
-const AVAILABLE_SYLLABUSES = [
-  { name: "CBSE", boards: "Central Board of Secondary Education" },
-  { name: "ICSE", boards: "Indian Certificate of Secondary Education" },
-  { name: "ISC", boards: "Indian School Certificate" },
-  { name: "IGCSE", boards: "International General Certificate of Secondary Education" },
-  { name: "State Boards", boards: "All Indian State Boards (Maharashtra, Karnataka, Tamil Nadu, etc.)" },
+const BOARDS = [
+  ["CBSE", "Central Board", COLORS.emerald],
+  ["ICSE", "School curriculum", COLORS.cyan],
+  ["ISC", "Senior school", COLORS.indigo],
+  ["IGCSE", "International", COLORS.gold],
+  ["State Boards", "Across India", COLORS.bronze],
 ];
 
-const SUBJECTS_BY_CLASS = {
-  "Classes 1-7": [
-    { name: "English", SubIcon: BookOpen },
-    { name: "Mathematics", SubIcon: Calculator },
-    { name: "Science", SubIcon: FlaskConical },
-    { name: "Social Studies", SubIcon: Globe },
-    { name: "Hindi", SubIcon: MessageSquare },
-    { name: "Computer Basics", SubIcon: Monitor },
-  ],
-  "Classes 8-10": [
-    { name: "English", SubIcon: BookOpen },
-    { name: "Mathematics", SubIcon: Calculator },
-    { name: "Science (Physics, Chemistry, Biology)", SubIcon: FlaskConical },
-    { name: "Social Science (History, Geography, Civics)", SubIcon: Globe },
-    { name: "Hindi/Regional Language", SubIcon: MessageSquare },
-    { name: "Computer Science", SubIcon: Monitor },
-    { name: "Accountancy (Optional)", SubIcon: BarChart2 },
-  ],
-  "Classes 11-12": [
-    { name: "Physics", SubIcon: Atom },
-    { name: "Chemistry", SubIcon: FlaskConical },
-    { name: "Mathematics", SubIcon: Calculator },
-    { name: "Biology", SubIcon: Microscope },
-    { name: "English", SubIcon: BookOpen },
-    { name: "Economics", SubIcon: DollarSign },
-    { name: "History", SubIcon: ScrollText },
-    { name: "Geography", SubIcon: Map },
-    { name: "Civics/Political Science", SubIcon: Building2 },
-    { name: "Computer Science", SubIcon: Monitor },
-    { name: "Accountancy", SubIcon: BarChart2 },
-    { name: "Business Studies", SubIcon: Briefcase },
-  ],
-};
-
-const FEATURES = [
-  { icon: Target, t: "Targeted Board Prep", d: "CBSE, ICSE, ISC, IGCSE, State boards — we teach your child's exact curriculum." },
-  { icon: Award, t: "Exam-Focused", d: "Every session designed to boost marks & build conceptual clarity for board exams." },
-  { icon: Users, t: "Small Batches (1:1 or 2-3)", d: "Personalised attention — your child isn't lost in a classroom of 40." },
-  { icon: TrendingUp, t: "Monthly Progress Reports", d: "Detailed updates on strengths, improvement areas & study strategies." },
-  { icon: Clock, t: "Flexible Schedule", d: "Book any time slot that works for you — weekdays, weekends, early morning, late night." },
-  { icon: CheckCircle2, t: "Doubt Clearing 24/7", d: "WhatsApp group for quick answers — never let a concept gap linger." },
+const SUPPORT = [
+  [Users, "Small batches", "1:1 or 2–3 students"],
+  [Target, "Board aligned", "Your exact syllabus"],
+  [TrendingUp, "Progress reports", "Clear monthly updates"],
+  [Clock, "Flexible slots", "Weekdays or weekends"],
+  [CheckCircle2, "Doubt support", "Quick help when needed"],
+  [Award, "Certificates", "Celebrate completion"],
 ];
 
 const FAQS = [
-  { q: "Which board does your tuition support?", a: "We support all major boards in India: CBSE, ICSE, ISC, IGCSE, and all state boards (Maharashtra, Karnataka, Tamil Nadu, Gujarat, Rajasthan, UP, etc.). Just tell us which board your child is in, and we'll align the curriculum." },
-  { q: "What subjects can I get tuition for?", a: "All subjects across Classes 1-12! English, Maths, Science (Physics, Chemistry, Biology), Social Studies, Hindi, Computer Science, Accountancy, Economics, Business Studies, and more. Pick any subject your child needs help with." },
-  { q: "How much does academic tuition cost?", a: "Classes 1-7: ₹250/session | Classes 8-10: ₹300/session | Classes 11-12: ₹350/session. One session = 1 hour. Book bundles and save up to 20%!" },
-  { q: "Can I book tuition for multiple subjects?", a: "Absolutely! Many students book different tutors for different subjects, or even the same tutor if they teach multiple subjects. Arrange subjects based on your child's needs." },
-  { q: "How are board exams different from regular exams?", a: "Board exams test deeper understanding, not just memorization. Our tutors help with answer writing, time management, and problem-solving strategies specific to board patterns." },
-  { q: "Can tuition help my child improve marks immediately?", a: "Improvement timeline depends on effort. With 2-3 sessions per week, most students see a 15-25% boost in 2-3 months. Consistency matters more than frequency!" },
+  {
+    q: "Which boards do you support?",
+    a: "CBSE, ICSE, ISC, IGCSE and State Boards across India.",
+  },
+  {
+    q: "Can I choose more than one subject?",
+    a: "Yes. Choose the subjects your child needs and arrange them around your preferred schedule.",
+  },
+  {
+    q: "How does pricing work?",
+    a: "Classes 1–7 are ₹250/session, Classes 8–10 are ₹300/session and Classes 11–12 are ₹350/session. Each session is 1 hour.",
+  },
+  {
+    q: "What happens in the first class?",
+    a: "We understand the student's level, identify gaps and use that to plan the right learning path.",
+  },
+  {
+    q: "What if my child misses a class?",
+    a: "Sessions are recorded, and free rescheduling is available with advance notice.",
+  },
 ];
 
-const TESTIMONIALS = [
-  { name: "Priya (Class 10, CBSE)", subject: "Maths", mark: "78 → 92", t: "Pearlx made complex topics so simple! My conceptual gaps vanished in 2 months.", TIcon: Star },
-  { name: "Aditya (Class 12, CBSE)", subject: "Physics", mark: "65 → 88", t: "The board exam focus really helped. I went from being scared of Physics to scoring 88!", TIcon: Zap },
-  { name: "Ananya (Class 9, ICSE)", subject: "English", mark: "70 → 85", t: "My teacher explained literature in ways I finally understood. Highly recommend!", TIcon: BookOpen },
-  { name: "Rohan (Class 11, ISC)", subject: "Chemistry", mark: "72 → 94", t: "Organic chemistry became my favourite subject after Pearlx tuition. Amazing teaching!", TIcon: FlaskConical },
-];
-
-// Components
-const SectionBadge = ({ children, color }) => (
-  <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black border"
-    style={{ background: `${color}15`, borderColor: `${color}30`, color }}>
-    {children}
-  </motion.div>
+const SubjectChip = ({ name, Icon, color, light }) => (
+  <div
+    className="flex items-center gap-2.5 rounded-2xl border-2 bg-white px-3 py-3"
+    style={{ borderColor: `${color}22` }}
+  >
+    <div
+      className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+      style={{ background: light, color }}
+    >
+      <Icon className="w-4 h-4" />
+    </div>
+    <span className="text-[11px] font-black leading-tight">{name}</span>
+  </div>
 );
 
-const FeatureCard = ({ icon: Icon, t, d, delay = 0 }) => (
-  <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }} transition={{ delay }}
-    whileHover={{ y: -8 }}
-    className="p-6 rounded-2xl bg-white border-2 transition-all"
-    style={{ borderColor: "rgba(15,23,42,0.1)", boxShadow: "0 4px 20px rgba(15,23,42,0.04)" }}>
-    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-      style={{ background: "rgba(16,185,129,0.1)" }}>
-      <Icon className="w-6 h-6" style={{ color: T.green }} />
-    </div>
-    <h3 className="font-bold text-lg mb-2" style={{ color: T.ink }}>{t}</h3>
-    <p className="text-slate-600 text-sm leading-relaxed">{d}</p>
-  </motion.div>
-);
-
-const ClassCard = ({ range, fee, Icon, SecondIcon, color, desc }) => (
-  <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    whileHover={{ scale: 1.03, y: -6 }}
-    className="p-8 rounded-2xl border-2 bg-white relative overflow-hidden group cursor-default"
-    style={{ borderColor: `${color}20`, boxShadow: `0 12px 40px ${color}15` }}>
-    <div className="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-all"
-      style={{ background: `linear-gradient(90deg, ${color}, transparent)` }} />
-    <div className="flex items-start justify-between mb-4">
-      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: `${color}15` }}>
-        <Icon className="w-6 h-6" style={{ color }} />
-      </div>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}10` }}>
-        <SecondIcon className="w-5 h-5" style={{ color }} />
-      </div>
-    </div>
-    <h3 className="font-black text-xl mb-1" style={{ color }}>{range}</h3>
-    <p className="text-slate-500 text-sm mb-4">{desc}</p>
-    <div className="flex items-baseline gap-2">
-      <span className="font-black text-2xl" style={{ color }}>{fee}</span>
-      <span className="text-xs text-slate-400">1 hour</span>
-    </div>
-  </motion.div>
-);
-
-const SubjectList = ({ classRange }) => {
-  const subjects = SUBJECTS_BY_CLASS[classRange] || [];
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {subjects.map((subject, i) => (
-          <motion.div key={i} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="flex items-center gap-3 p-4 rounded-xl"
-            style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.15)" }}>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(16,185,129,0.15)" }}>
-              <subject.SubIcon className="w-4 h-4" style={{ color: T.green }} />
-            </div>
-            <span className="font-semibold text-sm" style={{ color: T.ink }}>{subject.name}</span>
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
-  );
-};
-
-const FAQ = () => {
-  const [openIdx, setOpenIdx] = useState(null);
-  return (
-    <div className="space-y-3">
-      {FAQS.map((faq, i) => (
-        <motion.div key={i} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
-          viewport={{ once: true }} transition={{ delay: i * 0.05 }}
-          className="rounded-2xl border-2 overflow-hidden transition-all"
-          style={{
-            borderColor: openIdx === i ? T.green : "rgba(15,23,42,0.1)",
-            boxShadow: openIdx === i ? `0 8px 24px rgba(16,185,129,0.15)` : "0 2px 8px rgba(0,0,0,0.02)"
-          }}>
-          <button onClick={() => setOpenIdx(openIdx === i ? null : i)}
-            className="w-full flex items-center justify-between p-6 text-left font-bold transition-all"
-            style={{ color: T.ink, background: openIdx === i ? "rgba(16,185,129,0.05)" : "#fff" }}>
-            <span className="text-sm sm:text-base">{faq.q}</span>
-            <motion.span animate={{ rotate: openIdx === i ? 180 : 0 }} transition={{ duration: 0.2 }}>
-              <ChevronDown className="w-5 h-5" style={{ color: T.green }} />
-            </motion.span>
-          </button>
-          <AnimatePresence>
-            {openIdx === i && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }}
-                className="px-6 pb-6 text-slate-600 text-sm leading-relaxed border-t"
-                style={{ borderColor: "rgba(16,185,129,0.1)" }}>
-                {faq.a}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      ))}
-    </div>
-  );
-};
-
-const TestimonialCard = ({ name, subject, mark, t, TIcon }) => (
-  <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }}
-    viewport={{ once: true }}
-    className="p-6 rounded-2xl bg-white border-2 flex flex-col"
-    style={{ borderColor: "rgba(16,185,129,0.15)", boxShadow: "0 4px 20px rgba(0,0,0,0.04)" }}>
-    <div className="flex items-center gap-1 mb-3">
-      {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4" fill={T.yellow} style={{ color: T.yellow }} />)}
-    </div>
-    <p className="text-slate-600 text-sm leading-relaxed mb-4 flex-1 italic">{t}</p>
-    <div className="border-t pt-4" style={{ borderColor: "rgba(15,23,42,0.1)" }}>
-      <div className="font-bold text-sm" style={{ color: T.ink }}>{name}</div>
-      <div className="text-xs text-slate-500 mb-2">{subject}</div>
-      <div className="inline-flex items-center gap-2 px-2 py-1 rounded-lg text-xs font-bold"
-        style={{ background: "rgba(16,185,129,0.1)", color: T.green }}>
-        <TIcon className="w-3.5 h-3.5" /> {mark}
-      </div>
-    </div>
-  </motion.div>
-);
-
-//MAIN COMPONENT
 const AcademicTuition = ({ openDemoModal }) => {
-  const [expandedClass, setExpandedClass] = useState("Classes 1-7");
+  const [activeBand, setActiveBand] = useState("foundation");
+  const [openFaq, setOpenFaq] = useState(null);
+
+  const active = CLASS_BANDS.find((item) => item.id === activeBand);
 
   return (
-    <main className="pt-28">
-      {/*HERO */}
-      <section className="py-28 px-4 relative overflow-hidden" style={{ background: T.bg }}>
-        <div className="absolute inset-0 pointer-events-none">
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-32 -right-32 w-[40vw] h-[40vw] rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%)", filter: "blur(60px)" }} />
-          <motion.div animate={{ rotate: -360 }} transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
-            className="absolute -bottom-32 -left-32 w-[40vw] h-[40vw] rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%)", filter: "blur(60px)" }} />
+    <main
+      className="min-h-screen overflow-hidden"
+      style={{ background: COLORS.bgSecondary, color: COLORS.ink }}
+    >
+      {/* HERO */}
+      <section className="relative pt-48 sm:pt-48 pb-10 sm:pb-14">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div
+            className="absolute -top-40 -right-40 w-[28rem] h-[28rem] rounded-full blur-3xl"
+            style={{ background: COLORS.emeraldLight }}
+          />
+          <div
+            className="absolute top-72 -left-48 w-[25rem] h-[25rem] rounded-full blur-3xl"
+            style={{ background: COLORS.cyanLight }}
+          />
         </div>
 
-        <div className="max-w-7xl mx-auto relative z-10">
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-            <SectionBadge color={T.green}><BookOpen className="w-3.5 h-3.5" /> Academic Tuition</SectionBadge>
-          </motion.div>
-          <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="font-black mt-6 mb-4 leading-tight"
-            style={{ fontSize: "clamp(2.5rem, 6vw, 4rem)", color: T.ink, letterSpacing: "-0.04em" }}>
-            Score top marks with{" "}
-            <span style={{ background: GRADIENTS.primary, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-              board-aligned tuition
-            </span>
-          </motion.h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-            className="text-lg text-slate-600 max-w-2xl mb-8 leading-relaxed">
-            Classes 1-12 • All boards (CBSE, ICSE, ISC, IGCSE, State) • All subjects • Expert teachers • Exam-focused prep
-          </motion.p>
-          <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
-            onClick={() => openDemoModal("academic_hero")}
-            className="px-8 py-4 rounded-2xl text-white font-bold border-none cursor-pointer"
-            style={{ background: `linear-gradient(135deg, ${T.green}, ${T.sky})`, boxShadow: "0 8px 28px rgba(16,185,129,0.3)" }}>
-            Book Free Demo Class <ArrowRight className="w-5 h-5 inline ml-2" />
-          </motion.button>
-        </div>
-      </section>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative">
+          <div className="grid lg:grid-cols-[1fr_0.9fr] gap-8 lg:gap-14 items-center">
+            <div className="text-center lg:text-left">
+              {/* <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-[10px] font-black tracking-widest"
+                style={{
+                  color: COLORS.emerald,
+                  background: COLORS.emeraldLight,
+                  border: `1px solid ${COLORS.emerald}25`,
+                }}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                ACADEMIC TUITION
+              </motion.div> */}
 
-      {/*FEE STRUCTURE*/}
-      <section className="py-24 px-4" style={{ background: "linear-gradient(160deg, #F0FFFE, #E0F2FE)" }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <SectionBadge color={T.green}><Wallet className="w-3.5 h-3.5" /> Simple Pricing</SectionBadge>
-            <h2 className="font-black text-3xl mt-4 mb-3" style={{ color: T.ink, letterSpacing: "-0.03em" }}>
-              Affordable for every family
-            </h2>
-            <p className="text-slate-600 max-w-xl mx-auto">
-              Transparent pricing with no hidden fees. Book sessions when you need them.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {CLASSES_DATA.map((cls, i) => (
-              <ClassCard key={i} {...cls} />
-            ))}
-          </div>
-          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="p-6 rounded-2xl text-center text-sm"
-            style={{ background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.15)" }}>
-            <span style={{ color: T.green }} className="font-bold flex items-center gap-1"><Sparkles className="w-3.5 h-3.5 inline" /> Save up to 20%</span> with bundle packages! Ask for details on WhatsApp.
-          </motion.div>
-        </div>
-      </section>
-
-      {/* AVAILABLE SYLLABUS */}
-      <section className="py-24 px-4" style={{ background: T.bg }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <SectionBadge color={T.sky}><Globe className="w-3.5 h-3.5" /> All Indian Boards</SectionBadge>
-            <h2 className="font-black text-3xl mt-4 mb-3" style={{ color: T.ink }}>
-              We teach every Indian curriculum
-            </h2>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {AVAILABLE_SYLLABUSES.map((board, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                whileHover={{ scale: 1.05 }}
-                className="p-6 rounded-2xl bg-white border-2 text-center"
-                style={{ borderColor: "rgba(14,165,233,0.15)" }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 mx-auto" style={{ background: "rgba(14,165,233,0.1)" }}>
-                  <GraduationCap className="w-5 h-5" style={{ color: T.sky }} />
-                </div>
-                <h3 className="font-bold" style={{ color: T.ink }}>{board.name}</h3>
-                <p className="text-xs text-slate-500 mt-1">{board.boards}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SUBJECTS BY CLASS */}
-      <section className="py-24 px-4" style={{ background: "linear-gradient(160deg, #F0FFFE, #E0F2FE)" }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <SectionBadge color={T.green}><BookOpen className="w-3.5 h-3.5" /> Subject Coverage</SectionBadge>
-            <h2 className="font-black text-3xl mt-4 mb-3" style={{ color: T.ink }}>
-              All subjects for all classes
-            </h2>
-          </div>
-          <div className="space-y-4">
-            {Object.keys(SUBJECTS_BY_CLASS).map((classRange, i) => (
-              <motion.div key={i} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
-                viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                <button onClick={() => setExpandedClass(expandedClass === classRange ? null : classRange)}
-                  className="w-full flex items-center justify-between p-6 rounded-2xl bg-white border-2 font-bold transition-all"
+              <motion.h1
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08 }}
+                className="font-black text-5xl sm:text-6xl lg:text-7xl leading-[0.94] mt-4"
+                style={{ letterSpacing: "-0.065em" }}
+              >
+                School work,
+                <br />
+                <span
                   style={{
-                    borderColor: expandedClass === classRange ? T.green : "rgba(15,23,42,0.1)",
-                    color: T.ink
-                  }}>
-                  <span>{classRange}</span>
-                  <ChevronDown className="w-5 h-5" style={{ color: T.green, transform: expandedClass === classRange ? "rotate(180deg)" : "rotate(0deg)", transition: "0.3s" }} />
+                    background: GRADIENTS.textGlow,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  made simpler.
+                </span>
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.16 }}
+                className="max-w-xl mx-auto lg:mx-0 mt-5 text-sm sm:text-base font-medium leading-relaxed"
+                style={{ color: COLORS.textSecondary }}
+              >
+                Live, personalised tuition aligned to your child's school
+                curriculum — with the right teacher and the right pace.
+              </motion.p>
+
+              <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-2.5 mt-6">
+                <button
+                  onClick={() => openDemoModal?.("academic_hero")}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-black text-white"
+                  style={{
+                    background: GRADIENTS.primary,
+                    boxShadow: SHADOWS.lg,
+                  }}
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  Book a Free Class
+                  <ArrowRight className="w-4 h-4" />
                 </button>
-                <AnimatePresence>
-                  {expandedClass === classRange && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }}
-                      className="p-6">
-                      <SubjectList classRange={classRange} />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+
+                <a
+                  href="#subjects"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl border-2 bg-white text-sm font-black"
+                  style={{
+                    color: COLORS.emerald,
+                    borderColor: `${COLORS.emerald}30`,
+                  }}
+                >
+                  Explore subjects
+                </a>
+              </div>
+
+              <div className="flex flex-wrap justify-center lg:justify-start gap-2 mt-5">
+                {[
+                  [UserRound, "1:1 / 2–3 students", COLORS.emerald],
+                  [Target, "Board aligned", COLORS.cyan],
+                  [CalendarDays, "Flexible slots", COLORS.goldDeep],
+                ].map(([Icon, label, color]) => (
+                  <div
+                    key={label}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border bg-white"
+                    style={{
+                      borderColor: COLORS.border,
+                      boxShadow: SHADOWS.sm,
+                    }}
+                  >
+                    <Icon className="w-3.5 h-3.5" style={{ color }} />
+                    <span className="text-[10px] font-black">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* HANDMADE STUDY DESK VISUAL */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 14 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 0.12, duration: 0.5 }}
+              className="relative max-w-[500px] w-full mx-auto"
+            >
+              <div
+                className="relative rounded-[2.5rem] border-2 bg-white p-4 sm:p-5"
+                style={{
+                  borderColor: `${COLORS.emerald}22`,
+                  boxShadow: SHADOWS.lg,
+                }}
+              >
+                <div className="flex items-center justify-between pb-4">
+                  <div>
+                    <div
+                      className="text-[9px] font-black tracking-widest"
+                      style={{ color: COLORS.textMuted }}
+                    >
+                      TODAY'S STUDY DESK
+                    </div>
+                    <div className="text-lg font-black mt-1">
+                      Let's get this one.
+                    </div>
+                  </div>
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                    style={{
+                      background: COLORS.emeraldLight,
+                      color: COLORS.emerald,
+                    }}
+                  >
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                </div>
+
+                <div
+                  className="rounded-3xl border-2 p-4"
+                  style={{
+                    borderColor: COLORS.border,
+                    background: COLORS.bgSecondary,
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <div
+                      className="px-2.5 py-1.5 rounded-lg text-[9px] font-black"
+                      style={{
+                        background: COLORS.cyanLight,
+                        color: COLORS.cyan,
+                      }}
+                    >
+                      MATHS
+                    </div>
+                    <div
+                      className="text-[9px] font-black"
+                      style={{ color: COLORS.textMuted }}
+                    >
+                      PRACTICE 04
+                    </div>
+                  </div>
+
+                  <div className="text-center py-2">
+                    <div
+                      className="font-black text-4xl sm:text-5xl"
+                      style={{ letterSpacing: "-0.06em" }}
+                    >
+                      3x + 7 = 22
+                    </div>
+                    <div
+                      className="text-xs font-bold mt-3"
+                      style={{ color: COLORS.textMuted }}
+                    >
+                      Find x
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 mt-5">
+                    {["x = 3", "x = 5", "x = 7"].map((answer, i) => (
+                      <div
+                        key={answer}
+                        className="rounded-xl border-2 bg-white py-2.5 text-center text-[10px] font-black"
+                        style={{
+                          borderColor:
+                            i === 1
+                              ? `${COLORS.emerald}55`
+                              : COLORS.border,
+                          color:
+                            i === 1
+                              ? COLORS.emerald
+                              : COLORS.textSecondary,
+                        }}
+                      >
+                        {answer}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div
+                    className="rounded-2xl p-3 border-2 bg-white"
+                    style={{ borderColor: `${COLORS.gold}25` }}
+                  >
+                    <div className="text-[8px] font-black tracking-wider" style={{ color: COLORS.goldDeep }}>
+                      NEXT UP
+                    </div>
+                    <div className="text-xs font-black mt-1">Science</div>
+                  </div>
+                  <div
+                    className="rounded-2xl p-3 border-2 bg-white"
+                    style={{ borderColor: `${COLORS.cyan}25` }}
+                  >
+                    <div className="text-[8px] font-black tracking-wider" style={{ color: COLORS.cyan }}>
+                      PROGRESS
+                    </div>
+                    <div className="text-xs font-black mt-1">2 concepts done ✓</div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="absolute -left-2 sm:-left-5 top-10 px-3 py-2 rounded-xl bg-white border-2 -rotate-3"
+                style={{
+                  borderColor: `${COLORS.cyan}30`,
+                  boxShadow: SHADOWS.sm,
+                }}
+              >
+                <div className="text-[9px] font-black" style={{ color: COLORS.cyan }}>
+                  ONE STEP AT A TIME
+                </div>
+              </div>
+
+              <div
+                className="absolute -right-2 sm:-right-5 bottom-12 px-3 py-2 rounded-xl bg-white border-2 rotate-3"
+                style={{
+                  borderColor: `${COLORS.gold}35`,
+                  boxShadow: SHADOWS.sm,
+                }}
+              >
+                <div className="text-[9px] font-black" style={{ color: COLORS.goldDeep }}>
+                  NICE WORK!
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* CLASS BAND + PRICING */}
+      <section className="relative py-10 sm:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-6">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black"
+              style={{
+                color: COLORS.goldDeep,
+                background: COLORS.goldLight,
+              }}
+            >
+              <Wallet className="w-3.5 h-3.5" />
+              SIMPLE PRICING
+            </div>
+            <h2
+              className="font-black text-3xl sm:text-5xl mt-3"
+              style={{ letterSpacing: "-0.055em" }}
+            >
+              Pick the right starting point.
+            </h2>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {CLASS_BANDS.map((band) => {
+              const selected = activeBand === band.id;
+              return (
+                <button
+                  key={band.id}
+                  onClick={() => setActiveBand(band.id)}
+                  className="shrink-0 min-w-[150px] text-left rounded-2xl border-2 p-3.5 transition-all"
+                  style={{
+                    background: selected ? band.color : COLORS.white,
+                    color: selected ? COLORS.white : COLORS.ink,
+                    borderColor: selected ? band.color : COLORS.border,
+                    boxShadow: selected ? SHADOWS.card : "none",
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-wider">
+                      {band.short}
+                    </span>
+                    <band.Icon className="w-4 h-4" />
+                  </div>
+                  <div className="text-sm font-black mt-2">{band.label}</div>
+                </button>
+              );
+            })}
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={active.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="mt-4 grid lg:grid-cols-[0.75fr_1.25fr] gap-4"
+            >
+              <div
+                className="rounded-[2rem] border-2 bg-white p-5 sm:p-6"
+                style={{
+                  borderColor: `${active.color}28`,
+                  boxShadow: SHADOWS.card,
+                }}
+              >
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                  style={{
+                    background: active.light,
+                    color: active.color,
+                  }}
+                >
+                  <active.Icon className="w-6 h-6" />
+                </div>
+                <div className="text-[10px] font-black tracking-widest mt-5" style={{ color: active.color }}>
+                  {active.short}
+                </div>
+                <div className="font-black text-2xl mt-1">{active.label}</div>
+                <div
+                  className="text-xs font-bold mt-2"
+                  style={{ color: COLORS.textSecondary }}
+                >
+                  {active.focus}
+                </div>
+
+                <div className="flex items-end gap-2 mt-7">
+                  <span className="font-black text-4xl" style={{ color: active.color }}>
+                    {active.fee}
+                  </span>
+                  <span className="text-[10px] font-bold mb-1" style={{ color: COLORS.textMuted }}>
+                    {active.note}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => openDemoModal?.(`academic-${active.id}`)}
+                  className="w-full mt-5 py-3.5 rounded-2xl text-sm font-black text-white inline-flex items-center justify-center gap-2"
+                  style={{ background: active.color }}
+                >
+                  Try a free class
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div
+                id="subjects"
+                className="rounded-[2rem] border-2 bg-white p-5 sm:p-6"
+                style={{
+                  borderColor: COLORS.border,
+                  boxShadow: SHADOWS.card,
+                }}
+              >
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <div className="text-[9px] font-black tracking-widest" style={{ color: COLORS.textMuted }}>
+                      SUBJECTS
+                    </div>
+                    <div className="font-black text-xl mt-1">
+                      What can we work on?
+                    </div>
+                  </div>
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ background: active.light, color: active.color }}
+                  >
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-2.5">
+                  {active.subjects.map(([name, Icon]) => (
+                    <SubjectChip
+                      key={name}
+                      name={name}
+                      Icon={Icon}
+                      color={active.color}
+                      light={active.light}
+                    />
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          <div
+            className="mt-3 rounded-2xl border bg-white px-4 py-3 flex items-center justify-center gap-2 text-[10px] font-black"
+            style={{ borderColor: COLORS.border, color: COLORS.textSecondary }}
+          >
+            <Sparkles className="w-3.5 h-3.5" style={{ color: COLORS.goldDeep }} />
+            Bundle sessions and save up to 20%
+          </div>
+        </div>
+      </section>
+
+      {/* BOARDS */}
+      <section className="relative py-10 sm:py-14">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-6">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black"
+              style={{ color: COLORS.cyan, background: COLORS.cyanLight }}
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              BOARD ALIGNED
+            </div>
+            <h2
+              className="font-black text-3xl sm:text-4xl mt-3"
+              style={{ letterSpacing: "-0.045em" }}
+            >
+              The syllabus comes with you.
+            </h2>
+          </div>
+
+          <div className="flex gap-2.5 overflow-x-auto pb-2">
+            {BOARDS.map(([name, sub, color]) => (
+              <div
+                key={name}
+                className="shrink-0 min-w-[145px] rounded-2xl border-2 bg-white p-4"
+                style={{
+                  borderColor: `${color}25`,
+                  boxShadow: SHADOWS.sm,
+                }}
+              >
+                <div className="font-black text-lg" style={{ color }}>
+                  {name}
+                </div>
+                <div
+                  className="text-[9px] font-bold mt-1"
+                  style={{ color: COLORS.textMuted }}
+                >
+                  {sub}
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/*  KEY FEATURES */}
-      <section className="py-24 px-4" style={{ background: T.bg }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <SectionBadge color={T.green}><Star className="w-3.5 h-3.5" /> Why Choose Pearlx</SectionBadge>
-            <h2 className="font-black text-3xl mt-4 mb-3" style={{ color: T.ink }}>
-              Tuition designed for board success
+      {/* SUPPORT */}
+      <section className="relative py-10 sm:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-7">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black"
+              style={{ color: COLORS.emerald, background: COLORS.emeraldLight }}
+            >
+              <Heart className="w-3.5 h-3.5" />
+              THE PEARLX WAY
+            </div>
+            <h2
+              className="font-black text-3xl sm:text-4xl mt-3"
+              style={{ letterSpacing: "-0.045em" }}
+            >
+              Support that actually helps.
             </h2>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((f, i) => (
-              <FeatureCard key={i} {...f} delay={i * 0.08} />
-            ))}
+
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            {SUPPORT.map(([Icon, title, sub], index) => {
+              const color = [COLORS.emerald, COLORS.cyan, COLORS.goldDeep, COLORS.indigo][index % 4];
+              const light = [COLORS.emeraldLight, COLORS.cyanLight, COLORS.goldLight, COLORS.indigoLight][index % 4];
+
+              return (
+                <motion.div
+                  key={title}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.04 }}
+                  whileHover={{ y: -4 }}
+                  className="rounded-2xl border-2 bg-white p-4"
+                  style={{ borderColor: COLORS.border, boxShadow: SHADOWS.sm }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ background: light, color }}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="font-black text-sm mt-3">{title}</div>
+                  <div className="text-[10px] font-bold mt-1" style={{ color: COLORS.textMuted }}>
+                    {sub}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/*  TESTIMONIALS  */}
-      <section className="py-24 px-4" style={{ background: "linear-gradient(160deg, #F0FFFE, #E0F2FE)" }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <SectionBadge color={T.green}><Heart className="w-3.5 h-3.5" /> Student Success Stories</SectionBadge>
-            <h2 className="font-black text-3xl mt-4 mb-3" style={{ color: T.ink }}>
-              See real mark improvements
+      {/* SMALL FAQ */}
+      <section className="relative py-10 sm:py-14">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-6">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black"
+              style={{ color: COLORS.cyan, background: COLORS.cyanLight }}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              QUICK ANSWERS
+            </div>
+            <h2
+              className="font-black text-3xl sm:text-4xl mt-3"
+              style={{ letterSpacing: "-0.045em" }}
+            >
+              A few things parents ask.
             </h2>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {TESTIMONIALS.map((test, i) => (
-              <TestimonialCard key={i} {...test} />
-            ))}
+
+          <div className="space-y-2.5">
+            {FAQS.map((faq, index) => {
+              const isOpen = openFaq === index;
+              return (
+                <div
+                  key={faq.q}
+                  className="rounded-2xl border-2 bg-white overflow-hidden"
+                  style={{
+                    borderColor: isOpen ? `${COLORS.cyan}45` : COLORS.border,
+                    boxShadow: isOpen ? SHADOWS.sm : "none",
+                  }}
+                >
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : index)}
+                    className="w-full flex items-center justify-between gap-4 text-left px-4 py-4"
+                  >
+                    <span className="text-xs sm:text-sm font-black">{faq.q}</span>
+                    <ChevronDown
+                      className={`w-4 h-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                      style={{ color: COLORS.cyan }}
+                    />
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div
+                          className="px-4 pb-4 text-[11px] leading-relaxed"
+                          style={{ color: COLORS.textSecondary }}
+                        >
+                          {faq.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/*  FAQs  */}
-      <section className="py-24 px-4" style={{ background: T.bg }}>
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <SectionBadge color={T.sky}><HelpCircle className="w-3.5 h-3.5" /> FAQs</SectionBadge>
-            <h2 className="font-black text-3xl mt-4 mb-2" style={{ color: T.ink }}>
-              Answers to common questions
-            </h2>
-          </div>
-          <FAQ />
-        </div>
-      </section>
+      {/* CTA */}
+      <section className="relative py-12 sm:py-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div
+            className="relative overflow-hidden rounded-[2.4rem] border-2 bg-white p-7 sm:p-10 text-center"
+            style={{
+              borderColor: `${COLORS.emerald}25`,
+              boxShadow: SHADOWS.lg,
+            }}
+          >
+            <div
+              className="absolute top-0 left-0 right-0 h-1.5"
+              style={{ background: GRADIENTS.primary }}
+            />
 
-      {/*  CTA BOTTOM  */}
-      <section className="py-24 px-4" style={{ background: "linear-gradient(160deg, #F0FFFE, #E0F2FE)" }}>
-        <motion.div initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-3xl mx-auto text-center p-12 rounded-3xl border-2"
-          style={{
-            borderColor: `${T.green}30`,
-            background: "linear-gradient(135deg, rgba(16,185,129,0.05), rgba(14,165,233,0.05))",
-            boxShadow: `0 16px 60px rgba(16,185,129,0.1)`
-          }}>
-          <h2 className="font-black text-3xl mb-4" style={{ color: T.ink }}>
-            Ready to improve your marks?
-          </h2>
-          <p className="text-slate-600 mb-8">
-            Book a free 30-minute demo class today. No payment, no pressure. Just quality tuition.
-          </p>
-          <motion.button onClick={() => openDemoModal("academic_cta")}
-            whileHover={{ scale: 1.05, boxShadow: `0 12px 40px rgba(16,185,129,0.3)` }}
-            className="px-8 py-4 rounded-2xl text-white font-bold border-none cursor-pointer"
-            style={{ background: `linear-gradient(135deg, ${T.green}, ${T.sky})`, boxShadow: "0 8px 28px rgba(16,185,129,0.3)" }}>
-            Get Free Demo Class Now <Sparkles className="w-4 h-4 inline ml-1" />
-          </motion.button>
-        </motion.div>
+            <div
+              className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center"
+              style={{
+                background: COLORS.emeraldLight,
+                color: COLORS.emerald,
+              }}
+            >
+              <Zap className="w-7 h-7" />
+            </div>
+
+            <h2
+              className="font-black text-3xl sm:text-5xl mt-4"
+              style={{ letterSpacing: "-0.055em" }}
+            >
+              Let's make school feel easier.
+            </h2>
+
+            <p
+              className="text-sm mt-3"
+              style={{ color: COLORS.textSecondary }}
+            >
+              Start with one free class. We'll take it from there.
+            </p>
+
+            <div className="flex flex-col sm:flex-row justify-center gap-2.5 mt-5">
+              <button
+                onClick={() => openDemoModal?.("academic_cta")}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-black text-white"
+                style={{
+                  background: GRADIENTS.primary,
+                  boxShadow: SHADOWS.lg,
+                }}
+              >
+                Book a Free Class
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <a
+                href={getWhatsAppLink("Hi! I'd like to know more about Pearlx Academic Tuition.")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl border-2 text-sm font-black"
+                style={{
+                  color: COLORS.emerald,
+                  borderColor: `${COLORS.emerald}30`,
+                }}
+              >
+                Ask us
+                <MessageSquare className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   );

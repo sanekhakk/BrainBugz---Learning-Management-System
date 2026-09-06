@@ -151,7 +151,7 @@ const SubjectSection = () => {
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="max-w-2xl mx-auto text-center mb-9 sm:mb-12">
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -164,7 +164,7 @@ const SubjectSection = () => {
           >
             <Sparkles className="w-3.5 h-3.5" />
             Pick their adventure
-          </motion.div>
+          </motion.div> */}
 
           <motion.h2
             initial={{ opacity: 0, y: 18 }}

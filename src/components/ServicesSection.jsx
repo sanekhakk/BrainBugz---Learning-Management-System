@@ -247,12 +247,12 @@ export default function ServicesSection() {
           viewport={{ once: true, margin: "-80px" }}
           className="mb-8 sm:mb-10"
         >
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border-2 bg-white px-3 py-1.5 shadow-sm" style={{ borderColor: `${COLORS.emerald}25` }}>
+          {/* <div className="mb-3 inline-flex items-center gap-2 rounded-full border-2 bg-white px-3 py-1.5 shadow-sm" style={{ borderColor: `${COLORS.emerald}25` }}>
             <Sparkles className="h-3.5 w-3.5" style={{ color: COLORS.emerald }} />
             <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: COLORS.emerald }}>
               Learning can be fun
             </span>
-          </div>
+          </div> */}
 
           <h2 className="max-w-3xl text-[2.25rem] font-black leading-[0.98] tracking-[-0.045em] text-slate-950 sm:text-5xl">
             Three ways to make

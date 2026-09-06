@@ -1,458 +1,511 @@
-import React, { useRef, useState } from "react";
-import { motion, AnimatePresence, useInView } from "framer-motion";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowUpRight,
-  Sparkles,
-  Sprout,
-  BookOpen,
-  Rocket,
-  GraduationCap,
-  Check,
+  ArrowRight, Sparkles, Code2, Calculator, BookOpen,
+  Check, ChevronRight, Star, Rocket, Brain, GraduationCap
 } from "lucide-react";
+import { getWhatsAppLink } from "../utils/whatsapp";
+import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
 
 import lp1 from "../assets/kids/LP1.webp";
 import bp1 from "../assets/kids/BP1.webp";
 import rp1 from "../assets/kids/RP1.webp";
 import kid1 from "../assets/kids/KID1.webp";
 
+const CODING_ROUTE = "/services/education";
+const MATHS_ROUTE = "/mathsclasses";
+const ACADEMIC_ROUTE = "/services/academic-tuition";
+
 const LEVELS = [
   {
     id: "little",
-    number: "01",
     name: "Little Pearls",
-    age: "Ages 5–7",
-    grade: "Grades K–2",
-    tag: "BEGINNER",
-    tagline: "Where every learner begins.",
-    desc:
-      "A playful first step into coding and maths through stories, puzzles, visual activities and hands-on learning.",
-    color: "#F59E0B",
-    soft: "#FFF7E6",
+    label: "START HERE",
+    color: COLORS.gold,
+    light: COLORS.goldLight,
     image: lp1,
-    icon: Sprout,
-    chips: ["Block Coding", "Number Play", "Story Learning"],
-    outcome: "Build logic naturally",
+    icon: Sparkles,
+    sticker: "🌱",
+    headline: "Play. Discover. Learn.",
+    desc: "A gentle first step into coding and maths through stories, games and playful challenges.",
+    chips: ["Block Coding", "Number Play", "Mini Games"],
+    stats: ["7 Modules", "84 Lessons"],
+    cta: "Explore level",
+    route: CODING_ROUTE,
+    secondaryRoute: MATHS_ROUTE,
   },
   {
     id: "bright",
-    number: "02",
     name: "Bright Pearls",
-    age: "Ages 8–11",
-    grade: "Grades 3–6",
-    tag: "INTERMEDIATE",
-    tagline: "From curiosity to real projects.",
-    desc:
-      "Children start building games, apps and stronger maths reasoning while moving confidently from concepts to projects.",
-    color: "#10B981",
-    soft: "#ECFDF5",
+    label: "LEVEL UP",
+    color: COLORS.emerald,
+    light: COLORS.emeraldLight,
     image: bp1,
-    icon: BookOpen,
-    chips: ["Scratch → Python", "Fractions & Geometry", "Real Projects"],
-    outcome: "Turn ideas into projects",
+    icon: Rocket,
+    sticker: "🚀",
+    headline: "Build things for real.",
+    desc: "Kids turn ideas into games, apps and clever maths solutions they can proudly show off.",
+    chips: ["Scratch + Python", "Fractions", "Projects"],
+    stats: ["6 Modules", "72 Lessons"],
+    cta: "Explore level",
+    route: CODING_ROUTE,
+    secondaryRoute: MATHS_ROUTE,
   },
   {
     id: "rising",
-    number: "03",
     name: "Rising Pearls",
-    age: "Ages 12–15",
-    grade: "Grades 7–10",
-    tag: "ADVANCED",
-    tagline: "Skills that go beyond the classroom.",
-    desc:
-      "Advanced coding, web development and competitive maths designed to create confident, independent problem-solvers.",
-    color: "#8B5CF6",
-    soft: "#F5F3FF",
+    label: "GO FURTHER",
+    color: COLORS.indigo,
+    light: COLORS.indigoLight,
     image: rp1,
-    icon: Rocket,
-    chips: ["Python & Web Dev", "Algebra & Olympiad", "Portfolio Projects"],
-    outcome: "Build future-ready skills",
+    icon: Brain,
+    sticker: "⚡",
+    headline: "Think bigger. Build smarter.",
+    desc: "Advanced coding, web development and competitive maths for curious young minds.",
+    chips: ["Python + Web", "Algebra", "Advanced Projects"],
+    stats: ["10 Modules", "120 Lessons"],
+    cta: "Explore level",
+    route: CODING_ROUTE,
+    secondaryRoute: MATHS_ROUTE,
   },
   {
     id: "academic",
-    number: "04",
     name: "Academic Tuition",
-    age: "Classes 1–12",
-    grade: "Major School Boards",
-    tag: "ACADEMIC",
-    tagline: "Better understanding. Better scores.",
-    desc:
-      "Structured academic support with expert guidance, regular practice, doubt clearing and exam-focused preparation.",
-    color: "#0EA5E9",
-    soft: "#EFF9FF",
+    label: "SCHOOL SUPPORT",
+    color: COLORS.cyan,
+    light: COLORS.cyanLight,
     image: kid1,
     icon: GraduationCap,
-    chips: ["CBSE / ICSE / IGCSE", "All Core Subjects", "Exam Preparation"],
-    outcome: "Learn with confidence",
+    sticker: "📚",
+    headline: "School feels easier.",
+    desc: "Personalized support for Maths, Science, English, Social Science, Computer Science and more.",
+    chips: ["CBSE / ICSE", "IGCSE", "State Boards"],
+    stats: ["Classes 1–12", "1:1 Support"],
+    cta: "Explore tuition",
+    route: ACADEMIC_ROUTE,
+    secondaryRoute: null,
   },
 ];
 
-const LevelVisual = ({ level }) => (
-  <div
-    className="absolute inset-0 overflow-hidden"
-    style={{ background: level.soft }}
-  >
-    {/* oversized abstract orbital shapes */}
-    <div
-      className="absolute -right-24 -top-24 h-80 w-80 rounded-full border-[1px]"
-      style={{ borderColor: `${level.color}22` }}
-    />
-    <div
-      className="absolute -right-8 top-8 h-56 w-56 rounded-full border-[1px]"
-      style={{ borderColor: `${level.color}18` }}
-    />
-    <div
-      className="absolute bottom-[-100px] left-[-80px] h-72 w-72 rounded-full"
-      style={{
-        background: `radial-gradient(circle, ${level.color}20, transparent 68%)`,
-      }}
-    />
-
-    {/* subtle grid */}
-    <div
-      className="absolute inset-0 opacity-[0.045]"
-      style={{
-        backgroundImage: `linear-gradient(${level.color} 1px, transparent 1px), linear-gradient(90deg, ${level.color} 1px, transparent 1px)`,
-        backgroundSize: "32px 32px",
-        maskImage:
-          "linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)",
-      }}
-    />
-
-    {/* actual Pearl image */}
-    <motion.img
-      key={level.id}
-      src={level.image}
-      alt={level.name}
-      initial={{ opacity: 0, y: 25, scale: 0.94 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.55, ease: "easeOut" }}
-      className="absolute bottom-0 left-1/2 z-10 h-[78%] w-[78%] -translate-x-1/2 object-contain drop-shadow-[0_24px_30px_rgba(15,23,42,0.16)] md:h-[86%] md:w-[78%]"
-    />
-
-    {/* floating label */}
-    <motion.div
-      key={`${level.id}-badge`}
-      initial={{ opacity: 0, x: 15, y: 8 }}
-      animate={{ opacity: 1, x: 0, y: 0 }}
-      transition={{ delay: 0.18, duration: 0.45 }}
-      className="absolute right-5 top-5 z-20 rounded-2xl border bg-white/85 px-4 py-3 shadow-lg backdrop-blur-md md:right-7 md:top-7"
-      style={{ borderColor: `${level.color}25` }}
-    >
-      <p
-        className="text-[9px] font-black uppercase tracking-[0.18em]"
-        style={{ color: level.color }}
-      >
-        {level.tag}
-      </p>
-      <p className="mt-1 text-xs font-black text-slate-800">
-        {level.age}
-      </p>
-    </motion.div>
-
-    {/* outcome pill */}
-    <motion.div
-      key={`${level.id}-outcome`}
-      initial={{ opacity: 0, x: -12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.28, duration: 0.45 }}
-      className="absolute bottom-5 left-5 z-20 flex items-center gap-2 rounded-full border bg-white/90 px-4 py-2.5 text-[10px] font-black text-slate-700 shadow-lg backdrop-blur-md md:bottom-7 md:left-7"
-      style={{ borderColor: `${level.color}25` }}
-    >
-      <span
-        className="flex h-5 w-5 items-center justify-center rounded-full text-white"
-        style={{ background: level.color }}
-      >
-        <Check className="h-3 w-3" />
-      </span>
-      {level.outcome}
-    </motion.div>
+const StepDots = ({ active, onChange }) => (
+  <div className="flex items-center justify-center gap-2">
+    {LEVELS.map((level, index) => (
+      <button
+        key={level.id}
+        aria-label={`Show ${level.name}`}
+        onClick={() => onChange(index)}
+        className="h-2.5 rounded-full transition-all duration-300"
+        style={{
+          width: active === index ? 28 : 8,
+          background: active === index ? level.color : COLORS.borderMed,
+        }}
+      />
+    ))}
   </div>
 );
 
 const SubjectSection = () => {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-  const [active, setActive] = useState("little");
+  const [active, setActive] = useState(0);
+  const level = LEVELS[active];
+  const Icon = level.icon;
 
-  const current = LEVELS.find((level) => level.id === active) || LEVELS[0];
-  const CurrentIcon = current.icon;
+  const next = () => setActive((v) => (v + 1) % LEVELS.length);
 
   return (
     <section
-      id="learning-path"
-      ref={ref}
-      className="relative overflow-hidden px-5 py-24 md:px-8 md:py-32"
-      style={{ background: "#FFFFFF" }}
+      id="curriculum"
+      className="relative overflow-hidden py-16 sm:py-20 lg:py-28"
+      style={{ background: COLORS.bgSecondary }}
     >
-      <div className="relative z-10 mx-auto max-w-7xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.7 }}
-          className="mb-12 flex flex-col gap-6 md:mb-14 md:flex-row md:items-end md:justify-between"
-        >
-          <div className="max-w-3xl">
-            <div
-              className="mb-5 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em]"
-              style={{
-                color: "#7C3AED",
-                background: "#F5F3FF",
-                borderColor: "#DDD6FE",
-              }}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              The Pearlx journey
-            </div>
+      {/* Playful, lightweight background */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute -top-32 -left-24 w-72 h-72 rounded-full blur-3xl opacity-60"
+          style={{ background: COLORS.cyanLight }}
+        />
+        <div
+          className="absolute -bottom-40 -right-24 w-80 h-80 rounded-full blur-3xl opacity-60"
+          style={{ background: COLORS.emeraldLight }}
+        />
 
-            <h2
-              className="font-black leading-[0.96] tracking-[-0.05em]"
+        <div
+          className="absolute top-20 right-[8%] text-2xl opacity-50 rotate-12"
+          style={{ color: COLORS.gold }}
+        >
+          ✦
+        </div>
+        <div
+          className="absolute top-[42%] left-[4%] text-xl opacity-40 -rotate-12"
+          style={{ color: COLORS.indigo }}
+        >
+          ●
+        </div>
+        <div
+          className="absolute bottom-24 right-[7%] text-3xl opacity-40"
+          style={{ color: COLORS.cyan }}
+        >
+          +
+        </div>
+      </div>
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
+        {/* Header */}
+        <div className="max-w-2xl mx-auto text-center mb-9 sm:mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-black mb-4"
+            style={{
+              color: COLORS.emerald,
+              background: COLORS.emeraldLight,
+              border: `1px solid ${COLORS.emerald}22`,
+            }}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Pick their adventure
+          </motion.div>
+
+          <motion.h2
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="font-black tracking-tight leading-[0.98] text-4xl sm:text-5xl lg:text-6xl"
+            style={{ color: COLORS.ink, letterSpacing: "-0.055em" }}
+          >
+            Learning should feel
+            <br />
+            <span
               style={{
-                color: "#0F172A",
-                fontSize: "clamp(2.6rem, 5vw, 5rem)",
+                background: GRADIENTS.textGlow,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
               }}
             >
-              They grow.
-              <br />
-              <span
+              like an adventure.
+            </span>
+          </motion.h2>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.12 }}
+            className="mt-4 text-sm sm:text-base leading-relaxed"
+            style={{ color: COLORS.textSecondary }}
+          >
+            The right challenge at the right age — with room to explore,
+            make mistakes and get excited about learning.
+          </motion.p>
+        </div>
+
+        {/* Mobile-first adventure selector */}
+        <div className="flex gap-2.5 overflow-x-auto pb-3 mb-5 snap-x snap-mandatory scrollbar-hide lg:justify-center">
+          {LEVELS.map((item, index) => {
+            const ActiveIcon = item.icon;
+            const selected = active === index;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActive(index)}
+                className="snap-start shrink-0 flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl border-2 transition-all duration-200"
                 style={{
-                  background: "linear-gradient(135deg,#8B5CF6,#0EA5E9,#10B981)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  background: selected ? COLORS.white : "rgba(255,255,255,0.55)",
+                  borderColor: selected ? item.color : COLORS.border,
+                  boxShadow: selected ? SHADOWS.sm : "none",
+                  color: selected ? item.color : COLORS.textMuted,
                 }}
               >
-                Their learning grows with them.
-              </span>
-            </h2>
-          </div>
-
-          <p className="max-w-sm text-sm font-medium leading-7 text-slate-500 md:pb-1">
-            Four pathways, designed around where your child is today — and
-            where they can go next.
-          </p>
-        </motion.div>
-
-        {/* Timeline selector */}
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.15, duration: 0.6 }}
-          className="relative mb-5 overflow-x-auto pb-1"
-        >
-          <div className="relative flex min-w-max items-center justify-between gap-2 rounded-[2rem] border bg-slate-50 p-2 md:gap-3">
-            <div className="pointer-events-none absolute left-[7%] right-[7%] top-1/2 hidden h-px bg-slate-200 md:block" />
-
-            {LEVELS.map((level, i) => {
-              const Icon = level.icon;
-              const isActive = active === level.id;
-
-              return (
-                <button
-                  key={level.id}
-                  type="button"
-                  onMouseEnter={() => setActive(level.id)}
-                  onFocus={() => setActive(level.id)}
-                  onClick={() => setActive(level.id)}
-                  className="group relative z-10 flex min-w-[150px] flex-1 items-center gap-3 rounded-[1.5rem] border px-4 py-3 text-left transition-all duration-300 md:min-w-0"
+                <span
+                  className="w-8 h-8 rounded-xl flex items-center justify-center"
                   style={{
-                    background: isActive ? "#fff" : "transparent",
-                    borderColor: isActive
-                      ? `${level.color}35`
-                      : "transparent",
-                    boxShadow: isActive
-                      ? "0 10px 25px rgba(15,23,42,.07)"
-                      : "none",
+                    background: selected ? item.light : COLORS.bgTertiary,
                   }}
                 >
-                  <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110"
-                    style={{
-                      color: level.color,
-                      background: `${level.color}12`,
-                    }}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </span>
+                  <ActiveIcon className="w-4 h-4" />
+                </span>
+                <span className="text-left leading-none">
+                  <span className="block text-[11px] font-black">{item.name}</span>
+                  
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-                  <span>
-                    <span
-                      className="block text-[9px] font-black"
+        {/* Main interactive level scene */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={level.id}
+            initial={{ opacity: 0, x: 18 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -18 }}
+            transition={{ duration: 0.28 }}
+            className="relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] border-2 bg-white"
+            style={{
+              borderColor: `${level.color}35`,
+              boxShadow: SHADOWS.card,
+            }}
+          >
+            <div className="grid lg:grid-cols-[0.95fr_1.05fr]">
+              {/* Visual playground */}
+              <div
+                className="relative min-h-[285px] sm:min-h-[360px] lg:min-h-[460px] overflow-hidden"
+                style={{
+                  background: `linear-gradient(145deg, ${level.light}, ${COLORS.bgPrimary})`,
+                }}
+              >
+                {/* Doodle shapes */}
+                <div
+                  className="absolute w-36 h-36 rounded-full border-2 border-dashed opacity-40 -top-10 -left-10"
+                  style={{ borderColor: level.color }}
+                />
+                <motion.div
+                  animate={{ rotate: [0, 8, 0, -8, 0], y: [0, -5, 0] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute top-7 right-6 w-14 h-14 rounded-[1.25rem] flex items-center justify-center rotate-6"
+                  style={{
+                    background: COLORS.white,
+                    border: `2px solid ${level.color}30`,
+                    boxShadow: SHADOWS.sm,
+                  }}
+                >
+                  <span className="text-2xl">{level.sticker}</span>
+                </motion.div>
+
+                <div className="absolute left-5 top-5">
+                  <span
+                    className="px-3 py-1.5 rounded-full text-[9px] font-black tracking-widest text-white"
+                    style={{ background: level.color }}
+                  >
+                    {level.label}
+                  </span>
+                </div>
+
+                {/* Character */}
+                <motion.div
+                  animate={{ y: [0, -9, 0], rotate: [-1.5, 1.5, -1.5] }}
+                  transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-x-0 bottom-0 top-16 flex items-end justify-center px-8"
+                >
+                  <img
+                    src={level.image}
+                    alt={level.name}
+                    className="h-[82%] sm:h-[88%] w-auto max-w-[82%] object-contain"
+                    style={{
+                      filter: "drop-shadow(0 18px 24px rgba(15,23,42,0.14))",
+                    }}
+                  />
+                </motion.div>
+
+                {/* Little floating learning tokens */}
+                <div
+                  className="absolute left-4 bottom-5 sm:left-7 sm:bottom-7 px-3 py-2 rounded-2xl bg-white border"
+                  style={{ borderColor: `${level.color}25`, boxShadow: SHADOWS.sm }}
+                >
+                  <div className="text-[9px] font-black" style={{ color: level.color }}>
+                    TODAY'S QUEST
+                  </div>
+                  <div className="text-xs font-black mt-0.5" style={{ color: COLORS.ink }}>
+                    Learn something new ✨
+                  </div>
+                </div>
+
+                <button
+                  onClick={next}
+                  aria-label="Next learning level"
+                  className="absolute right-4 bottom-5 sm:right-7 sm:bottom-7 w-11 h-11 rounded-full flex items-center justify-center text-white active:scale-95 transition-transform"
+                  style={{ background: level.color, boxShadow: SHADOWS.sm }}
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 sm:p-8 lg:p-11 flex flex-col justify-center">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div>
+                    {/* <div
+                      className="text-[10px] font-black uppercase tracking-widest mb-2"
                       style={{ color: level.color }}
                     >
-                      {level.number}
-                    </span>
-                    <span className="block whitespace-nowrap text-xs font-black text-slate-800">
+                      Ages {level.age}
+                    </div> */}
+                    <h3
+                      className="font-black text-3xl sm:text-4xl tracking-tight"
+                      style={{ color: COLORS.ink, letterSpacing: "-0.045em" }}
+                    >
                       {level.name}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </motion.div>
+                    </h3>
+                  </div>
 
-        {/* Main showcase */}
-        <motion.div
-          layout
-          className="grid min-h-[620px] overflow-hidden rounded-[2.8rem] border md:min-h-[650px] lg:grid-cols-[1.08fr_.92fr]"
-          style={{
-            borderColor: `${current.color}28`,
-            boxShadow: `0 35px 90px ${current.color}10`,
-          }}
-        >
-          {/* Image stage */}
-          <div className="relative min-h-[400px] md:min-h-[500px]">
-            <AnimatePresence mode="wait">
-              <LevelVisual key={current.id} level={current} />
-            </AnimatePresence>
-          </div>
-
-          {/* Information stage */}
-          <motion.div
-            key={`${current.id}-content`}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.45 }}
-            className="relative flex flex-col justify-between bg-white p-7 md:p-10 lg:p-12"
-          >
-            <div>
-              <div className="flex items-start justify-between gap-5">
-                <div>
-                  <p
-                    className="text-[10px] font-black uppercase tracking-[0.2em]"
-                    style={{ color: current.color }}
-                  >
-                    {current.tag} · {current.age}
-                  </p>
-
-                  <h3
-                    className="mt-3 font-black tracking-[-0.045em]"
+                  <div
+                    className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
                     style={{
-                      color: "#0F172A",
-                      fontSize: "clamp(2.2rem, 4vw, 4rem)",
-                      lineHeight: 0.98,
+                      background: level.light,
+                      color: level.color,
                     }}
                   >
-                    {current.name}
-                  </h3>
-
-                  <p className="mt-3 text-xs font-bold text-slate-400">
-                    {current.grade}
-                  </p>
+                    <Icon className="w-5 h-5" />
+                  </div>
                 </div>
 
-                <div
-                  className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl md:flex"
-                  style={{
-                    background: current.soft,
-                    color: current.color,
-                  }}
+                <h4
+                  className="text-lg sm:text-xl font-black mb-2"
+                  style={{ color: COLORS.textPrimary }}
                 >
-                  <CurrentIcon className="h-6 w-6" />
-                </div>
-              </div>
+                  {level.headline}
+                </h4>
 
-              <div
-                className="mt-8 rounded-[1.5rem] border-l-4 px-5 py-4"
-                style={{
-                  background: current.soft,
-                  borderColor: current.color,
-                }}
-              >
-                <p className="text-sm font-black text-slate-800">
-                  {current.tagline}
+                <p
+                  className="text-sm sm:text-base leading-relaxed mb-5"
+                  style={{ color: COLORS.textSecondary }}
+                >
+                  {level.desc}
                 </p>
-              </div>
 
-              <p className="mt-7 max-w-lg text-sm font-medium leading-7 text-slate-500 md:text-base">
-                {current.desc}
-              </p>
-
-              {/* Chips */}
-              <div className="mt-7 flex flex-wrap gap-2">
-                {current.chips.map((chip) => (
-                  <span
-                    key={chip}
-                    className="rounded-full border px-3.5 py-2 text-[10px] font-bold text-slate-600"
-                    style={{ borderColor: `${current.color}25` }}
-                  >
-                    {chip}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-10">
-              {/* mini progression */}
-              <div className="mb-7">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">
-                    Learning stage
-                  </span>
-                  <span
-                    className="text-[10px] font-black"
-                    style={{ color: current.color }}
-                  >
-                    {current.number} / 04
-                  </span>
-                </div>
-
-                <div className="flex gap-1.5">
-                  {LEVELS.map((level) => (
-                    <div
-                      key={level.id}
-                      className="h-1.5 flex-1 rounded-full transition-all duration-300"
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {level.chips.map((chip) => (
+                    <span
+                      key={chip}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] sm:text-[11px] font-black"
                       style={{
-                        background:
-                          LEVELS.indexOf(level) <= LEVELS.indexOf(current)
-                            ? level.color
-                            : "#E2E8F0",
+                        color: level.color,
+                        background: level.light,
                       }}
-                    />
+                    >
+                      <Check className="w-3 h-3" />
+                      {chip}
+                    </span>
                   ))}
                 </div>
-              </div>
 
-              <a
-                href={
-                  current.id === "academic"
-                    ? "/services/academic-tuition"
-                    : "/services/education"
-                }
-                className="group flex w-full items-center justify-between rounded-2xl px-5 py-4 text-sm font-black text-white transition-transform hover:-translate-y-0.5"
-                style={{
-                  background: current.color,
-                  boxShadow: `0 14px 30px ${current.color}30`,
-                }}
-              >
-                Explore {current.name}
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
-                  <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </span>
-              </a>
+                <div className="grid grid-cols-2 gap-2.5 mb-6">
+                  {level.stats.map((stat) => (
+                    <div
+                      key={stat}
+                      className="rounded-2xl p-3.5 border"
+                      style={{
+                        borderColor: COLORS.border,
+                        background: COLORS.bgSecondary,
+                      }}
+                    >
+                      <div
+                        className="text-sm font-black"
+                        style={{ color: COLORS.ink }}
+                      >
+                        {stat}
+                      </div>
+                      <div
+                        className="text-[9px] font-bold uppercase tracking-wider mt-1"
+                        style={{ color: COLORS.textMuted }}
+                      >
+                        Learning path
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <a
+                    href={level.route}
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl text-sm font-black text-white active:scale-[0.98] transition-transform"
+                    style={{
+                      background: level.color,
+                      boxShadow:
+                        level.color === COLORS.gold
+                          ? SHADOWS.glowGold
+                          : level.color === COLORS.cyan
+                          ? SHADOWS.glowCyan
+                          : level.color === COLORS.indigo
+                          ? SHADOWS.sm
+                          : SHADOWS.glowEmer,
+                    }}
+                  >
+                    {level.cta}
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+
+                  {level.secondaryRoute && (
+                    <a
+                      href={level.secondaryRoute}
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl text-sm font-black border-2 active:scale-[0.98] transition-transform"
+                      style={{
+                        borderColor: `${level.color}35`,
+                        color: level.color,
+                        background: COLORS.white,
+                      }}
+                    >
+                      <Calculator className="w-4 h-4" />
+                      Try Maths
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
           </motion.div>
-        </motion.div>
+        </AnimatePresence>
 
-        {/* Bottom message */}
+        {/* Swipe / progress cue */}
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <StepDots active={active} onChange={setActive} />
+          <div
+            className="flex items-center gap-1.5 text-[10px] font-bold"
+            style={{ color: COLORS.textMuted }}
+          >
+            <span>Tap a level</span>
+            <span>•</span>
+            <span>or swipe to explore</span>
+          </div>
+        </div>
+
+        {/* Bottom parent reassurance — intentionally compact */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.35 }}
-          className="mt-5 flex flex-col items-start justify-between gap-3 rounded-[1.8rem] border bg-slate-50 px-6 py-5 sm:flex-row sm:items-center"
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-10 sm:mt-12 mx-auto max-w-3xl rounded-2xl sm:rounded-3xl p-4 sm:p-5 border flex flex-col sm:flex-row items-center justify-between gap-4"
+          style={{
+            background: COLORS.white,
+            borderColor: COLORS.border,
+            boxShadow: SHADOWS.sm,
+          }}
         >
-          <div>
-            <p className="text-sm font-black text-slate-800">
-              Not sure which path fits your child?
-            </p>
-            <p className="mt-1 text-xs font-medium text-slate-400">
-              That's exactly what the free trial is for.
-            </p>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+              style={{
+                background: COLORS.goldLight,
+                color: COLORS.goldDeep,
+              }}
+            >
+              <Star className="w-5 h-5 fill-current" />
+            </div>
+            <div>
+              <div className="text-sm font-black" style={{ color: COLORS.ink }}>
+                One journey. No pressure.
+              </div>
+              <div className="text-xs mt-0.5" style={{ color: COLORS.textMuted }}>
+                Kids move forward when they’re ready.
+              </div>
+            </div>
           </div>
 
-          <span className="text-xs font-black text-slate-500">
-            Start → Learn → Build → Grow
-          </span>
+          <a
+            href={getWhatsAppLink("Hi! I'd like to book a free trial class for my child at Pearlx.")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-xs font-black text-white"
+            style={{
+              background: GRADIENTS.primary,
+              boxShadow: SHADOWS.glowEmer,
+            }}
+          >
+            Book a free trial
+            <ArrowRight className="w-3.5 h-3.5" />
+          </a>
         </motion.div>
       </div>
     </section>
@@ -460,4 +513,3 @@ const SubjectSection = () => {
 };
 
 export default SubjectSection;
-export { SubjectSection };

@@ -1,203 +1,229 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, MessageCircle, X } from "lucide-react";
+import { COLORS, GRADIENTS } from "../utils/theme";
 
-const WA_LINK = "https://wa.link/2sqe3g";
+const WHATSAPP_LINK = "https://wa.link/2sqe3g";
+const AUTO_PLAY_MS = 6500;
 
 const OFFERS = [
   {
-    id: "plus2-offer",
-    badge: "Limited Offer",
-    badgeColor: "#10B981",
-    headline: "20% OFF for 2026 +2 Passed Students",
-    sub: "Python & Java Bootcamps at ₹3,999 · Web Dev Bootcamp at ₹4,799 (was ₹5,999)",
-    cta: "Claim via WhatsApp",
-    ctaHref: WA_LINK,
-    accentFrom: "#10B981",
-    accentTo: "#0EA5E9",
-    emoji: null,
-    tags: ["Python ₹3,999", "Java ₹3,999", "Web Dev ₹4,799"],
+    id: "new-year",
+    mark: "20% OFF",
+    kicker: "2026 BATCH",
+    title: "New year. New skills.",
+    detail: "Python & Java Bootcamps",
+    action: "Claim offer",
+    href: WHATSAPP_LINK,
+    accent: COLORS.emerald,
+    icon: "whatsapp",
   },
   {
-    id: "package-deal",
-    badge: "Best Value",
-    badgeColor: "#C9A84C",
-    headline: "Package vs Monthly — Save ₹1,393+",
-    sub: "Python/Java Bootcamp package ₹3,999 · vs ₹799/mo × 8 months = ₹6,392. You save big!",
-    cta: "See All Packages",
-    ctaRoute: "pricing",
-    accentFrom: "#C9A84C",
-    accentTo: "#B87333",
-    emoji: null,
-    tags: ["Save ₹1,393+", "One-time Pay", "All Inclusive"],
+    id: "package",
+    mark: "SAVE ₹1,393+",
+    kicker: "PACKAGE DEAL",
+    title: "Pay once. Learn for months.",
+    detail: "Python / Java package from ₹3,999",
+    action: "See packages",
+    href: "/pricing",
+    accent: COLORS.gold,
   },
 ];
 
-const AUTO_PLAY_MS = 5500;
-
-export default function OfferCarousel({ openDemoModal }) {
+export default function OfferCarousel() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const timerRef = useRef(null);
+  const [closed, setClosed] = useState(false);
+  const timer = useRef(null);
 
-  const startTimer = () => {
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setActive(i => (i + 1) % OFFERS.length);
+  const restart = () => {
+    clearInterval(timer.current);
+    timer.current = setInterval(() => {
+      setActive((current) => (current + 1) % OFFERS.length);
     }, AUTO_PLAY_MS);
   };
 
   useEffect(() => {
-    if (!paused) startTimer();
-    return () => clearInterval(timerRef.current);
+    if (!paused) restart();
+    return () => clearInterval(timer.current);
   }, [paused]);
 
-  const goTo = (idx) => { setActive(idx); startTimer(); };
-
-  if (dismissed) return null;
+  if (closed) return null;
 
   const offer = OFFERS[active];
 
-  const handleCta = () => {
-    if (offer.ctaHref) {
-      window.open(offer.ctaHref, "_blank", "noopener,noreferrer");
-    } else if (offer.ctaRoute) {
-      window.location.href = `/${offer.ctaRoute}`;
-    } else if (openDemoModal) {
-      openDemoModal(offer.id);
+  const go = (index) => {
+    setActive(index);
+    restart();
+  };
+
+  const handleAction = () => {
+    if (offer.href.startsWith("http")) {
+      window.open(offer.href, "_blank", "noopener,noreferrer");
+      return;
     }
+    window.location.href = offer.href;
   };
 
   return (
     <div
-      className="w-full overflow-hidden fixed top-0 left-0 right-0 z-[60] "
-      style={{ zIndex: 60 }}
+      className="fixed top-0 left-0 right-0 z-[70]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
     >
-      {/* Progress bar */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] z-10"
-        style={{ background: "rgba(255,255,255,0.10)" }}>
-        {!paused && (
-          <motion.div
-            key={active + "-bar"}
-            className="h-full"
-            style={{ background: `linear-gradient(90deg, ${offer.accentFrom}, ${offer.accentTo})` }}
-            initial={{ width: "0%" }}
-            animate={{ width: "100%" }}
-            transition={{ duration: AUTO_PLAY_MS / 1000, ease: "linear" }}
-          />
-        )}
+      <div
+        className="h-[3px] w-full"
+        style={{ background: COLORS.borderDark }}
+      >
+        <motion.div
+          key={`${offer.id}-${active}`}
+          className="h-full"
+          style={{ background: offer.accent }}
+          initial={{ width: "0%" }}
+          animate={{ width: "100%" }}
+          transition={{
+            duration: AUTO_PLAY_MS / 1000,
+            ease: "linear",
+          }}
+        />
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={offer.id}
-          initial={{ opacity: 0, y: -14 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 14 }}
-          transition={{ duration: 0.32, ease: "easeOut" }}
-          className="relative flex items-center justify-between gap-4 px-4 py-3 md:px-8 md:py-3"
-          style={{
-            background: `linear-gradient(105deg, #0B1120 0%, #0F172A 55%, ${offer.accentFrom}1A 100%)`,
-            borderBottom: `1px solid ${offer.accentFrom}28`,
-          }}
+      <div
+        className="border-b"
+        style={{
+          background: GRADIENTS.navBg,
+          borderColor: COLORS.borderDark,
+        }}
+      >
+        <div
+          className="
+            mx-auto flex h-[56px] w-full max-w-[1500px] items-center
+            px-3 sm:px-5 lg:px-8
+          "
         >
-          {/* Left */}
-          <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
-            {/* Emoji bubble */}
-            <div
-              className="hidden sm:flex shrink-0 w-9 h-9 items-center justify-center rounded-full text-lg"
-              style={{
-                background: `${offer.accentFrom}25`,
-                border: `1px solid ${offer.accentFrom}40`,
-              }}
-            >
-              
-            </div>
+          {/* Offer ticket */}
+          <motion.div
+            key={`mark-${offer.id}`}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2 }}
+            className="relative mr-3 flex h-[38px] shrink-0 items-center rounded-lg px-3 font-black tracking-tight"
+            style={{
+              background: offer.accent,
+              color: COLORS.navDark,
+            }}
+          >
+            <span className="text-[11px] sm:text-xs whitespace-nowrap">
+              {offer.mark}
+            </span>
 
-            <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-              {/* Badge */}
+            <span
+              className="absolute -right-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full"
+              style={{ background: COLORS.navDark }}
+            />
+          </motion.div>
+
+          {/* Main message — deliberately kept to ONE compact line */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={offer.id}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.22 }}
+              className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"
+            >
               <span
-                className="shrink-0 hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
-                style={{
-                  background: `${offer.badgeColor}20`,
-                  color: offer.badgeColor,
-                  border: `1px solid ${offer.badgeColor}35`,
-                }}
+                className="hidden md:inline text-[9px] font-extrabold tracking-[0.14em] uppercase whitespace-nowrap"
+                style={{ color: offer.accent }}
               >
-                {offer.badge}
+                {offer.kicker}
               </span>
 
-              <span className="font-extrabold text-white text-sm md:text-[15px] leading-tight truncate">
-                {offer.headline}
+              <span className="text-white text-[13px] sm:text-[14px] lg:text-[15px] font-extrabold whitespace-nowrap">
+                {offer.title}
               </span>
 
-              <span className="hidden lg:block text-slate-400 text-xs leading-snug truncate max-w-sm">
-                {offer.sub}
+              <span
+                className="hidden sm:inline text-[12px] lg:text-[13px] font-medium truncate"
+                style={{ color: COLORS.silver }}
+              >
+                {offer.detail}
               </span>
+            </motion.div>
+          </AnimatePresence>
 
-              {/* Tags */}
-              <div className="hidden xl:flex items-center gap-1.5 shrink-0">
-                {offer.tags.map(tag => (
-                  <span
-                    key={tag}
-                    className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{
-                      background: `${offer.accentFrom}18`,
-                      color: offer.accentFrom,
-                      border: `1px solid ${offer.accentFrom}28`,
-                    }}
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
+          {/* Desktop action */}
+          <motion.button
+            type="button"
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleAction}
+            className="ml-3 hidden sm:flex h-[38px] shrink-0 items-center gap-2 rounded-lg px-4 text-[11px] font-extrabold"
+            style={{
+              background: offer.accent,
+              color: COLORS.navDark,
+              boxShadow: `0 5px 18px ${offer.accent}25`,
+            }}
+          >
+            {offer.icon === "whatsapp" && (
+              <MessageCircle className="h-3.5 w-3.5" />
+            )}
+            {offer.action}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </motion.button>
+
+          {/* Mobile action */}
+          <button
+            type="button"
+            onClick={handleAction}
+            aria-label={offer.action}
+            className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:hidden"
+            style={{
+              background: offer.accent,
+              color: COLORS.navDark,
+            }}
+          >
+            {offer.icon === "whatsapp" ? (
+              <MessageCircle className="h-3.5 w-3.5" />
+            ) : (
+              <ArrowRight className="h-3.5 w-3.5" />
+            )}
+          </button>
+
+          {/* Minimal carousel control */}
+          <div className="ml-3 hidden items-center gap-1.5 md:flex">
+            {OFFERS.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-label={`Show ${item.kicker}`}
+                onClick={() => go(index)}
+                className="rounded-full transition-all duration-200"
+                style={{
+                  width: index === active ? 18 : 5,
+                  height: 5,
+                  background:
+                    index === active ? offer.accent : COLORS.silver,
+                  opacity: index === active ? 1 : 0.35,
+                }}
+              />
+            ))}
           </div>
 
-          {/* Right */}
-          <div className="flex items-center gap-2 md:gap-3 shrink-0">
-            
-
-            <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={handleCta}
-              className="shrink-0 px-4 py-1.5 rounded-xl text-xs md:text-sm font-bold text-white flex items-center gap-1.5"
-              style={{
-                background: `linear-gradient(135deg, ${offer.accentFrom}, ${offer.accentTo})`,
-                boxShadow: `0 4px 14px ${offer.accentFrom}38`,
-              }}
-            >
-              {offer.ctaHref && <MessageCircle className="w-3.5 h-3.5" />}
-              {offer.cta}
-            </motion.button>
-
-            {/* Dot nav */}
-            <div className="flex items-center gap-1.5">
-              {OFFERS.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => goTo(i)}
-                  className="rounded-full transition-all duration-200"
-                  style={{
-                    width: i === active ? 18 : 6,
-                    height: 6,
-                    background: i === active
-                      ? `linear-gradient(90deg, ${offer.accentFrom}, ${offer.accentTo})`
-                      : "rgba(255,255,255,0.22)",
-                  }}
-                  aria-label={`Slide ${i + 1}`}
-                />
-              ))}
-            </div>
-
-            
-          </div>
-        </motion.div>
-      </AnimatePresence>
+          <button
+            type="button"
+            onClick={() => setClosed(true)}
+            aria-label="Close offers"
+            className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg opacity-50 transition-opacity hover:opacity-100"
+            style={{ color: COLORS.white }}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

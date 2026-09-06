@@ -11,7 +11,6 @@ import Footer from "./components/Footer";
 import HeroSection from "./components/HeroSection";
 import ServicesSection from "./components/ServicesSection";
 import SubjectSection from "./components/SubjectSection";
-// import WebServicesSection from "./components/WebServicesSection";
 import ProcessSection from "./components/ProcessSection";
 import WhyPearlxSection from "./components/WhyPearlxSection";
 import AuthModal from "./components/AuthModal";
@@ -28,11 +27,10 @@ function GuestHome({ openDemoModal }) {
   return (
     <>
       <HeroSection openDemoModal={openDemoModal} />
-      <SubjectSection />
       <ServicesSection />
+      <SubjectSection />
       <WhyPearlxSection />
       <ProcessSection openDemoModal={openDemoModal} />
-      {/* <WebServicesSection /> */}
     </>
   );
 }
@@ -49,11 +47,13 @@ function MainApp() {
 
   if (!isAuthReady) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3"
-        style={{ background: COLORS.bgPrimary }}>
-        <motion.div className="w-8 h-8 rounded-full border-2 border-t-transparent"
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3" style={{ background: COLORS.bgPrimary }}>
+        <motion.div
+          className="w-8 h-8 rounded-full border-2 border-t-transparent"
           style={{ borderColor: COLORS.indigo, borderTopColor: "transparent" }}
-          animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }} />
+          animate={{ rotate: 360 }}
+          transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+        />
         <p className="text-sm font-medium" style={{ color: COLORS.textMuted }}>Loading Pearlx...</p>
       </div>
     );
@@ -75,7 +75,6 @@ function MainApp() {
           <Route path="/courses" element={<Courses openDemoModal={openDemoModal} />} />
           <Route path="/mathsclasses" element={<MathsClasses openDemoModal={openDemoModal} />} />
           <Route path="/services/academic-tuition" element={<AcademicTuition openDemoModal={openDemoModal} />} />
-          {/* <Route path="/services/web-development" element={<WebDevelopmentServices openDemoModal={openDemoModal} />} /> */}
           <Route path="/pricing" element={<Pricing openDemoModal={openDemoModal} />} />
         </Routes>
       </main>

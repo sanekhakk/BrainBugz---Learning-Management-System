@@ -1,318 +1,463 @@
-import React from "react";
-import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Star, Zap, Trophy, Heart, Users, Code2, Calculator } from "lucide-react";
-import { getWhatsAppLink } from "../utils/whatsapp";
-import lp1 from "../assets/kids/LP1.webp"
-import bp1 from "../assets/kids/BP1.webp"
-import rp1 from "../assets/kids/RP1.webp"
-import kid1 from "../assets/kids/KID1.webp"
+import React, { useRef, useState } from "react";
+import { motion, AnimatePresence, useInView } from "framer-motion";
+import {
+  ArrowUpRight,
+  Sparkles,
+  Sprout,
+  BookOpen,
+  Rocket,
+  GraduationCap,
+  Check,
+} from "lucide-react";
 
-// TODO: point these at your actual router paths for the two level pages
-const CODING_ROUTE = "/services/education";
-const MATHS_ROUTE = "/mathsclasses";
-
-const STAT_ICON_MAP = { Users, Zap, Trophy, Heart };
-
-const T = { bg:"#F0FFFE", ink:"#0F172A", green:"#10B981", sky:"#0EA5E9",
-  yellow:"#FFD166", pink:"#FF6B9D", purple:"#A78BFA" };
+import lp1 from "../assets/kids/LP1.webp";
+import bp1 from "../assets/kids/BP1.webp";
+import rp1 from "../assets/kids/RP1.webp";
+import kid1 from "../assets/kids/KID1.webp";
 
 const LEVELS = [
   {
-    id:"little",customIcon: lp1 , name:"Little Pearls", age:"Ages 5–7", tag:"BEGINNER",
-    tagline:"Where every learner begins their journey!",
-    desc:"Drag-and-drop block coding and hands-on number play — no typing, no worksheets. Kids build real logic through animated stories, mini-games, and colourful puzzles, in Coding or Maths.",
-    tools:["Block Coding","Number Play","Story-Based"],
-    color:T.yellow, glow:"rgba(255,209,102,0.28)", border:"rgba(255,209,102,0.4)",
-    textColor:"#A8760A", bg:"linear-gradient(145deg,#FFFBEB,#FFF3C4)",
-    floatImg:"/images/kids/little-pearls-float.png",
-    achievements:["Logic Builder","Loop Master","Story Coder"],
-    modules:7, lessons:84, projects:6, dual:true,
+    id: "little",
+    number: "01",
+    name: "Little Pearls",
+    age: "Ages 5–7",
+    grade: "Grades K–2",
+    tag: "BEGINNER",
+    tagline: "Where every learner begins.",
+    desc:
+      "A playful first step into coding and maths through stories, puzzles, visual activities and hands-on learning.",
+    color: "#F59E0B",
+    soft: "#FFF7E6",
+    image: lp1,
+    icon: Sprout,
+    chips: ["Block Coding", "Number Play", "Story Learning"],
+    outcome: "Build logic naturally",
   },
   {
-    id:"bright", customIcon: bp1, name:"Bright Pearls", age:"Ages 8–11", tag:"INTERMEDIATE",
-    tagline:"Real projects, real excitement, real skills!",
-    desc:"Students move into real building — Scratch-to-Python games and apps, or fractions, geometry and word problems that click. Every module ends with a project they're proud to show parents.",
-    tools:["Scratch/Python","Fractions/Geometry","Real Projects"],
-    color:T.green, glow:"rgba(16,185,129,0.25)", border:"rgba(16,185,129,0.4)",
-    textColor:"#047857", bg:"linear-gradient(145deg,#ECFDF5,#D1FAE5)",
-    floatImg:"/images/kids/bright-pearls-float.png",
-    modules:6, lessons:72, projects:8, dual:true,
+    id: "bright",
+    number: "02",
+    name: "Bright Pearls",
+    age: "Ages 8–11",
+    grade: "Grades 3–6",
+    tag: "INTERMEDIATE",
+    tagline: "From curiosity to real projects.",
+    desc:
+      "Children start building games, apps and stronger maths reasoning while moving confidently from concepts to projects.",
+    color: "#10B981",
+    soft: "#ECFDF5",
+    image: bp1,
+    icon: BookOpen,
+    chips: ["Scratch → Python", "Fractions & Geometry", "Real Projects"],
+    outcome: "Turn ideas into projects",
   },
   {
-    id:"rising", customIcon: rp1, name:"Rising Pearls", age:"Ages 12–15", tag:"ADVANCED",
-    tagline:"Pro-grade coding & competitive maths!",
-    desc:"Text-based skills that matter — Python OOP and full web dev with JS, or algebra, trigonometry and olympiad-level problem solving. Portfolio-ready work that impresses universities.",
-    tools:["Python/Web Dev","Algebra/Olympiad","Portfolio Projects"],
-    color:T.purple, glow:"rgba(167,139,250,0.25)", border:"rgba(167,139,250,0.4)",
-    textColor:"#6D28D9", bg:"linear-gradient(145deg,#F5F3FF,#EDE9FE)",
-    floatImg:"/images/kids/rising-pearls-float.png",
-    modules:10, lessons:120, projects:10, dual:true,
+    id: "rising",
+    number: "03",
+    name: "Rising Pearls",
+    age: "Ages 12–15",
+    grade: "Grades 7–10",
+    tag: "ADVANCED",
+    tagline: "Skills that go beyond the classroom.",
+    desc:
+      "Advanced coding, web development and competitive maths designed to create confident, independent problem-solvers.",
+    color: "#8B5CF6",
+    soft: "#F5F3FF",
+    image: rp1,
+    icon: Rocket,
+    chips: ["Python & Web Dev", "Algebra & Olympiad", "Portfolio Projects"],
+    outcome: "Build future-ready skills",
   },
   {
-    id:"academic", customIcon: kid1, name:"Academic Tuition", age:"Classes 1–12", tag:"ACADEMIC",
-    tagline:"Board exams? We make them stress-free!",
-    desc:"Coaching for Classes 1–12 to excel in their academics. Expert guidance in Mathematics, Science, English, Social Science, Computer Science, and more. Regular tests, doubt clearing, notes, assignments, and exam strategies to help students achieve top scores.",
-    tools:["ICSE/CBSE","IGCSE","State Boards"],
-    color:T.sky, glow:"rgba(14,165,233,0.25)", border:"rgba(14,165,233,0.4)",
-    textColor:"#0284C7", bg:"linear-gradient(145deg,#F0F9FF,#E0F2FE)",
-    floatImg:"/images/kids/cs-tuition-float.png",
-    dual:false,
+    id: "academic",
+    number: "04",
+    name: "Academic Tuition",
+    age: "Classes 1–12",
+    grade: "Major School Boards",
+    tag: "ACADEMIC",
+    tagline: "Better understanding. Better scores.",
+    desc:
+      "Structured academic support with expert guidance, regular practice, doubt clearing and exam-focused preparation.",
+    color: "#0EA5E9",
+    soft: "#EFF9FF",
+    image: kid1,
+    icon: GraduationCap,
+    chips: ["CBSE / ICSE / IGCSE", "All Core Subjects", "Exam Preparation"],
+    outcome: "Learn with confidence",
   },
 ];
 
-/* background-removed floating kid image */
-const FloatKid = ({ src, emoji, style, delay=0 }) => (
-  <motion.div animate={{ y:[0,-14,0], rotate:[-2,2,-2] }}
-    transition={{ duration:5+delay, repeat:Infinity, ease:"easeInOut", delay }}
-    className="absolute pointer-events-none select-none z-0" style={style}>
-    <img src={src} alt="" style={{ width:"100%", height:"100%", objectFit:"contain",
-      filter:"drop-shadow(0 16px 28px rgba(0,0,0,0.15))" }}
-      onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }} />
-    <div style={{ display:"none",width:"100%",height:"100%",alignItems:"center",
-      justifyContent:"center" }}></div>
-  </motion.div>
-);
+const LevelVisual = ({ level }) => (
+  <div
+    className="absolute inset-0 overflow-hidden"
+    style={{ background: level.soft }}
+  >
+    {/* oversized abstract orbital shapes */}
+    <div
+      className="absolute -right-24 -top-24 h-80 w-80 rounded-full border-[1px]"
+      style={{ borderColor: `${level.color}22` }}
+    />
+    <div
+      className="absolute -right-8 top-8 h-56 w-56 rounded-full border-[1px]"
+      style={{ borderColor: `${level.color}18` }}
+    />
+    <div
+      className="absolute bottom-[-100px] left-[-80px] h-72 w-72 rounded-full"
+      style={{
+        background: `radial-gradient(circle, ${level.color}20, transparent 68%)`,
+      }}
+    />
 
-const LevelCard = ({ l, i }) => (
-  <motion.div initial={{ opacity:0,y:60 }} whileInView={{ opacity:1,y:0 }}
-    viewport={{ once:true }} transition={{ duration:0.7,delay:i*0.12 }} className="relative group">
-    
-    {/* Glow background */}
-    <div className="absolute inset-0 rounded-[2.5rem] blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500"
-      style={{ background:l.glow, transform:"scale(1.08)" }} />
+    {/* subtle grid */}
+    <div
+      className="absolute inset-0 opacity-[0.045]"
+      style={{
+        backgroundImage: `linear-gradient(${level.color} 1px, transparent 1px), linear-gradient(90deg, ${level.color} 1px, transparent 1px)`,
+        backgroundSize: "32px 32px",
+        maskImage:
+          "linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)",
+      }}
+    />
 
-    <motion.div whileHover={{ y:-16 }} transition={{ duration:0.3 }}
-      className="relative bg-white rounded-[2.5rem] overflow-hidden border-2 flex flex-col h-full"
-      style={{ borderColor:l.border, boxShadow:`0 8px 40px ${l.glow}` }}>
-      
-      {/* Card Header Container */}
-<div className="relative h-60 flex flex-col overflow-hidden" style={{ background: l.bg }}>
-  
-  {/* 1. BACKGROUND DECORATION (Circles) */}
-  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-     <motion.div animate={{ rotate: 360 }} transition={{ duration: 32, repeat: Infinity, ease: "linear" }}
-       className="absolute w-48 h-48 rounded-full border-2 border-dashed opacity-20"
-       style={{ borderColor: l.color }} />
-  </div>
+    {/* actual Pearl image */}
+    <motion.img
+      key={level.id}
+      src={level.image}
+      alt={level.name}
+      initial={{ opacity: 0, y: 25, scale: 0.94 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.55, ease: "easeOut" }}
+      className="absolute bottom-0 left-1/2 z-10 h-[78%] w-[78%] -translate-x-1/2 object-contain drop-shadow-[0_24px_30px_rgba(15,23,42,0.16)] md:h-[86%] md:w-[78%]"
+    />
 
-  {/* 3. TAG (Positioned top-left) */}
-  <div className="relative z-30 p-4 h-12 flex items-start">
-    <div className="px-3 py-1 rounded-full text-[9px] font-black tracking-widest text-white shadow-sm"
-      style={{ background: l.color }}>
-      {l.tag}
-    </div>
-  </div>
-
-  {/* 2. IMAGE AREA (This takes up all space ABOVE the stats) */}
-  <div className="relative z-10 w-full h-36 flex items-center justify-center px-4">
-    {l.customIcon ? (
-      <img 
-        src={l.customIcon} 
-        alt={l.name} 
-        className="h-full w-auto object-contain pointer-events-none drop-shadow-2xl" 
-        style={{ filter: "drop-shadow(0 12px 20px rgba(0,0,0,0.15))" }}
-      />
-    ) : (
-      <div className="text-6xl">{l.emoji}</div>
-    )}
-  </div>
-
-  
-
-  {/* 4. STATS STRIP (Locked to the bottom) */}
-  <div className="relative z-20 mt-auto h-12 flex bg-white/95 backdrop-blur-md border-t border-black/5">
-    {[{ v: l.modules, l: "Modules" }, { v: l.lessons, l: "Lessons" }, { v: l.projects, l: "Projects" }].map((s, si) => (
-      <div key={si} className="flex-1 flex flex-col items-center justify-center">
-        <div className="font-black text-[12px] leading-none" style={{ color: l.textColor }}>{s.v}</div>
-        <div className="text-[8px] font-semibold text-slate-400 uppercase tracking-tighter mt-0.5">{s.l}</div>
-      </div>
-    ))}
-  </div>
-</div>
-
-      {/* Body Content */}
-      <div className="p-6 flex flex-col flex-grow">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="font-black text-lg" style={{ color:T.ink }}>{l.name}</h3>
-          <span className="text-[10px] font-bold px-2 py-1 rounded-lg"
-            style={{ background:`${l.color}15`, color:l.textColor }}>{l.age}</span>
-        </div>
-        <p className="text-xs font-bold mb-2" style={{ color:l.textColor }}>{l.tagline}</p>
-        <p className="text-slate-500 text-sm leading-relaxed mb-4 flex-grow">{l.desc}</p>
-       
-
-        <div className="flex flex-wrap gap-2 mb-5">
-          {l.tools.map((t,ti)=>(
-            <span key={ti} className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-white border"
-              style={{ borderColor:l.border, color:l.textColor }}>{t}</span>
-          ))}
-        </div>
-
-        {l.dual ? (
-          <div className="flex gap-2">
-            <a href={`${CODING_ROUTE}#${l.id}`}
-              className="flex-1 flex justify-center items-center gap-1.5 py-3.5 rounded-2xl font-bold text-xs text-white transition-all duration-300"
-              style={{ background:l.color, boxShadow:`0 6px 20px ${l.glow}` }}>
-              <Code2 className="w-3.5 h-3.5" /> Coding
-            </a>
-            <a href={`${MATHS_ROUTE}#${l.id}`}
-              className="flex-1 flex justify-center items-center gap-1.5 py-3.5 rounded-2xl font-bold text-xs transition-all duration-300 border-2"
-              style={{ borderColor:l.border, color:l.textColor, background:"#fff" }}>
-              <Calculator className="w-3.5 h-3.5" /> Maths
-            </a>
-          </div>
-        ) : (
-          <a href={getWhatsAppLink(`Hi! I'd like to enrol in ${l.name} (${l.age}) at Pearlx.`)}
-            target="_blank" rel="noopener noreferrer"
-            className="flex justify-center items-center gap-2 w-full py-3.5 rounded-2xl font-bold text-sm text-white transition-all duration-300"
-            style={{ background:l.color, boxShadow:`0 6px 20px ${l.glow}` }}>
-            <Sparkles className="w-4 h-4" /> Enrol Now
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </a>
-        )}
-      </div>
+    {/* floating label */}
+    <motion.div
+      key={`${level.id}-badge`}
+      initial={{ opacity: 0, x: 15, y: 8 }}
+      animate={{ opacity: 1, x: 0, y: 0 }}
+      transition={{ delay: 0.18, duration: 0.45 }}
+      className="absolute right-5 top-5 z-20 rounded-2xl border bg-white/85 px-4 py-3 shadow-lg backdrop-blur-md md:right-7 md:top-7"
+      style={{ borderColor: `${level.color}25` }}
+    >
+      <p
+        className="text-[9px] font-black uppercase tracking-[0.18em]"
+        style={{ color: level.color }}
+      >
+        {level.tag}
+      </p>
+      <p className="mt-1 text-xs font-black text-slate-800">
+        {level.age}
+      </p>
     </motion.div>
-  </motion.div>
+
+    {/* outcome pill */}
+    <motion.div
+      key={`${level.id}-outcome`}
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.28, duration: 0.45 }}
+      className="absolute bottom-5 left-5 z-20 flex items-center gap-2 rounded-full border bg-white/90 px-4 py-2.5 text-[10px] font-black text-slate-700 shadow-lg backdrop-blur-md md:bottom-7 md:left-7"
+      style={{ borderColor: `${level.color}25` }}
+    >
+      <span
+        className="flex h-5 w-5 items-center justify-center rounded-full text-white"
+        style={{ background: level.color }}
+      >
+        <Check className="h-3 w-3" />
+      </span>
+      {level.outcome}
+    </motion.div>
+  </div>
 );
 
-const SubjectSection = () => (
-  <section id="curriculum" className="py-5 relative overflow-hidden" style={{ background:T.bg }}>
-    {/* Live background */}
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      <div className="absolute inset-0 opacity-25"
-        style={{ backgroundImage:"radial-gradient(circle at 1px 1px, rgba(16,185,129,0.14) 1px, transparent 0)", backgroundSize:"36px 36px" }} />
-      {[
-        { c:T.green, x:"-5%", y:"-8%", s:"42vw", dur:18 },
-        { c:T.sky, right:true, y:"15%", s:"36vw", dur:22 },
-        { c:T.yellow, x:"25%", y:"70%", s:"28vw", dur:16 },
-        { c:T.pink, right:true, bottom:true, s:"30vw", dur:20 },
-      ].map((o,i)=>(
-        <motion.div key={i} animate={{ scale:[1,1.18,1] }} transition={{ duration:o.dur,repeat:Infinity,ease:"easeInOut" }}
-          className="absolute rounded-full"
-          style={{ width:o.s,height:o.s, left:o.right?"auto":o.x, right:o.right?"-5%":undefined,
-            top:o.bottom?"auto":o.y, bottom:o.bottom?"-5%":undefined,
-            background:`radial-gradient(circle, ${o.c}12 0%, transparent 70%)`, filter:"blur(48px)" }} />
-      ))}
-      {/* Floating code pills */}
-      {[
-        { text:"repeat(10)",top:"8%",left:"3%",c:T.green },
-        { text:"if x > 5:",top:"22%",right:"3%",c:T.sky },
-        { text:"for i in range:",bottom:"18%",left:"2%",c:T.purple },
-        { text:"print('Hello!')",bottom:"10%",right:"2%",c:T.yellow },
-      ].map((c,i)=>(
-        <motion.div key={i} animate={{ y:[0,-18,0],opacity:[0.6,1,0.6] }}
-          transition={{ duration:6+i*1.2,repeat:Infinity,delay:i*0.8 }}
-          className="absolute font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-white/70 backdrop-blur-sm border"
-          style={{ top:c.top,left:c.left,right:c.right,bottom:c.bottom,
-            borderColor:`${c.c}25`,color:c.c,boxShadow:`0 4px 12px ${c.c}15` }}>{c.text}</motion.div>
-      ))}
-      {/* Sparkles */}
+const SubjectSection = () => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const [active, setActive] = useState("little");
 
-    </div>
+  const current = LEVELS.find((level) => level.id === active) || LEVELS[0];
+  const CurrentIcon = current.icon;
 
-    {/* Floating kid images (background-removed PNGs) */}
-    <FloatKid src="/images/kids/float-kid-1.png" emoji=""
-      style={{ width:110,height:150,top:"12%",right:"1.5%" }} delay={0} />
-    <FloatKid src="/images/kids/float-kid-2.png" emoji=""
-      style={{ width:90,height:130,bottom:"14%",left:"0.5%" }} delay={1.5} />
-    <FloatKid src="/images/kids/float-star.png" emoji=""
-      style={{ width:65,height:65,top:"35%",left:"0.5%" }} delay={0.8} />
-
-    <div className="md :max-w-[80%] sm:max-w-[90%] mx-auto px-6 relative z-10">
-      {/* Header */}
-      <div className="text-center mb-20">
-        <motion.h2 initial={{ opacity:0,y:24 }} whileInView={{ opacity:1,y:0 }} viewport={{ once:true }}
-          transition={{ delay:0.1 }} className="font-black mb-5 tracking-tight leading-none"
-          style={{ fontSize:"clamp(2.4rem,5vw,3.8rem)",color:T.ink,letterSpacing:"-0.04em" }}>
-          Every child learns<br/>
-          <span style={{ background:`linear-gradient(135deg,${T.sky},${T.green})`,
-            WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text" }}>
-            at their own pace
-          </span>
-        </motion.h2>
-        <motion.p initial={{ opacity:0 }} whileInView={{ opacity:1 }} viewport={{ once:true }} transition={{ delay:0.2 }}
-          className="text-slate-500 max-w-2xl mx-auto text-base font-medium mb-8">
-            From school academics to coding, maths, and career-focused courses, Pearlx helps learners build knowledge, confidence, and future-ready skills through expert guidance and personalized support.
-          </motion.p>
-        {/* Stats row */}
-        {/* <motion.div initial={{ opacity:0,y:12 }} whileInView={{ opacity:1,y:0 }} viewport={{ once:true }}
-          transition={{ delay:0.3 }} className="flex flex-wrap justify-center gap-3">
-          {[
-            { icon:"Users",v:"500+",l:"Students Taught",c:T.green },
-            { icon:"Zap",v:"132",l:"Total Lessons",c:T.sky },
-            { icon:"Trophy",v:"4 Levels",l:"Structured Path",c:T.yellow },
-            { icon:"Heart",v:"4.9",l:"Parent Rating",c:T.pink },
-          ].map((s,i)=>(
-            <div key={i} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border"
-              style={{ borderColor:`${s.c}30`,boxShadow:`0 4px 12px ${s.c}15` }}>
-              <span className="flex items-center justify-center">
-              {(() => { const I = STAT_ICON_MAP[s.icon]; return I ? <I className="w-4 h-4" style={{ color: s.c }} /> : null; })()}
-            </span>
-              <span className="font-black text-sm" style={{ color:T.ink }}>{s.v}</span>
-              <span className="text-xs font-medium text-slate-400">{s.l}</span>
+  return (
+    <section
+      id="learning-path"
+      ref={ref}
+      className="relative overflow-hidden px-5 py-24 md:px-8 md:py-32"
+      style={{ background: "#FFFFFF" }}
+    >
+      <div className="relative z-10 mx-auto max-w-7xl">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 25 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.7 }}
+          className="mb-12 flex flex-col gap-6 md:mb-14 md:flex-row md:items-end md:justify-between"
+        >
+          <div className="max-w-3xl">
+            <div
+              className="mb-5 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em]"
+              style={{
+                color: "#7C3AED",
+                background: "#F5F3FF",
+                borderColor: "#DDD6FE",
+              }}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              The Pearlx journey
             </div>
-          ))}
-        </motion.div> */}
-      </div>
 
-      {/* Level Cards */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-7 mb-20">
-        {LEVELS.map((l,i)=><LevelCard key={i} l={l} i={i} />)}
-      </div>
+            <h2
+              className="font-black leading-[0.96] tracking-[-0.05em]"
+              style={{
+                color: "#0F172A",
+                fontSize: "clamp(2.6rem, 5vw, 5rem)",
+              }}
+            >
+              They grow.
+              <br />
+              <span
+                style={{
+                  background: "linear-gradient(135deg,#8B5CF6,#0EA5E9,#10B981)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Their learning grows with them.
+              </span>
+            </h2>
+          </div>
 
-      {/* Journey Promise Strip */}
-      <motion.div initial={{ opacity:0,y:24 }} whileInView={{ opacity:1,y:0 }} viewport={{ once:true }}
-        className="rounded-[2.5rem] overflow-hidden relative border-2"
-        style={{ borderColor:"rgba(16,185,129,0.2)",boxShadow:"0 20px 60px rgba(16,185,129,0.08)" }}>
-        <div className="absolute inset-0" style={{ background:"linear-gradient(135deg,#F0FFFE,#E0F2FE,#F5F3FF)" }} />
-        <div className="absolute top-0 left-0 right-0 h-1.5"
-          style={{ background:`linear-gradient(90deg,${T.yellow},${T.green},${T.sky},${T.purple})` }} />
-        <div className="relative z-10 p-10 lg:p-14">
-          <div className="flex flex-col lg:flex-row items-center gap-10">
-            <div className="lg:w-1/2">
-              <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color:T.green }}>The Pearlx Promise</p>
-              <h3 className="font-black text-2xl mb-4" style={{ color:T.ink,letterSpacing:"-0.03em" }}>
-                Logic-first. Always.
-              </h3>
-              <p className="text-slate-500 leading-relaxed mb-6">
-                We never rush kids into text coding or abstract maths before they're ready. Blocks and hands-on number play aren't a shortcut — they're the foundation.
-                When children transition to Python, JavaScript, or algebra, it feels <strong style={{ color:T.ink }}>natural, not scary.</strong>
+          <p className="max-w-sm text-sm font-medium leading-7 text-slate-500 md:pb-1">
+            Four pathways, designed around where your child is today — and
+            where they can go next.
+          </p>
+        </motion.div>
+
+        {/* Timeline selector */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ delay: 0.15, duration: 0.6 }}
+          className="relative mb-5 overflow-x-auto pb-1"
+        >
+          <div className="relative flex min-w-max items-center justify-between gap-2 rounded-[2rem] border bg-slate-50 p-2 md:gap-3">
+            <div className="pointer-events-none absolute left-[7%] right-[7%] top-1/2 hidden h-px bg-slate-200 md:block" />
+
+            {LEVELS.map((level, i) => {
+              const Icon = level.icon;
+              const isActive = active === level.id;
+
+              return (
+                <button
+                  key={level.id}
+                  type="button"
+                  onMouseEnter={() => setActive(level.id)}
+                  onFocus={() => setActive(level.id)}
+                  onClick={() => setActive(level.id)}
+                  className="group relative z-10 flex min-w-[150px] flex-1 items-center gap-3 rounded-[1.5rem] border px-4 py-3 text-left transition-all duration-300 md:min-w-0"
+                  style={{
+                    background: isActive ? "#fff" : "transparent",
+                    borderColor: isActive
+                      ? `${level.color}35`
+                      : "transparent",
+                    boxShadow: isActive
+                      ? "0 10px 25px rgba(15,23,42,.07)"
+                      : "none",
+                  }}
+                >
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110"
+                    style={{
+                      color: level.color,
+                      background: `${level.color}12`,
+                    }}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+
+                  <span>
+                    <span
+                      className="block text-[9px] font-black"
+                      style={{ color: level.color }}
+                    >
+                      {level.number}
+                    </span>
+                    <span className="block whitespace-nowrap text-xs font-black text-slate-800">
+                      {level.name}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        {/* Main showcase */}
+        <motion.div
+          layout
+          className="grid min-h-[620px] overflow-hidden rounded-[2.8rem] border md:min-h-[650px] lg:grid-cols-[1.08fr_.92fr]"
+          style={{
+            borderColor: `${current.color}28`,
+            boxShadow: `0 35px 90px ${current.color}10`,
+          }}
+        >
+          {/* Image stage */}
+          <div className="relative min-h-[400px] md:min-h-[500px]">
+            <AnimatePresence mode="wait">
+              <LevelVisual key={current.id} level={current} />
+            </AnimatePresence>
+          </div>
+
+          {/* Information stage */}
+          <motion.div
+            key={`${current.id}-content`}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.45 }}
+            className="relative flex flex-col justify-between bg-white p-7 md:p-10 lg:p-12"
+          >
+            <div>
+              <div className="flex items-start justify-between gap-5">
+                <div>
+                  <p
+                    className="text-[10px] font-black uppercase tracking-[0.2em]"
+                    style={{ color: current.color }}
+                  >
+                    {current.tag} · {current.age}
+                  </p>
+
+                  <h3
+                    className="mt-3 font-black tracking-[-0.045em]"
+                    style={{
+                      color: "#0F172A",
+                      fontSize: "clamp(2.2rem, 4vw, 4rem)",
+                      lineHeight: 0.98,
+                    }}
+                  >
+                    {current.name}
+                  </h3>
+
+                  <p className="mt-3 text-xs font-bold text-slate-400">
+                    {current.grade}
+                  </p>
+                </div>
+
+                <div
+                  className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl md:flex"
+                  style={{
+                    background: current.soft,
+                    color: current.color,
+                  }}
+                >
+                  <CurrentIcon className="h-6 w-6" />
+                </div>
+              </div>
+
+              <div
+                className="mt-8 rounded-[1.5rem] border-l-4 px-5 py-4"
+                style={{
+                  background: current.soft,
+                  borderColor: current.color,
+                }}
+              >
+                <p className="text-sm font-black text-slate-800">
+                  {current.tagline}
+                </p>
+              </div>
+
+              <p className="mt-7 max-w-lg text-sm font-medium leading-7 text-slate-500 md:text-base">
+                {current.desc}
               </p>
-              <div className="flex gap-3 flex-wrap">
-                <a href={getWhatsAppLink("Hi! I'd like to book a free trial class at Pearlx.")}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm text-white"
-                  style={{ background:`linear-gradient(135deg,${T.green},${T.sky})`,boxShadow:"0 6px 24px rgba(16,185,129,0.3)" }}>
-                  Book Free Trial <ArrowRight className="w-4 h-4" />
-                </a>
-                <a href="#curriculum"
-                  className="flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm border-2"
-                  style={{ borderColor:"rgba(16,185,129,0.3)",color:T.green,background:"rgba(16,185,129,0.06)" }}>
-                  See Full Curriculum
-                </a>
+
+              {/* Chips */}
+              <div className="mt-7 flex flex-wrap gap-2">
+                {current.chips.map((chip) => (
+                  <span
+                    key={chip}
+                    className="rounded-full border px-3.5 py-2 text-[10px] font-bold text-slate-600"
+                    style={{ borderColor: `${current.color}25` }}
+                  >
+                    {chip}
+                  </span>
+                ))}
               </div>
             </div>
-            <div className="lg:w-1/2 grid grid-cols-2 gap-4">
-              {[
-                { label:"Little → Bright → Rising",desc:"One level system, every track" },
-                { label:"Coding & Maths",desc:"Take one, or take both" },
-                { label:"Board Excellence",desc:"Class 6–12 focused" },
-                { label:"Grand Showcase",desc:"Every level's finale" },
-              ].map((item,i)=>(
-                <motion.div key={i} whileHover={{ scale:1.04 }}
-                  className="p-5 rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 text-center"
-                  style={{ boxShadow:"0 4px 16px rgba(0,0,0,0.04)" }}>
-                  
-                  <div className="font-bold text-sm" style={{ color:T.ink }}>{item.label}</div>
-                  <div className="text-xs text-slate-400 mt-1">{item.desc}</div>
-                </motion.div>
-              ))}
+
+            <div className="mt-10">
+              {/* mini progression */}
+              <div className="mb-7">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">
+                    Learning stage
+                  </span>
+                  <span
+                    className="text-[10px] font-black"
+                    style={{ color: current.color }}
+                  >
+                    {current.number} / 04
+                  </span>
+                </div>
+
+                <div className="flex gap-1.5">
+                  {LEVELS.map((level) => (
+                    <div
+                      key={level.id}
+                      className="h-1.5 flex-1 rounded-full transition-all duration-300"
+                      style={{
+                        background:
+                          LEVELS.indexOf(level) <= LEVELS.indexOf(current)
+                            ? level.color
+                            : "#E2E8F0",
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <a
+                href={
+                  current.id === "academic"
+                    ? "/services/academic-tuition"
+                    : "/services/education"
+                }
+                className="group flex w-full items-center justify-between rounded-2xl px-5 py-4 text-sm font-black text-white transition-transform hover:-translate-y-0.5"
+                style={{
+                  background: current.color,
+                  boxShadow: `0 14px 30px ${current.color}30`,
+                }}
+              >
+                Explore {current.name}
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+                  <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </span>
+              </a>
             </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Bottom message */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ delay: 0.35 }}
+          className="mt-5 flex flex-col items-start justify-between gap-3 rounded-[1.8rem] border bg-slate-50 px-6 py-5 sm:flex-row sm:items-center"
+        >
+          <div>
+            <p className="text-sm font-black text-slate-800">
+              Not sure which path fits your child?
+            </p>
+            <p className="mt-1 text-xs font-medium text-slate-400">
+              That's exactly what the free trial is for.
+            </p>
           </div>
-        </div>
-      </motion.div>
-    </div>
-  </section>
-);
+
+          <span className="text-xs font-black text-slate-500">
+            Start → Learn → Build → Grow
+          </span>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
 
 export default SubjectSection;
+export { SubjectSection };

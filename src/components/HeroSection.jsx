@@ -1,383 +1,146 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { MonitorPlay, Sparkles, Rocket, Trophy, Layers } from "lucide-react";
+import React from "react";
+import { motion } from "framer-motion";
+import { ArrowRight, Play, CheckCircle2, Code2, Calculator, BookOpen } from "lucide-react";
 import heroKid from "../assets/kids/heroKid.webp";
 
-const BLOCK_SNIPPETS = [
-  { icon: "RefreshCw", label: "repeat 10 times", color: "#10B981", x: "8%", y: "22%" },
-  { icon: "HelpCircle", label: "if touching edge?", color: "#0EA5E9", x: "72%", y: "15%" },
-  { icon: "MessageSquare", label: 'say "Hello!"', color: "#6366F1", x: "80%", y: "60%" },
-  { icon: "MousePointer2", label: "when flag clicked", color: "#10B981", x: "5%", y: "68%" },
-  { icon: "ArrowRight", label: "move 10 steps", color: "#0EA5E9", x: "60%", y: "80%" },
-  { icon: "Zap", label: "if / else block", color: "#6366F1", x: "35%", y: "88%" },
-];
-
-const CYCLING_PHRASES = [
-  "Coding for Kids",
-  "Math Mastery",
-  "Academic Tuition",
-  "Exam Preparation",
-  "Professional & Skill-Based Courses",
-  "Endless Learning",
-];
-
-const STATS = [
-  { value: "50+", label: "Students Taught" },
-  { value: "3", label: "Learning Tracks" },
-  { value: "100+", label: "Lessons" },
-];
-
-// Reduced to 6 particles from 28, using CSS animations instead of JS
-const PARTICLES = [
-  { size: 10, left: "15%", top: "20%", color: "#10B981", duration: 18, delay: 0 },
-  { size: 7,  left: "80%", top: "35%", color: "#0EA5E9", duration: 22, delay: 3 },
-  { size: 12, left: "45%", top: "70%", color: "#6366F1", duration: 16, delay: 1.5 },
-  { size: 6,  left: "70%", top: "80%", color: "#10B981", duration: 20, delay: 4 },
-  { size: 9,  left: "25%", top: "60%", color: "#0EA5E9", duration: 25, delay: 2 },
-  { size: 8,  left: "90%", top: "15%", color: "#6366F1", duration: 19, delay: 0.8 },
-];
-
 const HeroSection = ({ openDemoModal }) => {
-  const [phraseIdx, setPhraseIdx] = useState(0);
-  const containerRef = useRef(null);
-
-  // Only use scroll parallax on desktop where GPU can handle it
-  const { scrollY } = useScroll();
-  const contentY = useTransform(scrollY, [0, 400], [0, -40]);
-
-  useEffect(() => {
-    const t = setInterval(() => setPhraseIdx(i => (i + 1) % CYCLING_PHRASES.length), 2800);
-    return () => clearInterval(t);
-  }, []);
+  const highlights = [
+    { icon: Code2, label: "Coding", color: "#10B981" },
+    { icon: Calculator, label: "Maths", color: "#F59E0B" },
+    { icon: BookOpen, label: "Academic Tuition", color: "#0EA5E9" },
+  ];
 
   return (
-    <section
-      ref={containerRef}
-      className="relative min-h-screen flex items-center overflow-hidden pt-40 bg-white"
-    >
-      {/* ── STATIC BACKGROUND LAYER (no JS animations) ── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden mt-10">
-        {/* Static ambient orbs — CSS only, no framer-motion */}
+    <section className="relative overflow-hidden bg-white pt-32 lg:pt-36">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-40 right-[-10%] w-[620px] h-[620px] rounded-full bg-cyan-100/50 blur-3xl" />
+        <div className="absolute top-[45%] left-[-15%] w-[520px] h-[520px] rounded-full bg-emerald-100/40 blur-3xl" />
         <div
-          className="absolute -top-[15%] -right-[8%] w-[55vw] h-[55vw] rounded-full"
-          style={{
-            background: "radial-gradient(circle, rgba(14,165,233,0.14) 0%, transparent 70%)",
-            filter: "blur(50px)",
-            animation: "slowPulse 20s ease-in-out infinite",
-          }}
-        />
-        <div
-          className="absolute top-[30%] -left-[10%] w-[45vw] h-[45vw] rounded-full"
-          style={{
-            background: "radial-gradient(circle, rgba(16,185,129,0.14) 0%, transparent 70%)",
-            filter: "blur(50px)",
-            animation: "slowPulse 26s ease-in-out infinite reverse",
-          }}
-        />
-
-        {/* Grid pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.025]"
+          className="absolute inset-0 opacity-[0.035]"
           style={{
             backgroundImage:
-              "linear-gradient(#0F172A 1px, transparent 1px), linear-gradient(90deg, #0F172A 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
+              "radial-gradient(circle at 1px 1px, #0F172A 1px, transparent 0)",
+            backgroundSize: "32px 32px",
           }}
         />
-
-        {/* Reduced particles — CSS keyframes instead of framer-motion per-particle */}
-        {PARTICLES.map((p, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              width: p.size,
-              height: p.size,
-              left: p.left,
-              top: p.top,
-              backgroundColor: p.color,
-              filter: "blur(4px)",
-              opacity: 0.15,
-              animation: `floatUp ${p.duration}s ease-in-out ${p.delay}s infinite`,
-              willChange: "transform, opacity",
-            }}
-          />
-        ))}
-
-        {/* Floating code blocks */}
-        {BLOCK_SNIPPETS.slice(0, 4).map((b, i) => (
-          <div
-            key={i}
-            className="absolute items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold shadow-xl border hidden lg:flex"
-            style={{
-              color: b.color,
-              left: b.x,
-              top: b.y,
-              background: "rgba(255,255,255,0.75)",
-              backdropFilter: "blur(14px)",
-              borderColor: `${b.color}25`,
-              zIndex: 5,
-              animation: `floatBlock ${10 + i * 2}s ease-in-out ${i * 0.8}s infinite`,
-              willChange: "transform",
-            }}
-          >
-            <span className="w-2 h-2 rounded-full inline-block" style={{ background: b.color }} />
-            <span style={{ color: "#0F172A", opacity: 0.75 }}>{b.label}</span>
-          </div>
-        ))}
       </div>
 
-      {/* CSS keyframe animations injected once */}
-      <style>{`
-        @media (max-width: 640px) {
-          .pearlx-hero-title {
-            font-size: 2.35rem !important;
-            line-height: 1.08;
-          }
-        }
+      <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
+        <div className="grid lg:grid-cols-[0.95fr_1.05fr] gap-8 lg:gap-12 items-center min-h-[calc(100vh-120px)] py-10 lg:py-14">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65 }}
+            className="max-w-2xl"
+          >
+            {/* <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-700 mb-6">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Live online classes for kids
+            </div> */}
 
-        @keyframes slowPulse {
-          0%, 100% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.12); opacity: 0.85; }
-        }
-        @keyframes floatUp {
-          0%, 100% { transform: translateY(0); opacity: 0.1; }
-          50% { transform: translateY(-80px); opacity: 0.25; }
-        }
-        @keyframes floatBlock {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-16px) rotate(2deg); }
-        }
-        @keyframes spinSlow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes spinReverse {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(-360deg); }
-        }
-      `}</style>
-
-      {/* ── MAIN CONTENT ── */}
-      <motion.div
-        style={{ y: contentY }}
-        className="max-w-7xl mx-auto px-6 pt-10 w-full relative z-20"
-      >
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-
-          {/* LEFT: Content */}
-          <div className="relative">
-            {/* Live badge */}
-            {/* <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="inline-flex items-center gap-4 px-5 rounded-full text-md font-bold mb-8 bg-white border border-slate-200 text-slate-700 shadow-sm"
-            >
-              Coding  •  Academic Tuition  •   Professional Courses
-            </motion.div> */}
-
-            {/* Headline */}
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.7 }}
-              className="pearlx-hero-title font-extrabold leading-[1.05] py-2 tracking-tight"
-              style={{ fontSize: "clamp(2.4rem, 4.0vw, 4.5rem)", color: "#0F172A" }}
-            >
-              Building Future Coders{" "}
-              <br />
-              <span
-                style={{
-                  background: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
-              >
-                and Top Scorers.
+            <h1 className="text-[2.7rem] sm:text-5xl lg:text-[4.4rem] font-black leading-[0.98] tracking-[-0.045em] text-slate-950">
+              Help your child
+              <span className="block mt-2 bg-gradient-to-r from-sky-500 to-emerald-500 bg-clip-text text-transparent">
+                learn with confidence.
               </span>
-            </motion.h1>
+            </h1>
 
-            {/* Cycling phrase */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="flex items-center gap-3 mb-8"
-            >
-              <div className="relative overflow-hidden h-10 flex items-center">
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={phraseIdx}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -20, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="inline-flex items-center px-5 py-2 rounded-full text-sm font-bold text-white shadow-lg"
-                    style={{ background: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)" }}
-                  >
-                    {CYCLING_PHRASES[phraseIdx]}
-                  </motion.span>
-                </AnimatePresence>
-              </div>
-            </motion.div>
+            <p className="mt-6 max-w-xl text-base sm:text-lg leading-7 text-slate-600">
+              Coding, Maths and Academic Tuition designed around your child's
+              age, level and learning pace.
+            </p>
 
-            {/* Description */}
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-lg leading-relaxed mb-10 max-w-lg font-medium"
-              style={{ color: "#475569" }}
-            >
-              Pearlx helps kids learn, build, and achieve through{" "}
-              <strong className="text-emerald-600">Coding, Maths, and Academic Tuition</strong>.{" "}
-              <strong className="text-slate-900">Fun, structured classes designed to build strong skills and confidence.</strong>
-            </motion.p>
-
-            {/* CTA buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="flex flex-wrap gap-4 mb-5"
-            >
-              <motion.button
-                onClick={() => openDemoModal("Demo")}
-                whileHover={{ scale: 1.05, boxShadow: "0 16px 40px rgba(16,185,129,0.4)" }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white"
-                style={{
-                  background: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)",
-                  boxShadow: "0 8px 28px rgba(16,185,129,0.3)",
-                }}
-              >
-                <Rocket className="w-5 h-5" /> Book Free Trial
-              </motion.button >
-              <motion.a
-                href="#curriculum"
-                whileHover={{ scale: 1.05, borderColor: "#0EA5E9" }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold border-2 transition-colors"
-                style={{
-                  color: "#0EA5E9",
-                  borderColor: "rgba(14,165,233,0.3)",
-                  background: "rgba(14,165,233,0.04)",
-                }}
-              >
-                <MonitorPlay className="w-5 h-5" /> View Programs
-              </motion.a>
-            </motion.div>
-
-            {/* Stats row */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="flex gap-8 border-t mt-10 border-slate-100"
-            >
-              {STATS.map((s, i) => (
-                <div key={i}>
-                  <div className="text-2xl font-extrabold" style={{ color: "#0F172A" }}>
-                    {s.value}
-                  </div>
-                  <div className="text-xs font-semibold" style={{ color: "#64748B" }}>
-                    {s.label}
-                  </div>
+            <div className="flex flex-wrap gap-2.5 mt-7">
+              {highlights.map(({ icon: Icon, label, color }) => (
+                <div
+                  key={label}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm"
+                >
+                  <Icon size={16} style={{ color }} />
+                  {label}
                 </div>
               ))}
-            </motion.div>
-          </div>
+            </div>
 
-          {/* RIGHT: Visual Panel — simplified rings */}
+            <div className="flex flex-col sm:flex-row gap-3 mt-8">
+              <button
+                onClick={() => openDemoModal("hero")}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-slate-800"
+              >
+                Book a free trial
+                <ArrowRight size={17} />
+              </button>
+
+              <a
+                href="#programs"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              >
+                <Play size={16} />
+                Explore programs
+              </a>
+            </div>
+
+            <div className="flex flex-wrap gap-x-6 gap-y-2 mt-7 text-xs font-semibold text-slate-500">
+              {["Personalised learning", "Small groups", "Parent updates"].map((item) => (
+                <span key={item} className="inline-flex items-center gap-1.5">
+                  <CheckCircle2 size={14} className="text-emerald-500" />
+                  {item}
+                </span>
+              ))}
+            </div>
+          </motion.div>
+
           <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
+            initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative w-full h-[520px] lg:h-[640px] flex items-center justify-center"
+            transition={{ duration: 0.8, delay: 0.1 }}
+            className="relative flex items-center justify-center min-h-[420px] lg:min-h-[600px]"
           >
-            {/* CSS-animated rings instead of framer-motion */}
-            <div
-              className="absolute inset-4 rounded-full border-2 border-dashed"
-              style={{
-                borderColor: "rgba(16,185,129,0.2)",
-                animation: "spinSlow 60s linear infinite",
-                willChange: "transform",
-              }}
-            />
-            <div
-              className="absolute inset-16 rounded-full border-2 border-dashed"
-              style={{
-                borderColor: "rgba(14,165,233,0.2)",
-                animation: "spinReverse 40s linear infinite",
-                willChange: "transform",
-              }}
-            />
-            <div
-              className="absolute inset-28 rounded-full border border-dashed"
-              style={{
-                borderColor: "rgba(99,102,241,0.15)",
-                animation: "spinSlow 25s linear infinite",
-                willChange: "transform",
-              }}
-            />
+            <div className="absolute w-[78%] aspect-square rounded-full bg-gradient-to-br from-sky-100 via-white to-emerald-100" />
+            <div className="absolute w-[88%] aspect-square rounded-full border border-slate-200/80" />
+            <div className="absolute w-[66%] aspect-square rounded-full border border-dashed border-emerald-200/80" />
 
-            {/* Central glow — static */}
-            <div
-              className="absolute inset-32 rounded-full"
-              style={{
-                background:
-                  "radial-gradient(circle, rgba(14,165,233,0.08) 0%, rgba(16,185,129,0.06) 50%, transparent 80%)",
-                filter: "blur(20px)",
-              }}
-            />
-
-            {/* Hero image */}
-            <div className="relative z-20 w-full max-w-[440px]">
+            <div className="relative z-10 w-full max-w-[500px]">
               <img
                 src={heroKid}
-                alt="Kid Coding"
-                className="w-full h-auto object-contain"
-                style={{ filter: "drop-shadow(0 24px 48px rgba(0,0,0,0.1))" }}
+                alt="Child learning coding"
+                className="w-full h-auto object-contain drop-shadow-[0_28px_45px_rgba(15,23,42,0.16)]"
               />
             </div>
 
-            {/* Floating info cards — CSS animation */}
-            <div
-              className="absolute top-[8%] right-[0%] z-30 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-white flex items-center gap-3"
-              style={{ animation: "floatBlock 5s ease-in-out infinite", willChange: "transform" }}
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-[8%] right-[2%] sm:right-[7%] rounded-2xl border border-white bg-white/95 backdrop-blur px-4 py-3 shadow-xl"
             >
-              <div className="bg-emerald-100 text-emerald-600 p-3 rounded-xl flex items-center justify-center"><Trophy className="w-6 h-6" /></div>
-              <div>
-                <div className="text-sm font-extrabold text-slate-900">Board Excellence</div>
-                <div className="text-xs text-slate-500 font-medium">Classes 1–12</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Learning
               </div>
-            </div>
-
-            <div
-              className="absolute bottom-[12%] left-[-2%] z-30 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-white flex items-center gap-3"
-              style={{
-                animation: "floatBlock 6s ease-in-out 1s infinite reverse",
-                willChange: "transform",
-              }}
-            >
-              <div className="bg-cyan-100 text-cyan-600 p-3 rounded-xl flex items-center justify-center"><Layers className="w-6 h-6" /></div>
-              <div>
-                <div className="text-sm font-extrabold text-slate-900">Coding & Maths</div>
-                <div className="text-xs text-slate-500 font-medium">Same Level Journey</div>
+              <div className="text-sm font-extrabold text-slate-900">
+                At their own pace
               </div>
-            </div>
+            </motion.div>
 
-            <div
-              className="absolute bottom-[35%] right-[-4%] z-30 bg-white/90 backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl border border-white flex items-center gap-2"
-              style={{ animation: "floatBlock 7s ease-in-out 2s infinite", willChange: "transform" }}
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.7 }}
+              className="absolute bottom-[10%] left-[0%] sm:left-[4%] rounded-2xl border border-white bg-white/95 backdrop-blur px-4 py-3 shadow-xl"
             >
-              <Sparkles className="w-4 h-4 text-indigo-500" />
-              <span className="text-sm font-extrabold text-slate-900">6+ modules · 100+ Lessons</span>
-            </div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                Pearlx
+              </div>
+              <div className="text-sm font-extrabold text-slate-900">
+                Learn · Build · Grow
+              </div>
+            </motion.div>
           </motion.div>
         </div>
-      </motion.div>
+
+        <div className="border-t border-slate-100 py-5 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+          <span className="font-semibold">Built for curious minds. Trusted by parents.</span>
+          <span>Online • Interactive • Structured</span>
+        </div>
+      </div>
     </section>
   );
 };

@@ -1,117 +1,173 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Zap, Target, Users, ShieldCheck, Trophy, Clock } from "lucide-react";
+import {
+  Sparkles,
+  Users,
+  Target,
+  Laptop,
+  Clock3,
+  BadgeCheck,
+  ArrowUpRight,
+} from "lucide-react";
 
-const features = [
-  { icon: Zap, t: "100% Projects", d: "Every lesson results in a real game, app, or website the student can show off.", color: "#10B981", bg: "rgba(16,185,129,0.1)" },
-  { icon: Target, t: "Board Ready", d: "Targeted tuition strategies for CBSE, ICSE, and state board CS exams.", color: "#0EA5E9", bg: "rgba(14,165,233,0.1)" },
-  { icon: Users, t: "Small Batches", d: "Maximum 3–5 students per class for genuine focus and attention.", color: "#6366F1", bg: "rgba(99,102,241,0.1)" },
-  { icon: ShieldCheck, t: "Certified", d: "Industry-standard certification issued at the end of each completed module.", color: "#C9A84C", bg: "rgba(201,168,76,0.1)" },
-  { icon: Trophy, t: "Grand Showcase", d: "Students present their capstone projects to parents at level completion.", color: "#10B981", bg: "rgba(16,185,129,0.1)" },
-  { icon: Clock, t: "Flexible Timing", d: "Schedule sessions at your convenience — weekdays or weekends.", color: "#0EA5E9", bg: "rgba(14,165,233,0.1)" },
+const BENEFITS = [
+  {
+    icon: Users,
+    title: "Small batches",
+    text: "More attention. More interaction. Less sitting quietly in a crowd.",
+  },
+  {
+    icon: Target,
+    title: "Learning that fits",
+    text: "Lessons are adjusted to your child's level, pace, and goals.",
+  },
+  {
+    icon: Laptop,
+    title: "Learn by doing",
+    text: "Coding, maths, and academics become practical—not just another class.",
+  },
+  {
+    icon: Clock3,
+    title: "Flexible classes",
+    text: "Choose timings that work around school and family life.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Progress you can see",
+    text: "Regular practice, projects, and feedback keep learning moving forward.",
+  },
 ];
 
-const WhyPearlxSection = () => (
-  <section className="py-28 relative overflow-hidden" style={{ background: "#F8FAFC" }}>
-    {/* Static background — removed rotating orbs and floating particles */}
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      <div
-        className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full"
-        style={{
-          background: "radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)",
-          filter: "blur(40px)",
-        }}
-      />
-      <div
-        className="absolute bottom-[-20%] right-[-10%] w-[45vw] h-[45vw] rounded-full"
-        style={{
-          background: "radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%)",
-          filter: "blur(40px)",
-        }}
-      />
-      <div
-        className="absolute inset-0 opacity-[0.3]"
-        style={{
-          backgroundImage: "radial-gradient(circle at 1px 1px, rgba(15,23,42,0.06) 1px, transparent 0)",
-          backgroundSize: "40px 40px",
-        }}
-      />
-    </div>
+const WhyPearlxSection = () => {
+  return (
+    <section className="relative overflow-hidden bg-white py-20 md:py-28">
+      <div className="mx-auto max-w-6xl px-6">
+        {/* Header */}
+        <div className="mb-12 flex flex-col gap-4 md:mb-16 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-emerald-600"
+            >
+              Why Pearlx
+            </motion.p>
 
-    <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
-      <motion.p
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="text-xs font-bold tracking-widest uppercase mb-3"
-        style={{ color: "#10B981", letterSpacing: "0.14em" }}
-      >
-        Why Choose Us
-      </motion.p>
-      <motion.h2
-        initial={{ opacity: 0, y: 16 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ delay: 0.1 }}
-        className="font-extrabold mb-16 tracking-tight"
-        style={{ fontSize: "clamp(2rem, 4vw, 3rem)", color: "#0F172A", letterSpacing: "-0.03em" }}
-      >
-        Why{" "}
-        <span
-          style={{
-            background: "linear-gradient(135deg, #10B981 0%, #0EA5E9 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
-          Pearlx?
-        </span>
-      </motion.h2>
+            <motion.h2
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-4xl font-black tracking-tight text-slate-900 md:text-5xl"
+            >
+              Good learning feels{" "}
+              <span className="text-emerald-500">simple.</span>
+            </motion.h2>
+          </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {features.map((f, i) => (
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-sm text-sm font-medium leading-6 text-slate-500"
+          >
+            No complicated systems. Just the right teacher, the right pace,
+            and classes your child actually enjoys.
+          </motion.p>
+        </div>
+
+        {/* Main feature + benefits */}
+        <div className="grid gap-5 lg:grid-cols-[1.15fr_1fr]">
+          {/* Main card */}
           <motion.div
-            key={i}
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: i * 0.08, duration: 0.5 }}
-            whileHover={{ y: -6 }}
-            className="p-8 rounded-[2rem] bg-white border-2 text-left relative overflow-hidden group cursor-default"
-            style={{
-              borderColor: "rgba(15,23,42,0.06)",
-              boxShadow: "0 4px 20px rgba(15,23,42,0.04)",
-              transition: "border-color 0.2s, box-shadow 0.2s",
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = `${f.color}30`;
-              e.currentTarget.style.boxShadow = `0 20px 48px ${f.bg}, 0 4px 12px rgba(15,23,42,0.04)`;
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = "rgba(15,23,42,0.06)";
-              e.currentTarget.style.boxShadow = "0 4px 20px rgba(15,23,42,0.04)";
-            }}
+            whileHover={{ y: -4 }}
+            transition={{ duration: 0.45 }}
+            className="relative min-h-[330px] overflow-hidden rounded-[2rem] bg-emerald-50 p-7 md:p-9"
           >
-            {/* Top accent line on hover */}
-            <div
-              className="absolute top-0 left-0 right-0 h-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              style={{ background: `linear-gradient(90deg, transparent, ${f.color}, transparent)` }}
-            />
+            {/* Simple decorative shape */}
+            <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full border-[28px] border-white/70" />
+            <div className="absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-emerald-100/70" />
 
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
-              style={{ background: f.bg }}
-            >
-              <f.icon className="w-6 h-6" style={{ color: f.color }} />
+            <div className="relative z-10 flex h-full flex-col justify-between">
+              <div>
+                <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
+                  <Sparkles className="h-5 w-5 text-emerald-500" />
+                </div>
+
+                <div className="max-w-md">
+                  <h3 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
+                    We teach the child,
+                    <br />
+                    not just the subject.
+                  </h3>
+
+                  <p className="mt-4 max-w-sm text-sm leading-6 text-slate-600">
+                    Every child learns differently. Our classes keep that
+                    difference at the centre of the experience.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-10 flex items-center gap-3 text-sm font-bold text-emerald-700">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
+                  <ArrowUpRight className="h-4 w-4" />
+                </span>
+                Built around your child
+              </div>
             </div>
-            <h4 className="font-bold text-lg mb-2" style={{ color: "#0F172A" }}>{f.t}</h4>
-            <p className="text-slate-500 text-sm leading-relaxed">{f.d}</p>
           </motion.div>
-        ))}
+
+          {/* Benefit list */}
+          <div className="divide-y divide-slate-100 rounded-[2rem] border border-slate-100 bg-white px-5 shadow-[0_12px_40px_rgba(15,23,42,0.05)] md:px-7">
+            {BENEFITS.map((item, index) => {
+              const Icon = item.icon;
+
+              return (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, x: 18 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.06, duration: 0.4 }}
+                  className="group flex gap-4 py-5"
+                >
+                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 transition-colors group-hover:bg-emerald-50">
+                    <Icon className="h-4.5 w-4.5 text-slate-500 transition-colors group-hover:text-emerald-500" />
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900">
+                      {item.title}
+                    </h4>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      {item.text}
+                    </p>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Small bottom statement */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="mt-7 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 px-5 py-4"
+        >
+          <p className="text-sm font-semibold text-slate-700">
+            One simple goal: make your child better at learning.
+          </p>
+          <span className="text-xs font-bold text-slate-400">THE PEARLX WAY</span>
+        </motion.div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export default WhyPearlxSection;
+export { WhyPearlxSection };

@@ -1,323 +1,445 @@
-import React, { useRef, useMemo, useState } from "react";
-import { motion, useInView, AnimatePresence } from "framer-motion";
-import { Check, ArrowRight, TerminalSquare, Calculator, BookOpenCheck, Laptop, Star, Zap, Users } from "lucide-react";
-import { getWhatsAppLink } from "../utils/whatsapp";
+import React, { useRef, useState } from "react";
+import { motion, useInView } from "framer-motion";
+import {
+  ArrowUpRight,
+  TerminalSquare,
+  Calculator,
+  BookOpenCheck,
+  Sparkles,
+  Users,
+  Brain,
+  Trophy,
+} from "lucide-react";
 
-const T = { bg:"#F8FAFC", ink:"#0F172A", green:"#10B981", sky:"#0EA5E9",
-  yellow:"#FFD166", pink:"#FF6B9D", purple:"#A78BFA" };
-
-const FloatImg = ({ src, emoji, style, delay=0 }) => (
-  <motion.div animate={{ y:[0,-12,0] }} transition={{ duration:5+delay,repeat:Infinity,ease:"easeInOut",delay }}
-    className="absolute pointer-events-none select-none" style={style}>
-    <img src={src} alt="" style={{ width:"100%",height:"100%",objectFit:"contain",
-      filter:"drop-shadow(0 14px 28px rgba(0,0,0,0.13))" }}
-      onError={e=>{ e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }} />
-    <div style={{ display:"none",width:"100%",height:"100%",alignItems:"center",
-      justifyContent:"center" }}></div>
-  </motion.div>
-);
-
-const OVERVIEW_CARDS = [
+const PROGRAMS = [
   {
-    icon:<TerminalSquare size={32} />,
-    title:"Kids Coding Classes",
-    subtitle:"Ages 5–15 · Block coding → Python",
-    badge:"Core Program",
-    badgeColor:"#059669",badgeBg:"rgba(16,185,129,0.12)",
-    desc:"Project-based coding curriculum across 3 levels. We start with visual block coding to build logic naturally, then transition to text code when kids are truly ready.",
-    cta:"Explore Kids Coding",page:"/services/education",
-    color:T.green,glow:"rgba(16,185,129,0.2)",
-    stats:[{v:"3",l:"Levels"},{v:"132",l:"Lessons"},{v:"500+",l:"Students"}],
-    emoji:null,
-  },
-   {
-    icon:<Calculator size={32} />,
-    title:"Math Classes",
-    subtitle:"For Curious Young Minds",
-    badge:"Kids Program",
-    badgeColor:"#A07830",badgeBg:"rgba(201,168,76,0.12)",
-    desc:"Fun, engaging maths classes that help kids build strong concepts, sharpen problem-solving skills, and enjoy learning maths with confidence.",
-    cta:"Join a Class",page:"/mathsclasses",
-    color:"#C9A84C",glow:"rgba(201,168,76,0.2)",
-    stats:[{v:"100%",l:"Concept Focus"},{v:"Fun",l:"Learning"},{v:"1:1",l:"Attention"}],
-    emoji:null,
+    id: "coding",
+    number: "01",
+    title: "Kids Coding",
+    eyebrow: "BUILD • CREATE • THINK",
+    subtitle: "From first blocks to real code.",
+    description:
+      "Project-based coding for ages 5–15. Kids learn logic first, then move into Scratch, Python and web development when they are ready.",
+    color: "#10B981",
+    soft: "#ECFDF5",
+    icon: TerminalSquare,
+    route: "/services/education",
+    tags: ["Ages 5–15", "Scratch → Python", "Real projects"],
+    stat: "3 levels",
   },
   {
-    icon:<BookOpenCheck size={32} />,
-    title:"Academic Tuition",
-    subtitle:"Classes 1–12 · CBSE, ICSE, IGCSE, State Boards",
-    badge:"School Subject",
-    badgeColor:"#0284C7",badgeBg:"rgba(14,165,233,0.12)",
-    desc:"One-on-one and small-group tuition designed to help students learn confidently and score higher.",
-    cta:"Explore CS Tuition",page:"/services/education",
-    color:T.sky,glow:"rgba(14,165,233,0.2)",
-    stats:[{v:"4",l:"Boards"},{v:"6+",l:"Subjects"},{v:"100%",l:"Exam Focus"}],
-    emoji:null,
-  },
- 
-];
-
-const PLANS = [
-  {
-    emoji:null,name:"Little Pearls",tagline:"Ages 5–7 · Block coding basics",
-    color:"#FFD166",colorDeep:"#CC9B2A",border:"rgba(255,209,102,0.35)",
-    bg:"rgba(255,209,102,0.07)",
-    features:["Visual block coding — no typing needed","Scratch Jr games & animations","Build strong logic naturally","CodiMath — coding meets maths"],
-    highlight:false,
-    kidImg:"/images/kids/plan-little-kid.png",
+    id: "math",
+    number: "02",
+    title: "Maths",
+    eyebrow: "UNDERSTAND • SOLVE • MASTER",
+    subtitle: "Make maths finally click.",
+    description:
+      "Concept-first maths that turns difficult topics into something children can understand, visualise and solve with confidence.",
+    color: "#C9A84C",
+    soft: "#FFF9E8",
+    icon: Calculator,
+    route: "/mathsclasses",
+    tags: ["Ages 5–15", "Concept focused", "Problem solving"],
+    stat: "Confidence first",
   },
   {
-    emoji:null,name:"Bright Pearls",tagline:"Ages 8–11 · Blocks → Text code",
-    badge:"Most Popular",
-    color:"#A78BFA",colorDeep:"#6D28D9",border:"rgba(167,139,250,0.5)",
-    bg:"linear-gradient(160deg,#1A1A2E,#1E1528)",
-    features:["Advanced Scratch to Python transition","Code.org — build real mobile apps","HTML & CSS — your first website","Collaborative peer learning"],
-    highlight:true,
-    kidImg:"/images/kids/plan-bright-kid.png",
-  },
-  {
-    emoji:null,name:"Rising Pearls",tagline:"Ages 12–15 · Real text coding",
-    color:"#06D6A0",colorDeep:"#047857",border:"rgba(6,214,160,0.35)",
-    bg:"rgba(6,214,160,0.07)",
-    features:["Python — basics to OOP & projects","Web Dev — HTML, CSS, JavaScript","Publish live websites online","Portfolio-worthy capstone projects"],
-    highlight:false,
-    kidImg:"/images/kids/plan-rising-kid.png",
-  },
-  {
-    emoji:null,name:"CS Tuition",tagline:"Classes 6–12 · Academics",
-    badge:"School Subject",
-    color:"#4CC9F0",colorDeep:"#0284C7",border:"rgba(76,201,240,0.35)",
-    bg:"rgba(76,201,240,0.07)",
-    features:["CBSE, ICSE & State Boards","Computer Science & Info Practices","Java, Python, SQL & DBMS","Exam-focused prep & doubt clearing"],
-    highlight:false,
-    kidImg:"/images/kids/plan-cs-kid.png",
+    id: "academic",
+    number: "03",
+    title: "Academic Tuition",
+    eyebrow: "LEARN • PRACTISE • SCORE",
+    subtitle: "School support without the stress.",
+    description:
+      "Live tuition for Classes 1–12 with structured lessons, doubt support, tests and exam preparation across major boards.",
+    color: "#0EA5E9",
+    soft: "#EFF9FF",
+    icon: BookOpenCheck,
+    route: "/services/academic-tuition",
+    tags: ["Classes 1–12", "All major boards", "Exam ready"],
+    stat: "Small groups",
   },
 ];
 
-const TESTIMONIALS = [
-  { name:"Priya Mehta",role:"Parent of Aarav, 9",text:"Aarav was scared of computers. After just 3 months at Pearlx, he built his first game and couldn't stop showing everyone!",rating:5,avatar:"/images/testimonials/priya.png" },
-  { name:"Rohan Sharma",role:"Parent of Diya, 12",text:"Diya's ICSE CS score jumped from 72 to 96 in one term. The teachers here really know how to prepare kids for board exams.",rating:5,avatar:"/images/testimonials/rohan.png" },
-  { name:"Anjali Kapoor",role:"Parent of Kabir, 7",text:"My 7-year-old is already making animations on Scratch! The block coding approach is pure genius — no frustration at all.",rating:5,avatar:"/images/testimonials/anjali.png" },
-];
-
-export const ServicesOverview = () => {
+const ServicesOverview = () => {
   const ref = useRef(null);
-  const inView = useInView(ref, { once:true, margin:"-60px" });
-  const codeChars = useMemo(()=>
-    Array.from({length:24}).map((_,i)=>({
-      char:["{","}","1","0","/",">",";","()","=>","[]","if","for"][i%12],
-      left:`${Math.random()*100}%`,delay:Math.random()*5,
-      duration:6+Math.random()*10,size:10+Math.random()*18,
-    })),[]);
+  const inView = useInView(ref, { once: true, margin: "-100px" });
+  const [active, setActive] = useState("coding");
+
+  const selected = PROGRAMS.find((p) => p.id === active) || PROGRAMS[0];
+  const SelectedIcon = selected.icon;
 
   return (
-    <section className="py-5 px-6 relative overflow-hidden" style={{ background:"#fff" }}>
-      {/* Background */}
-      <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.035]"
-          style={{ backgroundImage:`linear-gradient(${T.green} 1px,transparent 1px),linear-gradient(90deg,${T.green} 1px,transparent 1px)`,backgroundSize:"44px 44px" }} />
-        {codeChars.map((p,i)=>(
-          <motion.div key={i} className="absolute font-mono font-bold"
-            style={{ left:p.left,fontSize:p.size,top:-40,color:T.green,opacity:0.15 }}
-            animate={{ y:["0vh","110vh"],opacity:[0,0.5,0] }}
-            transition={{ duration:p.duration,repeat:Infinity,delay:p.delay,ease:"linear" }}>
-            {p.char}
-          </motion.div>
-        ))}
-        <motion.div animate={{ scale:[1,1.2,1],opacity:[0.06,0.14,0.06] }} transition={{ duration:10,repeat:Infinity }}
-          className="absolute top-1/3 left-1/4 w-80 h-80 rounded-full"
-          style={{ background:`radial-gradient(circle,${T.green},transparent 70%)`,filter:"blur(60px)" }} />
+    <section
+      id="programs"
+      ref={ref}
+      className="relative overflow-hidden px-5 py-24 md:px-8 md:py-32"
+      style={{ background: "#F8FAFC" }}
+    >
+      {/* Ambient background */}
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          className="absolute -left-40 top-20 h-96 w-96 rounded-full opacity-30 blur-3xl"
+          style={{ background: "#D1FAE5" }}
+        />
+        <div
+          className="absolute -right-40 bottom-0 h-96 w-96 rounded-full opacity-30 blur-3xl"
+          style={{ background: "#DBEAFE" }}
+        />
+        <div
+          className="absolute inset-0 opacity-[0.035]"
+          style={{
+            backgroundImage:
+              "linear-gradient(#0F172A 1px, transparent 1px), linear-gradient(90deg, #0F172A 1px, transparent 1px)",
+            backgroundSize: "56px 56px",
+            maskImage:
+              "linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)",
+          }}
+        />
       </div>
 
-      {/* Floating kid images */}
-      <FloatImg src="/images/kids/overview-kid-1.png" emoji=""
-        style={{ width:100,height:140,top:"5%",right:"2%",zIndex:1 }} delay={0} />
-      <FloatImg src="/images/kids/overview-kid-2.png" emoji=""
-        style={{ width:90,height:125,bottom:"5%",left:"0.5%",zIndex:1 }} delay={1.2} />
+      <div className="relative z-10 mx-auto max-w-7xl">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.7 }}
+          className="mb-14 flex flex-col justify-between gap-6 md:mb-16 md:flex-row md:items-end"
+        >
+          <div className="max-w-2xl">
+            <div
+              className="mb-5 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em]"
+              style={{
+                color: "#059669",
+                background: "#ECFDF5",
+                borderColor: "#BBF7D0",
+              }}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              What your child can learn
+            </div>
 
-      <div className="max-w-6xl mx-auto relative z-10">
-        <motion.div initial={{ opacity:0,y:20 }} whileInView={{ opacity:1,y:0 }} viewport={{ once:true }}
-          className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full mb-6 border"
-            style={{ background:`rgba(16,185,129,0.08)`,borderColor:`rgba(16,185,129,0.25)`,color:T.green }}>
-            <Zap className="w-4 h-4" />
-            <span className="text-xs font-black tracking-widest uppercase">What We Offer</span>
+            <h2
+              className="font-black leading-[0.98] tracking-[-0.045em]"
+              style={{
+                color: "#0F172A",
+                fontSize: "clamp(2.5rem, 5vw, 4.6rem)",
+              }}
+            >
+              One place.
+              <br />
+              <span
+                style={{
+                  background: "linear-gradient(135deg,#0EA5E9,#10B981)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Three ways to grow.
+              </span>
+            </h2>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black mb-4" style={{ color:T.ink,letterSpacing:"-0.03em" }}>
-            Our{" "}
-            <span style={{ background:`linear-gradient(135deg,${T.sky},${T.green})`,
-              WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text" }}>
-              Programs & Services
-            </span>
-          </h2>
-          <p className="text-slate-500 max-w-lg mx-auto font-medium">
-            Two powerful pillars: project-based coding for kids, and board-focused CS tuition. Plus web development for brands.
+
+          <p className="max-w-sm text-sm font-medium leading-7 text-slate-500 md:pb-1">
+            Whether your child wants to create, understand or improve, start
+            with the path that fits them best.
           </p>
         </motion.div>
 
-        <div ref={ref} className="grid md:grid-cols-3 gap-7">
-          {OVERVIEW_CARDS.map((c,i)=>(
-            <motion.a key={i} href={c.page}
-              initial={{ opacity:0,y:30 }} animate={inView?{opacity:1,y:0}:{}}
-              transition={{ delay:i*0.1,duration:0.6 }} whileHover={{ y:-12 }}
-              className="group bg-white rounded-[2rem] border-2 flex flex-col h-full relative overflow-hidden"
-              style={{ borderColor:"rgba(15,23,42,0.06)",boxShadow:"0 4px 24px rgba(0,0,0,0.04)",
-                transition:"box-shadow 0.3s,border-color 0.3s" }}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=`${c.color}35`;e.currentTarget.style.boxShadow=`0 20px 48px ${c.glow}`;}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(15,23,42,0.06)";e.currentTarget.style.boxShadow="0 4px 24px rgba(0,0,0,0.04)";}}>
-              {/* Image header */}
-              
-              {/* Content */}
-              <div className="p-7 flex flex-col flex-grow">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2.5 rounded-xl" style={{ background:c.badgeBg,color:c.color }}>{c.icon}</div>
-                  <div>
-                    <h3 className="text-lg font-black" style={{ color:T.ink }}>{c.title}</h3>
-                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color:c.color }}>{c.subtitle}</p>
-                  </div>
+        {/* Main interactive composition */}
+        <div className="grid gap-5 lg:grid-cols-[1.05fr_1.95fr]">
+          {/* Left — program navigator */}
+          <div className="relative">
+            <div
+              className="relative h-full overflow-hidden rounded-[2.5rem] p-3"
+              style={{
+                background: "#0F172A",
+                boxShadow: "0 30px 80px rgba(15,23,42,.13)",
+              }}
+            >
+              {/* Decorative rings */}
+              <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full border border-white/10" />
+              <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full border border-white/10" />
+
+              <div className="relative flex h-full min-h-[520px] flex-col">
+                <div className="px-5 pb-5 pt-5">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">
+                    Choose a learning path
+                  </p>
                 </div>
-                <p className="text-slate-500 mb-5 flex-grow leading-relaxed text-sm">{c.desc}</p>
-                {/* Stats mini row */}
-                <div className="flex gap-3 mb-5">
-                  {c.stats.map((s,si)=>(
-                    <div key={si} className="flex-1 text-center px-2 py-2 rounded-xl"
-                      style={{ background:`${c.color}08`,border:`1px solid ${c.color}20` }}>
-                      <div className="font-black text-sm" style={{ color:c.color }}>{s.v}</div>
-                      <div className="text-[9px] text-slate-400 font-semibold uppercase">{s.l}</div>
+
+                <div className="flex flex-1 flex-col gap-2">
+                  {PROGRAMS.map((program, i) => {
+                    const Icon = program.icon;
+                    const isActive = active === program.id;
+
+                    return (
+                      <motion.button
+                        key={program.id}
+                        type="button"
+                        onMouseEnter={() => setActive(program.id)}
+                        onFocus={() => setActive(program.id)}
+                        onClick={() => setActive(program.id)}
+                        initial={{ opacity: 0, x: -18 }}
+                        animate={inView ? { opacity: 1, x: 0 } : {}}
+                        transition={{ delay: i * 0.1 + 0.15 }}
+                        className="group relative flex min-h-[130px] w-full items-center gap-4 overflow-hidden rounded-[1.8rem] border p-5 text-left transition-all duration-300"
+                        style={{
+                          background: isActive
+                            ? "rgba(255,255,255,.09)"
+                            : "rgba(255,255,255,.025)",
+                          borderColor: isActive
+                            ? `${program.color}70`
+                            : "rgba(255,255,255,.07)",
+                        }}
+                      >
+                        <div
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110"
+                          style={{
+                            color: program.color,
+                            background: `${program.color}18`,
+                          }}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex items-center gap-2">
+                            <span
+                              className="text-[9px] font-black"
+                              style={{ color: program.color }}
+                            >
+                              {program.number}
+                            </span>
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-white/30">
+                              {program.eyebrow.split(" • ")[0]}
+                            </span>
+                          </div>
+
+                          <h3 className="text-lg font-black text-white">
+                            {program.title}
+                          </h3>
+
+                          <p className="mt-1 text-xs font-medium text-white/40">
+                            {program.subtitle}
+                          </p>
+                        </div>
+
+                        <motion.div
+                          animate={{
+                            x: isActive ? 0 : 8,
+                            opacity: isActive ? 1 : 0.25,
+                          }}
+                        >
+                          <ArrowUpRight
+                            className="h-5 w-5"
+                            style={{ color: program.color }}
+                          />
+                        </motion.div>
+
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeRail"
+                            className="absolute bottom-5 left-0 top-5 w-1 rounded-r-full"
+                            style={{ background: program.color }}
+                          />
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-3 rounded-[1.8rem] border border-white/10 bg-white/[0.035] p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
+                      <Users className="h-4 w-4 text-white/60" />
                     </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 font-bold text-sm group-hover:gap-3 transition-all" style={{ color:c.color }}>
-                  {c.cta} <ArrowRight className="w-4 h-4" />
-                </div>
-              </div>
-            </motion.a>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-export const ProgramPlans = () => {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once:true, margin:"-80px" });
-  const [hoveredPlan, setHoveredPlan] = useState(null);
-
-  return (
-    <section className="py-28 relative overflow-hidden" style={{ background:"#0D0818" }}>
-      {/* Dark background effects */}
-      <div className="absolute inset-0 pointer-events-none">
-        <motion.div className="absolute left-0 right-0 h-px"
-          style={{ background:"rgba(16,185,129,0.2)",boxShadow:"0 0 20px rgba(16,185,129,0.4)" }}
-          animate={{ top:["0%","100%"] }} transition={{ duration:10,repeat:Infinity,ease:"linear" }} />
-        <div className="absolute inset-0 opacity-[0.07]"
-          style={{ backgroundImage:"radial-gradient(circle at 2px 2px, #A78BFA 1px, transparent 0)",backgroundSize:"40px 40px" }} />
-        {/* Corner glow orbs */}
-        <div className="absolute top-0 left-0 w-96 h-96 rounded-full"
-          style={{ background:"radial-gradient(circle,rgba(167,139,250,0.12),transparent 70%)",filter:"blur(60px)" }} />
-        <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full"
-          style={{ background:"radial-gradient(circle,rgba(16,185,129,0.1),transparent 70%)",filter:"blur(60px)" }} />
-      </div>
-
-      {/* Floating kid images on dark bg */}
-      <motion.div animate={{ y:[0,-14,0] }} transition={{ duration:6,repeat:Infinity }}
-        className="absolute top-12 right-4 pointer-events-none select-none" style={{ zIndex:1 }}>
-        <img src="/images/kids/plan-float-kid.png" alt=""
-          style={{ width:110,height:150,objectFit:"contain",filter:"drop-shadow(0 8px 24px rgba(167,139,250,0.4))" }}
-          onError={e=>{e.target.style.display="none";}} />
-      </motion.div>
-
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
-        <div className="text-center mb-16">
-          <p className="text-xs font-black tracking-widest uppercase mb-3 text-purple-400">Our Programs</p>
-          <h2 className="font-black text-white text-4xl md:text-5xl mb-4" style={{ letterSpacing:"-0.03em" }}>
-            Pick your{" "}
-            <span style={{ background:"linear-gradient(135deg,#A78BFA,#10B981)",
-              WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text" }}>
-              learning path
-            </span>
-          </h2>
-          <p className="text-white/40 max-w-lg mx-auto font-medium">
-            Every path is structured, every step is purposeful. Start anywhere — grow everywhere.
-          </p>
-        </div>
-
-        <div ref={ref} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {PLANS.map((p,i)=>(
-            <motion.div key={i}
-              initial={{ opacity:0,y:40 }} animate={inView?{opacity:1,y:0}:{}} transition={{ delay:i*0.1 }}
-              whileHover={{ y:-14,scale:1.02 }}
-              onMouseEnter={()=>setHoveredPlan(i)} onMouseLeave={()=>setHoveredPlan(null)}
-              className="relative rounded-[2.5rem] p-7 border-2 flex flex-col group overflow-hidden"
-              style={{ background:p.bg,borderColor:p.border,
-                boxShadow:hoveredPlan===i?`0 28px 56px ${p.color}30`:"none",transition:"all 0.3s" }}>
-              {p.badge && (
-                <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-[9px] font-black text-white"
-                  style={{ background:p.color }}>{p.badge}</div>
-              )}
-              {/* Kid image float */}
-              <div className="h-28 relative mb-4 overflow-hidden rounded-2xl"
-                style={{ background:`${p.color}12` }}>
-                <img src={p.kidImg} alt={p.name}
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 h-full object-contain mix-blend-multiply"
-                  onError={e=>{e.target.style.display="none";}} />
-                
-              </div>
-
-              <div className="relative z-10 flex flex-col flex-grow">
-                <h3 className="font-black text-xl text-white mb-1">{p.name}</h3>
-                <p className="text-[10px] font-black uppercase mb-5" style={{ color:p.color }}>{p.tagline}</p>
-                <ul className="space-y-3 mb-8 flex-1">
-                  {p.features.map((f,fi)=>(
-                    <li key={fi} className="flex items-start gap-2.5 text-xs text-white/60">
-                      <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color:p.color }} />{f}
-                    </li>
-                  ))}
-                </ul>
-                <a href={getWhatsAppLink(`Hi! I'd like to enrol in ${p.name} (${p.tagline}) at Pearlx.`)}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold transition-all"
-                  style={{ background:p.highlight?p.color:`${p.color}18`,color:p.highlight?"#000":p.color }}>
-                  Enrol Now <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Testimonials */}
-        <div className="mt-20">
-          <h3 className="text-white font-black text-2xl text-center mb-10">What parents say</h3>
-          <div className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t,i)=>(
-              <motion.div key={i}
-                initial={{ opacity:0,y:24 }} whileInView={{ opacity:1,y:0 }} viewport={{ once:true }}
-                transition={{ delay:i*0.1 }}
-                className="p-6 rounded-[1.5rem] border relative overflow-hidden"
-                style={{ background:"rgba(255,255,255,0.04)",borderColor:"rgba(255,255,255,0.08)" }}>
-                <div className="flex gap-0.5 mb-2">
-                  {Array.from({length: t.rating}).map((_,ri) => <Star key={ri} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />)}
-                </div>
-                <p className="text-white/65 text-sm leading-relaxed mb-4 italic">"{t.text}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border"
-                    style={{ borderColor:"rgba(16,185,129,0.3)",background:"rgba(16,185,129,0.1)" }}>
-                    <img src={t.avatar} alt={t.name} className="w-full h-full object-cover"
-                      onError={e=>{e.target.style.display="none";}} />
-                  </div>
-                  <div>
-                    <div className="text-white font-bold text-sm">{t.name}</div>
-                    <div className="text-white/40 text-xs">{t.role}</div>
+                    <div>
+                      <p className="text-xs font-bold text-white">
+                        Not sure where to start?
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-white/35">
+                        We help you choose the right level.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </motion.div>
-            ))}
+              </div>
+            </div>
           </div>
+
+          {/* Right — selected program showcase */}
+          <motion.div
+            key={selected.id}
+            initial={{ opacity: 0, scale: 0.985, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="relative min-h-[520px] overflow-hidden rounded-[2.5rem] border bg-white"
+            style={{
+              borderColor: `${selected.color}35`,
+              boxShadow: `0 30px 80px ${selected.color}12`,
+            }}
+          >
+            {/* Large colour field */}
+            <div
+              className="absolute right-0 top-0 h-full w-[58%] opacity-80"
+              style={{
+                background: `radial-gradient(circle at 65% 35%, ${selected.color}28, transparent 55%), linear-gradient(135deg, transparent 20%, ${selected.soft} 100%)`,
+              }}
+            />
+
+            {/* Grid */}
+            <div
+              className="absolute inset-0 opacity-[0.035]"
+              style={{
+                backgroundImage: `linear-gradient(${selected.color} 1px,transparent 1px),linear-gradient(90deg,${selected.color} 1px,transparent 1px)`,
+                backgroundSize: "34px 34px",
+                maskImage:
+                  "linear-gradient(to right, transparent, black 45%, black)",
+              }}
+            />
+
+            {/* Giant number */}
+            <div
+              className="pointer-events-none absolute -right-2 top-0 font-black leading-none"
+              style={{
+                fontSize: "clamp(10rem, 22vw, 20rem)",
+                color: `${selected.color}0C`,
+              }}
+            >
+              {selected.number}
+            </div>
+
+            <div className="relative flex h-full flex-col justify-between p-7 md:p-10">
+              <div>
+                <div className="flex items-start justify-between gap-5">
+                  <div
+                    className="flex h-16 w-16 items-center justify-center rounded-[1.4rem]"
+                    style={{
+                      color: selected.color,
+                      background: selected.soft,
+                      boxShadow: `0 12px 30px ${selected.color}18`,
+                    }}
+                  >
+                    <SelectedIcon className="h-7 w-7" />
+                  </div>
+
+                  <div
+                    className="rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-widest"
+                    style={{
+                      color: selected.color,
+                      borderColor: `${selected.color}30`,
+                      background: `${selected.color}08`,
+                    }}
+                  >
+                    {selected.stat}
+                  </div>
+                </div>
+
+                <p
+                  className="mt-10 text-[10px] font-black uppercase tracking-[0.22em]"
+                  style={{ color: selected.color }}
+                >
+                  {selected.eyebrow}
+                </p>
+
+                <h3
+                  className="mt-3 max-w-xl font-black tracking-[-0.04em]"
+                  style={{
+                    color: "#0F172A",
+                    fontSize: "clamp(2.2rem, 5vw, 4.5rem)",
+                    lineHeight: 0.98,
+                  }}
+                >
+                  {selected.subtitle}
+                </h3>
+
+                <p className="mt-6 max-w-xl text-sm font-medium leading-7 text-slate-500 md:text-base">
+                  {selected.description}
+                </p>
+              </div>
+
+              <div className="mt-12">
+                <div className="mb-6 flex flex-wrap gap-2">
+                  {selected.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border px-3 py-2 text-[10px] font-bold text-slate-600"
+                      style={{
+                        background: "#fff",
+                        borderColor: `${selected.color}25`,
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-4 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                    <Brain
+                      className="h-4 w-4"
+                      style={{ color: selected.color }}
+                    />
+                    Learn at their own pace
+                  </div>
+
+                  <a
+                    href={selected.route}
+                    className="group inline-flex items-center justify-center gap-3 rounded-2xl px-6 py-3.5 text-sm font-black text-white transition-transform hover:-translate-y-0.5"
+                    style={{
+                      background: selected.color,
+                      boxShadow: `0 12px 28px ${selected.color}35`,
+                    }}
+                  >
+                    Explore {selected.title}
+                    <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating visual marker */}
+            <motion.div
+              animate={{ y: [0, -8, 0], rotate: [-2, 2, -2] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute bottom-28 right-[10%] hidden h-20 w-20 items-center justify-center rounded-[1.5rem] border bg-white/80 shadow-xl backdrop-blur md:flex"
+              style={{ borderColor: `${selected.color}20` }}
+            >
+              <Trophy
+                className="h-7 w-7"
+                style={{ color: selected.color }}
+              />
+            </motion.div>
+          </motion.div>
         </div>
+
+        {/* Bottom conversion strip */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ delay: 0.45, duration: 0.6 }}
+          className="mt-5 flex flex-col items-start justify-between gap-4 rounded-[2rem] border bg-white px-6 py-5 shadow-sm md:flex-row md:items-center md:px-8"
+        >
+          <div>
+            <p className="text-sm font-black text-slate-900">
+              Every child starts somewhere different.
+            </p>
+            <p className="mt-1 text-xs font-medium text-slate-400">
+              We find the level first — then build from there.
+            </p>
+          </div>
+
+          <a
+            href="/pricing"
+            className="inline-flex items-center gap-2 text-xs font-black text-slate-900 transition-all hover:gap-3"
+          >
+            See all learning options
+            <ArrowUpRight className="h-4 w-4" />
+          </a>
+        </motion.div>
       </div>
     </section>
   );
 };
 
 export default ServicesOverview;
+export { ServicesOverview };

@@ -1,17 +1,20 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PlusCircle, Pencil, Trash2, ChevronDown, ChevronRight,
-  BookOpen, Loader2, CheckCircle, XCircle, X, Database, AlertCircle,
-  Image as ImageIcon, Upload, Users, ArrowRight, FileText, ArrowUp, ArrowDown,
+  BookOpen, Loader2, CheckCircle, XCircle, X, Link as LinkIcon,
+  FileText, ArrowUp, ArrowDown, Users,
 } from "lucide-react";
 import {
-  collection, query, where, onSnapshot, addDoc, updateDoc,
-  deleteDoc, doc, serverTimestamp, orderBy, getDocs, getDoc, setDoc,
+  collection, query, where, onSnapshot, doc, getDoc, setDoc, serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { CATEGORIES, seedCurriculumToFirestore, fetchAllCurriculumModules, fetchAllCurriculumLessons, saveStudentCurriculumOverride } from "../utils/curriculumData";
-import { CODING_CATEGORIES, CUSTOM_CHAPTER_CATEGORIES } from "./AdminDashboard_Part2";
+import {
+  COURSES, CATEGORIES, getEffectiveCourse,
+  curriculumModulesQuery,
+  createCurriculumModule, renameCurriculumModule, deleteCurriculumModule,
+  addCurriculumLesson, updateCurriculumLesson, deleteCurriculumLesson,
+} from "../utils/curriculumData";
 
 const C = {
   bg: "#F4F6FB", card: "#FFFFFF", border: "#E5E9F2",
@@ -29,17 +32,20 @@ const C = {
 };
 
 const fieldStyle = {
-  width: "100%", padding: "9px 12px", borderRadius: 10, border: `1px solid ${C.border}`,
+  width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`,
   background: C.bg, fontSize: 13, color: C.textPrimary, outline: "none",
   fontFamily: "inherit", boxSizing: "border-box",
 };
 
-const catColor = {
-  little_pearls:    { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C", light: "#FED7AA" },
-  bright_pearls:    { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A", light: "#BBF7D0" },
-  rising_pearls:    { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB", light: "#BFDBFE" },
-  academic_tuition: { bg: "#F5F3FF", border: "#8B5CF6", text: "#6D28D9", light: "#DDD6FE" },
-  courses:          { bg: "#FDF2F8", border: "#EC4899", text: "#BE185D", light: "#FBCFE8" },
+const tierColor = {
+  little_pearls: { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C", light: "#FED7AA" },
+  bright_pearls: { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A", light: "#BBF7D0" },
+  rising_pearls: { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB", light: "#BFDBFE" },
+};
+
+const courseColor = {
+  coding: { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB" },
+  math:   { bg: "#FDF4FF", border: "#D946EF", text: "#A21CAF" },
 };
 
 const Banner = ({ status }) => {
@@ -61,484 +67,401 @@ const FieldLabel = ({ children, required }) => (
   </label>
 );
 
-// ENHANCED LESSON MODAL WITH THUMBNAIL UPLOAD
-function LessonModal({ moduleDoc, lesson, onClose, onSave }) {
-  const isEdit = !!lesson;
-  const blankLesson = { title: "", platform: "", description: "", notes: "", pptLink: "", thumbnailUrl: "" };
-  const [form, setForm] = useState(isEdit ? { ...lesson } : blankLesson);
+/* =========================================================================
+   PART A — Coding / Math Module & Lesson curriculum
+   Fully automatic visibility: every module/lesson added here shows up for
+   every student (and their assigned tutor) enrolled in that course + tier.
+   ========================================================================= */
+
+// Modal for creating/editing a module (just a name)
+function ModuleModal({ initialName, onClose, onSave }) {
+  const [name, setName] = useState(initialName || "");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
-  const [thumbnailPreview, setThumbnailPreview] = useState(lesson?.thumbnailUrl || "");
-
-  const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
-
-  const handleThumbnailChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result;
-      setThumbnailPreview(base64);
-      setForm(p => ({ ...p, thumbnailUrl: base64 }));
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handleSave = async () => {
-    if (!form.title.trim() || !form.platform.trim()) { setErr("Title and Platform are required."); return; }
+    if (!name.trim()) { setErr("Module name is required."); return; }
     setSaving(true); setErr(null);
     try {
-      const lessons = [...(moduleDoc.lessons || [])];
-      if (isEdit) {
-        const idx = lessons.findIndex(l => l.id === lesson.id);
-        if (idx >= 0) lessons[idx] = { ...lessons[idx], ...form };
-      } else {
-        const nextNum = lessons.length > 0 ? Math.max(...lessons.map(l => l.lessonNumber)) + 1 : 1;
-        lessons.push({
-          id: `${moduleDoc.category}_m${moduleDoc.moduleNumber}_l${nextNum}_${Date.now()}`,
-          lessonNumber: nextNum,
-          ...form,
-        });
-      }
-      await updateDoc(doc(db, "curriculum", moduleDoc.id), { lessons, updatedAt: serverTimestamp() });
-      onSave();
+      await onSave(name.trim());
       onClose();
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "Failed to save module.");
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16 }}
       onClick={onClose}>
-      <motion.div initial={{ scale: 0.94, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.94 }}
-        style={{ background: C.card, borderRadius: 20, width: "100%", maxWidth: 580, boxShadow: C.shadowModal, overflow: "hidden", maxHeight: "90vh", overflowY: "auto" }}
-        onClick={e => e.stopPropagation()}>
-        <div style={{ height: 4, background: C.gradPrimary }} />
-        <div style={{ padding: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>{isEdit ? "Edit Lesson" : "Add New Lesson"}</h3>
-            <button onClick={onClose} style={{ background: C.bg, border: "none", borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-              <X style={{ width: 15, height: 15, color: C.textMuted }} />
-            </button>
-          </div>
-          <Banner status={err ? { ok: false, msg: err } : null} />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {/* Thumbnail Upload */}
-            <div style={{ background: C.bg, padding: 14, borderRadius: 12, border: `2px dashed ${C.border}` }}>
-              <FieldLabel>Lesson Thumbnail (Optional)</FieldLabel>
-              {thumbnailPreview && (
-                <div style={{ marginBottom: 10, borderRadius: 8, overflow: "hidden", maxWidth: "100%", maxHeight: 120 }}>
-                  <img src={thumbnailPreview} alt="Thumbnail" style={{ width: "100%", height: "auto", objectFit: "cover" }} />
-                </div>
-              )}
-              <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 8, background: C.cyanLight, color: C.cyan, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>
-                <Upload style={{ width: 14, height: 14 }} />
-                Upload Image
-                <input type="file" accept="image/*" onChange={handleThumbnailChange} style={{ display: "none" }} />
-              </label>
-              <p style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>Will appear in lesson cards alongside lesson title</p>
-            </div>
-
-            <div>
-              <FieldLabel required>Lesson Title</FieldLabel>
-              <input name="title" value={form.title} onChange={handleChange} placeholder="e.g. What is a Computer?" style={fieldStyle}
-                onFocus={e => e.target.style.borderColor = C.emerald} onBlur={e => e.target.style.borderColor = C.border} />
-            </div>
-            <div>
-              <FieldLabel required>Platform Used</FieldLabel>
-              <input name="platform" value={form.platform} onChange={handleChange} placeholder="e.g. Code.org + Scratch" style={fieldStyle}
-                onFocus={e => e.target.style.borderColor = C.emerald} onBlur={e => e.target.style.borderColor = C.border} />
-            </div>
-            <div>
-              <FieldLabel>Lesson Description</FieldLabel>
-              <textarea name="description" value={form.description} onChange={handleChange} rows={3}
-                placeholder="What will the student learn and build in this lesson?"
-                style={{ ...fieldStyle, resize: "none" }}
-                onFocus={e => e.target.style.borderColor = C.emerald} onBlur={e => e.target.style.borderColor = C.border} />
-            </div>
-            <div>
-              <FieldLabel>Tutor Notes</FieldLabel>
-              <textarea name="notes" value={form.notes} onChange={handleChange} rows={2}
-                placeholder="Tips, prerequisites, or special instructions for the tutor..."
-                style={{ ...fieldStyle, resize: "none" }}
-                onFocus={e => e.target.style.borderColor = C.emerald} onBlur={e => e.target.style.borderColor = C.border} />
-            </div>
-            <div>
-              <FieldLabel>PPT / Resource Link</FieldLabel>
-              <input name="pptLink" value={form.pptLink} onChange={handleChange} placeholder="https://docs.google.com/..." style={fieldStyle}
-                onFocus={e => e.target.style.borderColor = C.emerald} onBlur={e => e.target.style.borderColor = C.border} />
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <button onClick={onClose} style={{ flex: 1, padding: "11px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, fontSize: 13, fontWeight: 700, color: C.textSecondary, cursor: "pointer" }}>Cancel</button>
-            <button onClick={handleSave} disabled={saving}
-              style={{ flex: 2, padding: "11px", borderRadius: 12, border: "none", background: C.gradPrimary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: saving ? 0.7 : 1 }}>
-              {saving ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : (isEdit ? "Save Changes" : "Add Lesson")}
-            </button>
-          </div>
+      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+        onClick={e => e.stopPropagation()}
+        style={{ background: C.card, borderRadius: 18, boxShadow: C.shadowModal, width: "100%", maxWidth: 420, padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>{initialName ? "Rename Module" : "Add Module"}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer" }}>
+            <X style={{ width: 18, height: 18, color: C.textMuted }} />
+          </button>
         </div>
+        {err && <Banner status={{ ok: false, msg: err }} />}
+        <FieldLabel required>Module Name</FieldLabel>
+        <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Coding Fundamentals"
+          style={{ ...fieldStyle, marginBottom: 18 }}
+          onKeyDown={e => { if (e.key === "Enter") handleSave(); }} />
+        <button onClick={handleSave} disabled={saving}
+          style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 13, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          {saving ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : "Save Module"}
+        </button>
       </motion.div>
     </motion.div>
   );
 }
 
-// MODULE MODAL (unchanged)
-function ModuleModal({ category, existingModule, onClose, onSave }) {
-  const isEdit = !!existingModule;
+// Modal for creating/editing a lesson: title + 3 optional resource links
+function LessonModal({ lesson, onClose, onSave }) {
+  const isEdit = !!lesson;
   const [form, setForm] = useState({
-    moduleName: existingModule?.moduleName || "",
-    moduleEmoji: existingModule?.moduleEmoji || "📚",
-    moduleNumber: existingModule?.moduleNumber || "",
+    title: lesson?.title || "",
+    pptLink: lesson?.pptLink || "",
+    studentResourceLink: lesson?.studentResourceLink || "",
+    teacherResourceLink: lesson?.teacherResourceLink || "",
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
 
-  const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+  const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
   const handleSave = async () => {
-    if (!form.moduleName.trim() || !form.moduleNumber) { setErr("Module name and number are required."); return; }
+    if (!form.title.trim()) { setErr("Lesson title is required."); return; }
     setSaving(true); setErr(null);
     try {
-      if (isEdit) {
-        await updateDoc(doc(db, "curriculum", existingModule.id), {
-          moduleName: form.moduleName.trim(),
-          moduleEmoji: form.moduleEmoji.trim() || "📚",
-          moduleNumber: Number(form.moduleNumber),
-          updatedAt: serverTimestamp(),
-        });
-      } else {
-        await addDoc(collection(db, "curriculum"), {
-          category,
-          moduleName: form.moduleName.trim(),
-          moduleEmoji: form.moduleEmoji.trim() || "📚",
-          moduleNumber: Number(form.moduleNumber),
-          lessons: [],
-          createdAt: serverTimestamp(),
-        });
-      }
-      onSave();
+      await onSave(form);
       onClose();
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "Failed to save lesson.");
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16 }}
       onClick={onClose}>
-      <motion.div initial={{ scale: 0.94 }} animate={{ scale: 1 }} exit={{ scale: 0.94 }}
-        style={{ background: C.card, borderRadius: 20, width: "100%", maxWidth: 420, boxShadow: C.shadowModal, overflow: "hidden" }}
-        onClick={e => e.stopPropagation()}>
-        <div style={{ height: 4, background: C.gradEmerald }} />
-        <div style={{ padding: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>{isEdit ? "Edit Module" : "Add New Module"}</h3>
-            <button onClick={onClose} style={{ background: C.bg, border: "none", borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X style={{ width: 15, height: 15, color: C.textMuted }} /></button>
-          </div>
-          <Banner status={err ? { ok: false, msg: err } : null} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "80px 1fr", gap: 10 }}>
-              <div>
-                <FieldLabel>Emoji</FieldLabel>
-                <input name="moduleEmoji" value={form.moduleEmoji} onChange={handleChange} style={{ ...fieldStyle, textAlign: "center", fontSize: 20 }} />
-              </div>
-              <div>
-                <FieldLabel required>Module Number</FieldLabel>
-                <input name="moduleNumber" value={form.moduleNumber} onChange={handleChange} type="number" min="1" placeholder="e.g. 12" style={fieldStyle}
-                  onFocus={e => e.target.style.borderColor = C.emerald} onBlur={e => e.target.style.borderColor = C.border} />
-              </div>
-            </div>
-            <div>
-              <FieldLabel required>Module Name</FieldLabel>
-              <input name="moduleName" value={form.moduleName} onChange={handleChange} placeholder="e.g. Advanced Game Design" style={fieldStyle}
-                onFocus={e => e.target.style.borderColor = C.emerald} onBlur={e => e.target.style.borderColor = C.border} />
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <button onClick={onClose} style={{ flex: 1, padding: "11px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, fontSize: 13, fontWeight: 700, color: C.textSecondary, cursor: "pointer" }}>Cancel</button>
-            <button onClick={handleSave} disabled={saving}
-              style={{ flex: 2, padding: "11px", borderRadius: 12, border: "none", background: C.gradEmerald, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              {saving ? <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> : (isEdit ? "Save Changes" : "Add Module")}
-            </button>
-          </div>
+      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+        onClick={e => e.stopPropagation()}
+        style={{ background: C.card, borderRadius: 18, boxShadow: C.shadowModal, width: "100%", maxWidth: 480, maxHeight: "88vh", overflowY: "auto", padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>{isEdit ? "Edit Lesson" : "Add Lesson"}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer" }}>
+            <X style={{ width: 18, height: 18, color: C.textMuted }} />
+          </button>
+        </div>
+        {err && <Banner status={{ ok: false, msg: err }} />}
+
+        <div style={{ marginBottom: 14 }}>
+          <FieldLabel required>Lesson Title</FieldLabel>
+          <input autoFocus value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Sequences: Step by Step" style={fieldStyle} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <FieldLabel>PPT Link <span style={{ color: C.textMuted, fontWeight: 500 }}>(optional, admin reference only)</span></FieldLabel>
+          <input value={form.pptLink} onChange={e => set("pptLink", e.target.value)} placeholder="https://docs.google.com/presentation/..." style={fieldStyle} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <FieldLabel>Student Resource Link <span style={{ color: C.textMuted, fontWeight: 500 }}>(optional — shown to students)</span></FieldLabel>
+          <input value={form.studentResourceLink} onChange={e => set("studentResourceLink", e.target.value)} placeholder="https://docs.google.com/presentation/..." style={fieldStyle} />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <FieldLabel>Teacher Resource Link <span style={{ color: C.textMuted, fontWeight: 500 }}>(optional — shown to tutors)</span></FieldLabel>
+          <input value={form.teacherResourceLink} onChange={e => set("teacherResourceLink", e.target.value)} placeholder="https://docs.google.com/presentation/..." style={fieldStyle} />
+        </div>
+
+        <button onClick={handleSave} disabled={saving}
+          style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 13, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          {saving ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : "Save Lesson"}
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function ConfirmModal({ title, message, onCancel, onConfirm }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16 }}
+      onClick={onCancel}>
+      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+        onClick={e => e.stopPropagation()}
+        style={{ background: C.card, borderRadius: 18, boxShadow: C.shadowModal, width: "100%", maxWidth: 400, padding: 24, textAlign: "center" }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary, marginBottom: 8 }}>{title}</h3>
+        <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 20 }}>{message}</p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, color: C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+          <button onClick={async () => { setBusy(true); await onConfirm(); }} disabled={busy}
+            style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: C.red, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+            {busy ? "Deleting..." : "Delete"}
+          </button>
         </div>
       </motion.div>
     </motion.div>
   );
 }
 
-// MODULE ROW (enhanced to show lesson thumbnails)
-function ModuleRow({ mod, col }) {
-  const [open, setOpen] = useState(false);
-  const [showLessonModal, setShowLessonModal] = useState(false);
-  const [showModuleModal, setShowModuleModal] = useState(false);
-  const [editLesson, setEditLesson] = useState(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const deleteLesson = async (lessonId) => {
-    if (!window.confirm("Delete this lesson?")) return;
-    const lessons = mod.lessons.filter(l => l.id !== lessonId);
-    await updateDoc(doc(db, "curriculum", mod.id), { lessons });
-  };
-
-  const deleteModule = async () => {
-    if (!window.confirm(`Delete Module ${mod.moduleNumber}: ${mod.moduleName} and ALL its lessons?`)) return;
-    setDeleting(true);
-    await deleteDoc(doc(db, "curriculum", mod.id));
-  };
-
+function LessonRow({ lesson, onEdit, onDelete }) {
   return (
-    <>
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", boxShadow: C.shadowCard }}>
-        {/* Module header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", cursor: "pointer" }} onClick={() => setOpen(o => !o)}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
-            {mod.moduleEmoji}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary }}>Module {mod.moduleNumber}: {mod.moduleName}</p>
-            <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{mod.lessons?.length || 0} lessons</p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            <button onClick={e => { e.stopPropagation(); setShowModuleModal(true); }}
-              style={{ padding: "5px 8px", borderRadius: 8, background: C.indigoLight, border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
-              <Pencil style={{ width: 13, height: 13, color: C.indigo }} />
-            </button>
-            <button onClick={e => { e.stopPropagation(); deleteModule(); }} disabled={deleting}
-              style={{ padding: "5px 8px", borderRadius: 8, background: C.redLight, border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
-              <Trash2 style={{ width: 13, height: 13, color: C.red }} />
-            </button>
-            {open ? <ChevronDown style={{ width: 16, height: 16, color: C.textMuted }} /> : <ChevronRight style={{ width: 16, height: 16, color: C.textMuted }} />}
-          </div>
-        </div>
-
-        {/* Lesson list with thumbnails */}
-        <AnimatePresence>
-          {open && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-              style={{ borderTop: `1px solid ${C.border}`, overflow: "hidden" }}>
-              <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-                {(mod.lessons || []).length === 0 ? (
-                  <p style={{ textAlign: "center", fontSize: 13, color: C.textMuted, padding: "12px 0" }}>No lessons yet — add one below</p>
-                ) : (
-                  (mod.lessons || []).sort((a, b) => a.lessonNumber - b.lessonNumber).map(lesson => (
-                    <div key={lesson.id} style={{ display: "flex", gap: 10, padding: "10px", borderRadius: 10, background: C.bg, border: `1px solid ${C.border}` }}>
-                      {/* Thumbnail or placeholder */}
-                      <div style={{ width: 80, height: 80, borderRadius: 8, background: col.light, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden", border: `1px solid ${col.border}` }}>
-                        {lesson.thumbnailUrl ? (
-                          <img src={lesson.thumbnailUrl} alt={lesson.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : (
-                          <ImageIcon style={{ width: 24, height: 24, color: col.text, opacity: 0.5 }} />
-                        )}
-                      </div>
-                      
-                      {/* Lesson details */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary, marginBottom: 2 }}>{lesson.title}</p>
-                        <p style={{ fontSize: 11, color: C.cyan, fontWeight: 600, marginBottom: 4 }}>📱 {lesson.platform}</p>
-                        {lesson.description && <p style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.4, marginBottom: 3 }}>{lesson.description}</p>}
-                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                          {lesson.notes && <p style={{ fontSize: 10, color: C.amber }}>📝 Notes added</p>}
-                          {lesson.pptLink && (
-                            <a href={lesson.pptLink} target="_blank" rel="noopener noreferrer"
-                              style={{ fontSize: 10, color: C.indigo, fontWeight: 600 }}>🔗 View Resource</a>
-                          )}
-                          {lesson.thumbnailUrl && <p style={{ fontSize: 10, color: C.emerald }}>🖼️ Thumbnail</p>}
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                        <button onClick={() => { setEditLesson(lesson); setShowLessonModal(true); }}
-                          style={{ padding: "4px 7px", borderRadius: 7, background: C.indigoLight, border: "none", cursor: "pointer" }}>
-                          <Pencil style={{ width: 12, height: 12, color: C.indigo }} />
-                        </button>
-                        <button onClick={() => deleteLesson(lesson.id)}
-                          style={{ padding: "4px 7px", borderRadius: 7, background: C.redLight, border: "none", cursor: "pointer" }}>
-                          <Trash2 style={{ width: 12, height: 12, color: C.red }} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-                <button onClick={() => { setEditLesson(null); setShowLessonModal(true); }}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10, border: `1px dashed ${col.border}`, background: col.bg, color: col.text, fontWeight: 700, fontSize: 12, cursor: "pointer", width: "100%", justifyContent: "center" }}>
-                  <PlusCircle style={{ width: 14, height: 14 }} /> Add Lesson
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 12, background: C.bg, border: `1px solid ${C.border}` }}>
+      <div style={{ width: 26, height: 26, borderRadius: 8, background: C.card, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 11, fontWeight: 800, color: C.textSecondary }}>
+        {lesson.lessonNumber}
       </div>
-
-      <AnimatePresence>
-        {showLessonModal && (
-          <LessonModal moduleDoc={mod} lesson={editLesson} onClose={() => { setShowLessonModal(false); setEditLesson(null); }} onSave={() => {}} />
-        )}
-        {showModuleModal && (
-          <ModuleModal category={mod.category} existingModule={mod} onClose={() => setShowModuleModal(false)} onSave={() => {}} />
-        )}
-      </AnimatePresence>
-    </>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>{lesson.title}</p>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+          {lesson.pptLink && <span style={{ fontSize: 10, fontWeight: 700, color: C.violet, background: C.violetLight, padding: "3px 8px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 3 }}><LinkIcon style={{ width: 9, height: 9 }} /> PPT</span>}
+          {lesson.studentResourceLink && <span style={{ fontSize: 10, fontWeight: 700, color: C.indigo, background: C.indigoLight, padding: "3px 8px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 3 }}><LinkIcon style={{ width: 9, height: 9 }} /> Student Link</span>}
+          {lesson.teacherResourceLink && <span style={{ fontSize: 10, fontWeight: 700, color: C.emeraldDark, background: C.emeraldLight, padding: "3px 8px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 3 }}><LinkIcon style={{ width: 9, height: 9 }} /> Teacher Link</span>}
+          {!lesson.pptLink && !lesson.studentResourceLink && !lesson.teacherResourceLink && (
+            <span style={{ fontSize: 10, color: C.textMuted }}>No resource links added yet</span>
+          )}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+        <button onClick={onEdit} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8 }}>
+          <Pencil style={{ width: 14, height: 14, color: C.textMuted }} />
+        </button>
+        <button onClick={onDelete} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8 }}>
+          <Trash2 style={{ width: 14, height: 14, color: C.red }} />
+        </button>
+      </div>
+    </div>
   );
 }
 
-// CATEGORY PANEL (unchanged)
-function CategoryPanel({ cat }) {
+function ModuleCard({ module, onRename, onDeleteModule, onAddLesson, onEditLesson, onDeleteLesson }) {
+  const [open, setOpen] = useState(false);
+  const [showModuleModal, setShowModuleModal] = useState(false);
+  const [showLessonModal, setShowLessonModal] = useState(false);
+  const [editingLesson, setEditingLesson] = useState(null);
+  const [confirmDeleteModule, setConfirmDeleteModule] = useState(false);
+  const [confirmDeleteLesson, setConfirmDeleteLesson] = useState(null);
+
+  const lessons = (module.lessons || []).slice().sort((a, b) => a.lessonNumber - b.lessonNumber);
+
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", boxShadow: C.shadowCard, marginBottom: 12 }}>
+      <div onClick={() => setOpen(o => !o)}
+        style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", cursor: "pointer" }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: C.bg, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: C.textSecondary, flexShrink: 0 }}>
+          M{module.moduleNumber}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontWeight: 800, fontSize: 14, color: C.textPrimary }}>{module.moduleName}</p>
+          <p style={{ fontSize: 12, color: C.textMuted }}>{lessons.length} lesson{lessons.length !== 1 ? "s" : ""}</p>
+        </div>
+        <button onClick={e => { e.stopPropagation(); setShowModuleModal(true); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 6 }}>
+          <Pencil style={{ width: 14, height: 14, color: C.textMuted }} />
+        </button>
+        <button onClick={e => { e.stopPropagation(); setConfirmDeleteModule(true); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 6 }}>
+          <Trash2 style={{ width: 14, height: 14, color: C.red }} />
+        </button>
+        {open ? <ChevronDown style={{ width: 16, height: 16, color: C.textMuted }} /> : <ChevronRight style={{ width: 16, height: 16, color: C.textMuted }} />}
+      </div>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
+            <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {lessons.length === 0 ? (
+                <p style={{ textAlign: "center", fontSize: 12, color: C.textMuted, padding: "8px 0" }}>No lessons yet</p>
+              ) : (
+                lessons.map(lesson => (
+                  <LessonRow key={lesson.id} lesson={lesson}
+                    onEdit={() => setEditingLesson(lesson)}
+                    onDelete={() => setConfirmDeleteLesson(lesson)} />
+                ))
+              )}
+              <button onClick={() => setShowLessonModal(true)}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: `1.5px dashed ${C.border}`, background: "none", color: C.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer", marginTop: 4 }}>
+                <PlusCircle style={{ width: 14, height: 14 }} /> Add Lesson
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {showModuleModal && (
+        <ModuleModal initialName={module.moduleName} onClose={() => setShowModuleModal(false)}
+          onSave={(name) => onRename(module.id, name)} />
+      )}
+      {showLessonModal && (
+        <LessonModal onClose={() => setShowLessonModal(false)}
+          onSave={(data) => onAddLesson(module.id, data)} />
+      )}
+      {editingLesson && (
+        <LessonModal lesson={editingLesson} onClose={() => setEditingLesson(null)}
+          onSave={(data) => onEditLesson(module.id, editingLesson.id, data)} />
+      )}
+      {confirmDeleteModule && (
+        <ConfirmModal title="Delete this module?" message={`"${module.moduleName}" and all its lessons will be permanently removed for every student and tutor in this tier.`}
+          onCancel={() => setConfirmDeleteModule(false)}
+          onConfirm={async () => { await onDeleteModule(module.id); setConfirmDeleteModule(false); }} />
+      )}
+      {confirmDeleteLesson && (
+        <ConfirmModal title="Delete this lesson?" message={`"${confirmDeleteLesson.title}" will be permanently removed.`}
+          onCancel={() => setConfirmDeleteLesson(null)}
+          onConfirm={async () => { await onDeleteLesson(module.id, confirmDeleteLesson.id); setConfirmDeleteLesson(null); }} />
+      )}
+    </div>
+  );
+}
+
+// Module/lesson curriculum manager for the Coding and Math courses
+function CodingMathCurriculumManager() {
+  const tieredCourses = COURSES.filter(c => c.value !== "academic_tuition");
+  const [course, setCourse] = useState(tieredCourses[0]?.value || "coding");
+  const [category, setCategory] = useState(CATEGORIES[0]?.value || "little_pearls");
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState(null);
   const [showAddModule, setShowAddModule] = useState(false);
-  const col = catColor[cat.value];
 
   useEffect(() => {
-    const q = query(collection(db, "curriculum"), where("category", "==", cat.value));
-    return onSnapshot(q, 
-        snap => {
-            setModules(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber));
-            setLoading(false);
-        },
-        err => {
-            console.error("Curriculum snapshot error:", err);
-            setLoading(false);
-        }
-        );
-  }, [cat.value]);
+    setLoading(true);
+    const q = curriculumModulesQuery(course, category);
+    const unsub = onSnapshot(q,
+      snap => {
+        const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.moduleNumber || 0) - (b.moduleNumber || 0));
+        setModules(mods);
+        setLoading(false);
+      },
+      err => {
+        console.error("Curriculum snapshot error:", err);
+        setStatus({ ok: false, msg: "Failed to load curriculum." });
+        setLoading(false);
+      }
+    );
+    return () => unsub();
+  }, [course, category]);
+
+  const flash = (ok, msg) => { setStatus({ ok, msg }); setTimeout(() => setStatus(null), 3000); };
+
+  const handleAddModule = async (name) => {
+    try { await createCurriculumModule(course, category, name); flash(true, "Module added."); }
+    catch (e) { flash(false, e.message || "Failed to add module."); throw e; }
+  };
+  const handleRenameModule = async (moduleId, name) => {
+    try { await renameCurriculumModule(moduleId, name); flash(true, "Module updated."); }
+    catch (e) { flash(false, e.message || "Failed to update module."); throw e; }
+  };
+  const handleDeleteModule = async (moduleId) => {
+    try { await deleteCurriculumModule(moduleId); flash(true, "Module deleted."); }
+    catch (e) { flash(false, e.message || "Failed to delete module."); }
+  };
+  const handleAddLesson = async (moduleId, data) => {
+    try { await addCurriculumLesson(moduleId, data); flash(true, "Lesson added."); }
+    catch (e) { flash(false, e.message || "Failed to add lesson."); throw e; }
+  };
+  const handleEditLesson = async (moduleId, lessonId, data) => {
+    try { await updateCurriculumLesson(moduleId, lessonId, data); flash(true, "Lesson updated."); }
+    catch (e) { flash(false, e.message || "Failed to update lesson."); throw e; }
+  };
+  const handleDeleteLesson = async (moduleId, lessonId) => {
+    try { await deleteCurriculumLesson(moduleId, lessonId); flash(true, "Lesson deleted."); }
+    catch (e) { flash(false, e.message || "Failed to delete lesson."); }
+  };
+
+  const catInfo = CATEGORIES.find(c => c.value === category);
+  const courseInfo = COURSES.find(c => c.value === course);
+  const totalLessons = modules.reduce((s, m) => s + (m.lessons?.length || 0), 0);
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <div>
-          <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{cat.label}</p>
-          <p style={{ fontSize: 12, color: C.textMuted }}>{cat.ages} · {modules.length} modules · {modules.reduce((s, m) => s + (m.lessons?.length || 0), 0)} lessons</p>
+      <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 18 }}>
+        Modules and lessons here are shown automatically to every student — and their assigned tutor — enrolled in the matching course and tier. No manual per-student assignment needed.
+      </p>
+
+      <Banner status={status} />
+
+      {/* Course selector */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+        {tieredCourses.map(c => {
+          const selected = course === c.value;
+          const col = courseColor[c.value] || courseColor.coding;
+          return (
+            <button key={c.value} onClick={() => setCourse(c.value)}
+              style={{ padding: "9px 18px", borderRadius: 12, border: `2px solid ${selected ? col.border : C.border}`, background: selected ? col.bg : C.card, color: selected ? col.text : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              {c.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tier selector */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+        {CATEGORIES.map(cat => {
+          const selected = category === cat.value;
+          const col = tierColor[cat.value];
+          return (
+            <button key={cat.value} onClick={() => setCategory(cat.value)}
+              style={{ padding: "8px 16px", borderRadius: 12, border: `2px solid ${selected ? col.border : C.border}`, background: selected ? col.bg : C.card, color: selected ? col.text : C.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+              {cat.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Summary bar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "14px 18px", marginBottom: 18, boxShadow: C.shadowCard }}>
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: (courseColor[course] || courseColor.coding).bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <BookOpen style={{ width: 20, height: 20, color: (courseColor[course] || courseColor.coding).text }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontWeight: 800, fontSize: 14, color: C.textPrimary }}>{courseInfo?.label} · {catInfo?.label}</p>
+          <p style={{ fontSize: 12, color: C.textMuted }}>{modules.length} modules · {totalLessons} lessons</p>
         </div>
         <button onClick={() => setShowAddModule(true)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 12, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
           <PlusCircle style={{ width: 15, height: 15 }} /> Add Module
         </button>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: 40 }}>
-          <Loader2 style={{ width: 24, height: 24, color: C.emerald, animation: "spin 1s linear infinite", margin: "0 auto" }} />
+        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
+          <Loader2 style={{ width: 26, height: 26, color: C.emerald, animation: "spin 1s linear infinite" }} />
+        </div>
+      ) : modules.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "48px 20px", background: C.card, borderRadius: 16, border: `1px solid ${C.border}` }}>
+          <BookOpen style={{ width: 36, height: 36, color: C.textMuted, opacity: 0.4, margin: "0 auto 10px" }} />
+          <p style={{ fontSize: 13, color: C.textMuted }}>No modules yet for {courseInfo?.label} · {catInfo?.label}. Add the first one above.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {modules.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40, background: C.bg, borderRadius: 12, color: C.textMuted }}>
-              No modules yet. Click "Add Module" to get started!
-            </div>
-          ) : (
-            modules.map(mod => <ModuleRow key={mod.id} mod={mod} col={col} />)
-          )}
-        </div>
+        modules.map(mod => (
+          <ModuleCard key={mod.id} module={mod}
+            onRename={handleRenameModule}
+            onDeleteModule={handleDeleteModule}
+            onAddLesson={handleAddLesson}
+            onEditLesson={handleEditLesson}
+            onDeleteLesson={handleDeleteLesson} />
+        ))
       )}
 
-      <AnimatePresence>
-        {showAddModule && (
-          <ModuleModal category={cat.value} existingModule={null} onClose={() => setShowAddModule(false)} onSave={() => {}} />
-        )}
-      </AnimatePresence>
+      {showAddModule && (
+        <ModuleModal onClose={() => setShowAddModule(false)} onSave={handleAddModule} />
+      )}
     </div>
   );
 }
 
-// MAIN CURRICULUM MANAGER
-export function CurriculumManager() {
-  const [tab, setTab] = useState("upload"); // "upload" | "assign"
-  const [seedStatus, setSeedStatus] = useState(null);
+/* =========================================================================
+   PART B — Academic Tuition custom per-student chapter lists
+   Unchanged in behaviour from before: still one custom chapter list per
+   student, stored at studentChapters/{uid}. Untouched by the Course/Tier
+   changes above.
+   ========================================================================= */
 
-  const handleSeedCurriculum = async () => {
-    setSeedStatus({ msg: "Seeding curriculum...", ok: null });
-    try {
-      const result = await seedCurriculumToFirestore((msg) => {
-        setSeedStatus({ msg, ok: null });
-      });
-      setSeedStatus({ msg: `✅ Seeded: ${result.seeded}, Skipped: ${result.skipped}`, ok: true });
-    } catch (err) {
-      setSeedStatus({ msg: `Error: ${err.message}`, ok: false });
-    }
-  };
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      style={{ padding: 24, maxWidth: "100%" }}>
-      
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: C.indigoLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <BookOpen style={{ width: 20, height: 20, color: C.indigo }} />
-          </div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: C.textPrimary }}>Curriculum Manager</h2>
-        </div>
-        <p style={{ fontSize: 13, color: C.textMuted }}>Upload modules & lessons by category, then assign them to individual students</p>
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 20, background: C.bg, padding: 4, borderRadius: 12 }}>
-        <button onClick={() => setTab("upload")}
-          style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "none", background: tab === "upload" ? C.card : "transparent", color: tab === "upload" ? C.textPrimary : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>
-          📚 Upload Curriculum
-        </button>
-        <button onClick={() => setTab("assign")}
-          style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "none", background: tab === "assign" ? C.card : "transparent", color: tab === "assign" ? C.textPrimary : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>
-          👥 Assign to Students
-        </button>
-      </div>
-
-      {/* Upload Curriculum Tab */}
-      {tab === "upload" && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          {/* Seed button */}
-          <div style={{ marginBottom: 24, padding: 16, background: C.bg, borderRadius: 12, border: `1px solid ${C.border}` }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <p style={{ fontWeight: 700, color: C.textPrimary, marginBottom: 4 }}>Initialize Curriculum Database</p>
-                <p style={{ fontSize: 12, color: C.textMuted }}>Run this once to populate all default modules & lessons</p>
-              </div>
-              <button onClick={handleSeedCurriculum}
-                style={{ padding: "10px 18px", borderRadius: 10, background: C.gradEmerald, color: "#fff", fontWeight: 700, fontSize: 12, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-                <Database style={{ width: 14, height: 14 }} /> Seed Now
-              </button>
-            </div>
-            {seedStatus && <Banner status={seedStatus} />}
-          </div>
-
-          {/* Categories — Modules/Lessons apply to coding categories only.
-              Academic Tuition & Courses students use per-student Chapters
-              under the "Assign to Students" tab instead. */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            {CATEGORIES.filter(cat => CODING_CATEGORIES.includes(cat.value)).map(cat => (
-              <CategoryPanel key={cat.value} cat={cat} />
-            ))}
-          </div>
-          <div style={{ marginTop: 20, padding: 16, borderRadius: 12, background: C.violetLight, border: `1px solid ${C.violet}25`, display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <FileText style={{ width: 18, height: 18, color: C.violet, flexShrink: 0, marginTop: 1 }} />
-            <p style={{ fontSize: 12, color: C.violet, lineHeight: 1.6 }}>
-              <strong>Academic Tuition</strong> and <strong>Courses</strong> students don't use the shared module curriculum above.
-              Go to the <strong>Assign to Students</strong> tab, pick the student, and add their custom chapters there.
-            </p>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Assign to Students Tab */}
-      {tab === "assign" && (
-        <StudentCurriculumAssignment />
-      )}
-    </motion.div>
-  );
-}
-
-// CHAPTER MODAL — add/edit a single chapter for an Academic Tuition / Courses student
 function ChapterModal({ chapter, onClose, onSave }) {
   const isEdit = !!chapter;
   const [form, setForm] = useState({ title: chapter?.title || "", content: chapter?.content || "" });
@@ -604,10 +527,7 @@ function ChapterModal({ chapter, onClose, onSave }) {
   );
 }
 
-// STUDENT CHAPTERS MANAGER — custom per-student chapter list
-// Used for Academic Tuition & Courses students instead of the shared
-// coding Module/Lesson curriculum.
-function StudentChaptersManager({ studentId, studentName, categoryLabel }) {
+function StudentChaptersManager({ studentId, studentName }) {
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -685,7 +605,7 @@ function StudentChaptersManager({ studentId, studentName, categoryLabel }) {
           <h3 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>
             Chapters for <span style={{ color: C.indigo }}>{studentName}</span>
           </h3>
-          {categoryLabel && <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{categoryLabel} · custom syllabus</p>}
+          <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>Academic Tuition · custom syllabus</p>
         </div>
         <button onClick={() => { setEditChapter(null); setShowModal(true); }}
           style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
@@ -740,240 +660,94 @@ function StudentChaptersManager({ studentId, studentName, categoryLabel }) {
   );
 }
 
-// STUDENT CURRICULUM ASSIGNMENT 
-function StudentCurriculumAssignment() {
+// Picks an Academic Tuition student, then edits their custom chapter list
+function AcademicTuitionManager() {
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
-  const [allModules, setAllModules] = useState([]);
-  const [allLessons, setAllLessons] = useState([]);
-  const [selectedModules, setSelectedModules] = useState([]);
-  const [selectedLessons, setSelectedLessons] = useState([]);
-  const [loadingCurr, setLoadingCurr] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState(null);
-  const [expandedCategory, setExpandedCategory] = useState(null);
 
-  // Load students
   useEffect(() => {
     const q = query(collection(db, "userSummaries"), where("role", "==", "student"));
     return onSnapshot(q, snap => {
-      const arr = snap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      const arr = snap.docs
+        .map(d => ({ uid: d.id, ...d.data() }))
+        .filter(s => getEffectiveCourse(s) === "academic_tuition")
+        .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       setStudents(arr);
-      if (arr.length > 0 && !selectedStudentId) setSelectedStudentId(arr[0].uid);
+      setSelectedStudentId(prev => (prev && arr.some(s => s.uid === prev)) ? prev : (arr[0]?.uid || null));
       setLoadingStudents(false);
     }, () => setLoadingStudents(false));
   }, []);
 
-  // Load all curriculum
-  useEffect(() => {
-    const loadCurr = async () => {
-      setLoadingCurr(true);
-      try {
-        const [mods, lessons] = await Promise.all([
-          fetchAllCurriculumModules(),
-          fetchAllCurriculumLessons(),
-        ]);
-        setAllModules(mods);
-        setAllLessons(lessons);
-      } catch (err) {
-        console.error("Error loading curriculum:", err);
-      }
-      setLoadingCurr(false);
-    };
-    loadCurr();
-  }, []);
-
-  // Load student's current curriculum
-  useEffect(() => {
-    if (!selectedStudentId) return;
-    const loadStudentCurr = async () => {
-      try {
-        const docRef = doc(db, "studentCurriculum", selectedStudentId);
-        const snap = await getDocs(query(collection(db, "studentCurriculum"), where("studentId", "==", selectedStudentId)));
-        if (snap.docs.length > 0) {
-          const data = snap.docs[0].data();
-          setSelectedModules((data.assignedModules || []).map(m => m.moduleDocId));
-          setSelectedLessons((data.assignedLessons || []).map(l => l.lessonId));
-        } else {
-          setSelectedModules([]);
-          setSelectedLessons([]);
-        }
-      } catch (err) {
-        console.error("Error loading student curriculum:", err);
-      }
-    };
-    loadStudentCurr();
-  }, [selectedStudentId]);
-
   const selectedStudent = students.find(s => s.uid === selectedStudentId);
 
-  const toggleModule = (moduleId) => {
-    setSelectedModules(prev =>
-      prev.includes(moduleId) ? prev.filter(m => m !== moduleId) : [...prev, moduleId]
-    );
-  };
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16, minHeight: 500 }}>
+      <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", height: "fit-content", position: "sticky", top: 20 }}>
+        <div style={{ padding: 14, borderBottom: `1px solid ${C.border}`, background: C.bg }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, textTransform: "uppercase" }}>Academic Tuition Students</p>
+        </div>
+        {loadingStudents ? (
+          <div style={{ padding: 16, textAlign: "center" }}>
+            <Loader2 style={{ width: 20, height: 20, color: C.emerald, animation: "spin 1s linear infinite", margin: "0 auto" }} />
+          </div>
+        ) : students.length === 0 ? (
+          <p style={{ padding: 16, fontSize: 12, color: C.textMuted, textAlign: "center" }}>No Academic Tuition students yet</p>
+        ) : (
+          <div style={{ maxHeight: 600, overflowY: "auto" }}>
+            {students.map(s => (
+              <button key={s.uid} onClick={() => setSelectedStudentId(s.uid)}
+                style={{ width: "100%", padding: "12px 14px", borderBottom: `1px solid ${C.border}`, background: selectedStudentId === s.uid ? C.indigoLight : "transparent", color: C.textPrimary, border: "none", cursor: "pointer", textAlign: "left", fontSize: 13, fontWeight: selectedStudentId === s.uid ? 700 : 500 }}>
+                <p style={{ fontWeight: 700 }}>{s.name}</p>
+                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{s.customId || "—"}</p>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
-  const toggleLesson = (lessonId) => {
-    setSelectedLessons(prev =>
-      prev.includes(lessonId) ? prev.filter(l => l !== lessonId) : [...prev, lessonId]
-    );
-  };
+      <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: 16 }}>
+        {!selectedStudent ? (
+          <div style={{ textAlign: "center", padding: 40, color: C.textMuted }}>Select a student to edit their chapters</div>
+        ) : (
+          <StudentChaptersManager studentId={selectedStudent.uid} studentName={selectedStudent.name} />
+        )}
+      </div>
+    </div>
+  );
+}
 
-  const handleSave = async () => {
-    if (!selectedStudentId) { setStatus({ ok: false, msg: "Select a student first" }); return; }
-    if (selectedModules.length === 0 && selectedLessons.length === 0) { setStatus({ ok: false, msg: "Select at least one module or lesson" }); return; }
-    
-    setSaving(true);
-    setStatus(null);
-    try {
-      // Get full lesson data for lessons array
-      const lessonsForSave = selectedLessons
-        .map(lessonId => allLessons.find(l => l.id === lessonId))
-        .filter(Boolean);
+/* =========================================================================
+   MAIN CURRICULUM MANAGER — tabs between the two systems above
+   ========================================================================= */
 
-      await saveStudentCurriculumOverride(selectedStudentId, selectedModules, lessonsForSave);
-      setStatus({ ok: true, msg: `Curriculum saved for ${selectedStudent?.name || "student"}` });
-    } catch (err) {
-      setStatus({ ok: false, msg: `Error: ${err.message}` });
-    }
-    setSaving(false);
-  };
-
-  // Group lessons by category
-  const lessonsByCategory = {};
-  allLessons.forEach(lesson => {
-    if (!lessonsByCategory[lesson.category]) {
-      lessonsByCategory[lesson.category] = [];
-    }
-    lessonsByCategory[lesson.category].push(lesson);
-  });
+export function CurriculumManager() {
+  const [tab, setTab] = useState("curriculum"); // "curriculum" | "tuition"
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16, minHeight: "500px" }}>
-        {/* Student list */}
-        <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", height: "fit-content", position: "sticky", top: 20 }}>
-          <div style={{ padding: 14, borderBottom: `1px solid ${C.border}`, background: C.bg }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, textTransform: "uppercase" }}>Students</p>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: 24, maxWidth: "100%" }}>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: C.indigoLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <BookOpen style={{ width: 20, height: 20, color: C.indigo }} />
           </div>
-          {loadingStudents ? (
-            <div style={{ padding: 16, textAlign: "center" }}>
-              <Loader2 style={{ width: 20, height: 20, color: C.emerald, animation: "spin 1s linear infinite", margin: "0 auto" }} />
-            </div>
-          ) : (
-            <div style={{ maxHeight: "600px", overflowY: "auto" }}>
-              {students.map(s => (
-                <button key={s.uid} onClick={() => setSelectedStudentId(s.uid)}
-                  style={{ width: "100%", padding: "12px 14px", borderBottom: `1px solid ${C.border}`, background: selectedStudentId === s.uid ? C.indigoLight : "transparent", color: C.textPrimary, border: "none", cursor: "pointer", textAlign: "left", transition: "all 0.2s", fontSize: 13, fontWeight: selectedStudentId === s.uid ? 700 : 500 }}>
-                  <p style={{ fontWeight: 700 }}>{s.name}</p>
-                  <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{s.customId || "—"}</p>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Curriculum selector */}
-        <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: 16 }}>
-          {!selectedStudent ? (
-            <div style={{ textAlign: "center", padding: 40, color: C.textMuted }}>
-              Select a student to customize their curriculum
-            </div>
-          ) : CUSTOM_CHAPTER_CATEGORIES.includes(selectedStudent.category) ? (
-            <StudentChaptersManager
-              studentId={selectedStudent.uid}
-              studentName={selectedStudent.name}
-              categoryLabel={selectedStudent.category === "courses" ? "Courses" : "Academic Tuition"}
-            />
-          ) : loadingCurr ? (
-            <div style={{ textAlign: "center", padding: 40 }}>
-              <Loader2 style={{ width: 24, height: 24, color: C.emerald, animation: "spin 1s linear infinite", margin: "0 auto" }} />
-            </div>
-          ) : (
-            <>
-              <Banner status={status} />
-              
-              <h3 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, marginBottom: 12 }}>
-                Customize curriculum for <span style={{ color: C.indigo }}>{selectedStudent.name}</span>
-              </h3>
-
-              {/* Tabs for modules and lessons */}
-              <div style={{ display: "flex", gap: 2, marginBottom: 16, background: C.bg, padding: 4, borderRadius: 10 }}>
-                <button onClick={() => setExpandedCategory(null)}
-                  style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "none", background: expandedCategory === null ? C.card : "transparent", color: C.textPrimary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                  Modules ({selectedModules.length})
-                </button>
-                <button onClick={() => setExpandedCategory("lessons")}
-                  style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "none", background: expandedCategory === "lessons" ? C.card : "transparent", color: C.textPrimary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                  Lessons ({selectedLessons.length})
-                </button>
-              </div>
-
-              {expandedCategory === null && (
-                <div style={{ maxHeight: "500px", overflowY: "auto", marginBottom: 16 }}>
-                  <p style={{ fontSize: 11, color: C.textMuted, marginBottom: 10 }}>Select entire modules to assign to this student:</p>
-                  {CATEGORIES.filter(cat => CODING_CATEGORIES.includes(cat.value)).map(cat => {
-                    const categoryModules = allModules.filter(m => m.category === cat.value);
-                    const col = catColor[cat.value];
-                    return (
-                      <div key={cat.value} style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 12, fontWeight: 700, color: col.text, background: col.bg, padding: "6px 10px", borderRadius: 6, marginBottom: 8 }}>
-                          {cat.label}
-                        </p>
-                        {categoryModules.map(mod => (
-                          <label key={mod.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, cursor: "pointer", background: selectedModules.includes(mod.id) ? C.indigoLight : "transparent", marginBottom: 6 }}>
-                            <input type="checkbox" checked={selectedModules.includes(mod.id)} onChange={() => toggleModule(mod.id)} style={{ cursor: "pointer" }} />
-                            <span style={{ fontSize: 13, fontWeight: selectedModules.includes(mod.id) ? 700 : 500, color: C.textPrimary }}>
-                              {mod.moduleEmoji} Module {mod.moduleNumber}: {mod.moduleName}
-                            </span>
-                            <span style={{ fontSize: 10, color: C.textMuted, marginLeft: "auto" }}>({mod.lessons?.length} lessons)</span>
-                          </label>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {expandedCategory === "lessons" && (
-                <div style={{ maxHeight: "500px", overflowY: "auto", marginBottom: 16 }}>
-                  <p style={{ fontSize: 11, color: C.textMuted, marginBottom: 10 }}>Select specific lessons to assign (sometimes a student from one category needs lessons from another):</p>
-                  {Object.entries(lessonsByCategory).filter(([cat]) => CODING_CATEGORIES.includes(cat)).map(([cat, lessons]) => {
-                    const category = CATEGORIES.find(c => c.value === cat);
-                    const col = catColor[cat];
-                    return (
-                      <div key={cat} style={{ marginBottom: 16 }}>
-                        <p style={{ fontSize: 12, fontWeight: 700, color: col.text, background: col.bg, padding: "6px 10px", borderRadius: 6, marginBottom: 8 }}>
-                          {category?.label}
-                        </p>
-                        {lessons.map(lesson => (
-                          <label key={lesson.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, cursor: "pointer", background: selectedLessons.includes(lesson.id) ? C.indigoLight : "transparent", marginBottom: 6 }}>
-                            <input type="checkbox" checked={selectedLessons.includes(lesson.id)} onChange={() => toggleLesson(lesson.id)} style={{ cursor: "pointer" }} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ fontSize: 13, fontWeight: selectedLessons.includes(lesson.id) ? 700 : 500, color: C.textPrimary }}>{lesson.title}</p>
-                              <p style={{ fontSize: 11, color: C.textMuted }}>Module: {lesson.moduleName}</p>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={handleSave} disabled={saving}
-                  style={{ flex: 1, padding: "12px", borderRadius: 10, background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 13, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: saving ? 0.7 : 1 }}>
-                  {saving ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : <>
-                    <CheckCircle style={{ width: 16, height: 16 }} /> Save Curriculum
-                  </>}
-                </button>
-              </div>
-            </>
-          )}
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: C.textPrimary }}>Curriculum Manager</h2>
         </div>
       </div>
+
+      <div style={{ display: "flex", gap: 2, marginBottom: 20, background: C.bg, padding: 4, borderRadius: 12 }}>
+        <button onClick={() => setTab("curriculum")}
+          style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "none", background: tab === "curriculum" ? C.card : "transparent", color: tab === "curriculum" ? C.textPrimary : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          💻 Coding &amp; Math Curriculum
+        </button>
+        <button onClick={() => setTab("tuition")}
+          style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "none", background: tab === "tuition" ? C.card : "transparent", color: tab === "tuition" ? C.textPrimary : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          <Users style={{ width: 13, height: 13, display: "inline", marginRight: 4, verticalAlign: -2 }} />
+          Academic Tuition Chapters
+        </button>
+      </div>
+
+      {tab === "curriculum" ? <CodingMathCurriculumManager /> : <AcademicTuitionManager />}
     </motion.div>
   );
 }

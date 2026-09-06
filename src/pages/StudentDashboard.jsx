@@ -18,7 +18,7 @@ import {
   Bell, Home, BarChart2, Star, Menu, X, ChevronDown, ChevronRight,
   Zap, BookMarked, GraduationCap, Play, FileText, Receipt
 } from "lucide-react";
-import { CATEGORIES } from "../utils/curriculumData";
+import { CATEGORIES, getEffectiveCourse } from "../utils/curriculumData";
 import { getProgressRef } from "../utils/paths";
 import { getDisplayTime } from "../utils/timeUtils";
 import PearlxLogo from "../assets/flat_logo.webp";
@@ -256,11 +256,7 @@ const SideNavItem = ({ tab, active, onClick }) => (
   </motion.button>
 );
 
-// Categories that use a per-student custom Chapters list (studentChapters/{uid})
-// instead of the shared coding Module/Lesson curriculum (curriculum/{docId}).
-const CHAPTER_BASED_CATEGORIES = ["academic_tuition", "courses"];
-
-// Student Curriculum View — Chapters variant (Academic Tuition / Courses)
+// Student Curriculum View — Chapters variant (Academic Tuition)
 function StudentChaptersView({ studentId, category }) {
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -341,7 +337,7 @@ function StudentChaptersView({ studentId, category }) {
 }
 
 // Student Curriculum View — routes to the Chapters view or the Module/Lesson view
-function StudentCurriculumView({ category, studentName, studentId }) {
+function StudentCurriculumView({ course, category, studentName, studentId }) {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedModules, setExpandedModules] = useState({});
@@ -352,12 +348,12 @@ function StudentCurriculumView({ category, studentName, studentId }) {
     rising_pearls: { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB", light: "#BFDBFE" },
   };
 
-  const isChapterBased = CHAPTER_BASED_CATEGORIES.includes(category);
+  const isChapterBased = course === "academic_tuition";
 
   useEffect(() => {
-    if (!category || isChapterBased) { setLoading(false); return; }
+    if (!course || !category || isChapterBased) { setLoading(false); return; }
     setLoading(true);
-    const q = query(collection(db, "curriculum"), where("category", "==", category));
+    const q = query(collection(db, "curriculum"), where("course", "==", course), where("category", "==", category));
     const unsub = onSnapshot(q, 
       snap => {
         const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
@@ -371,18 +367,18 @@ function StudentCurriculumView({ category, studentName, studentId }) {
       }
     );
     return () => unsub();
-  }, [category, isChapterBased]);
+  }, [course, category, isChapterBased]);
 
-  if (!category) {
+  if (!course || (course !== "academic_tuition" && !category)) {
     return (
       <div style={{ textAlign: "center", padding: "48px 24px", background: C.card, borderRadius: 20, border: `1px solid ${C.border}` }}>
         <BookOpen style={{ width: 36, height: 36, color: C.textMuted, margin: "0 auto 12px", display: "block", opacity: 0.4 }} />
-        <p style={{ fontSize: 14, color: C.textMuted }}>No category assigned yet. Contact your admin.</p>
+        <p style={{ fontSize: 14, color: C.textMuted }}>No course/tier assigned yet. Contact your admin.</p>
       </div>
     );
   }
 
-  // Academic Tuition / Courses students use the per-student Chapters list
+  // Academic Tuition students use the per-student Chapters list
   if (isChapterBased) {
     return <StudentChaptersView studentId={studentId} category={category} />;
   }
@@ -399,7 +395,9 @@ function StudentCurriculumView({ category, studentName, studentId }) {
             {catInfo?.label.charAt(0)}
           </div>
           <div>
-            <p style={{ fontWeight: 800, fontSize: 16, color: col.text }}>{catInfo?.label}</p>
+            <p style={{ fontWeight: 800, fontSize: 16, color: col.text }}>
+              {course === "math" ? "➗ Math · " : "💻 Coding · "}{catInfo?.label}
+            </p>
             <p style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{catInfo?.ages} · {modules.length} modules · {modules.reduce((s, m) => s + (m.lessons?.length || 0), 0)} lessons</p>
           </div>
         </div>
@@ -418,8 +416,8 @@ function StudentCurriculumView({ category, studentName, studentId }) {
             <div key={mod.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", boxShadow: C.shadowCard }}>
               <div onClick={() => setExpandedModules(p => ({ ...p, [mod.id]: !p[mod.id] }))}
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", cursor: "pointer" }}>
-                <div style={{ width: 44, height: 44, borderRadius: 13, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
-                  {mod.moduleEmoji}
+                <div style={{ width: 44, height: 44, borderRadius: 13, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: col.text, flexShrink: 0 }}>
+                  M{mod.moduleNumber}
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 800, fontSize: 14, color: C.textPrimary }}>Module {mod.moduleNumber}: {mod.moduleName}</p>
@@ -438,13 +436,13 @@ function StudentCurriculumView({ category, studentName, studentId }) {
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary, marginBottom: 3 }}>{lesson.title}</p>
-                            <p style={{ fontSize: 11, color: C.cyan, fontWeight: 600 }}>📱 {lesson.platform}</p>
-                            {lesson.description && <p style={{ fontSize: 11, color: C.textSecondary, marginTop: 5, lineHeight: 1.6 }}>{lesson.description}</p>}
-                            {lesson.pptLink && (
-                              <a href={lesson.pptLink} target="_blank" rel="noopener noreferrer"
+                            {lesson.studentResourceLink ? (
+                              <a href={lesson.studentResourceLink} target="_blank" rel="noopener noreferrer"
                                 style={{ fontSize: 11, color: C.indigo, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, marginTop: 5, textDecoration: "none" }}>
                                 🔗 View Lesson Resource →
                               </a>
+                            ) : (
+                              <p style={{ fontSize: 11, color: C.textMuted, marginTop: 5 }}>No resource shared yet</p>
                             )}
                           </div>
                         </div>
@@ -519,33 +517,36 @@ export default function StudentDashboard() {
     return () => unsubs.forEach(u => u());
   }, [userId, profile]);
 
-  // Load the actual curriculum (chapters) for Academic Tuition / Courses students
+  // Load the actual curriculum (chapters) for Academic Tuition students
   useEffect(() => {
-    if (!userId || !CHAPTER_BASED_CATEGORIES.includes(profile?.category)) { setChapterList([]); return; }
+    const effCourse = getEffectiveCourse(profile);
+    if (!userId || effCourse !== "academic_tuition") { setChapterList([]); return; }
     const unsub = onSnapshot(doc(db, "studentChapters", userId), snap => {
       const data = snap.exists() ? snap.data() : { chapters: [] };
       setChapterList((data.chapters || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0)));
     }, () => {});
     return () => unsub();
-  }, [userId, profile?.category]);
+  }, [userId, profile?.course, profile?.category]);
 
-  // Load curriculum modules for coding students (for next-lesson chip) 
+  // Load curriculum modules for coding/math students (for next-lesson chip)
   useEffect(() => {
-    const isCoding = profile?.category && profile.category !== "academic_tuition";
-    if (!isCoding) return;
-    const q = query(collection(db, "curriculum"), where("category", "==", profile.category));
+    const effCourse = getEffectiveCourse(profile);
+    const isTiered = effCourse === "coding" || effCourse === "math";
+    if (!isTiered || !profile?.category) { setCurrModules([]); return; }
+    const q = query(collection(db, "curriculum"), where("course", "==", effCourse), where("category", "==", profile.category));
     const unsub = onSnapshot(q, snap => {
       const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
       setCurrModules(mods);
     }, () => {});
     return () => unsub();
-  }, [profile?.category]);
+  }, [profile]);
 
-  // Load per-lesson progress for coding students
+  // Load per-lesson progress for coding/math students
   useEffect(() => {
     if (!userId || !profile) return;
-    const isCoding = profile?.category && profile.category !== "academic_tuition";
-    if (!isCoding) return;
+    const effCourse = getEffectiveCourse(profile);
+    const isTiered = effCourse === "coding" || effCourse === "math";
+    if (!isTiered) return;
     // Listen to all subjects' lesson progress
     const subjects = (profile.assignments || []).map(a => a.subject);
     const unsubs = subjects.map(sub =>
@@ -563,7 +564,8 @@ export default function StudentDashboard() {
 
   const assignments = profile?.assignments || [];
   const permanentClassLink = profile?.permanentClassLink || "";
-  const isChapterBasedStudent = CHAPTER_BASED_CATEGORIES.includes(profile?.category);
+  const effectiveCourse = getEffectiveCourse(profile);
+  const isChapterBasedStudent = effectiveCourse === "academic_tuition";
   const chapterCompletedCount = chapterList.filter(c => c.completed).length;
   const totalModules = isChapterBasedStudent
     ? chapterCompletedCount
@@ -571,8 +573,8 @@ export default function StudentDashboard() {
   const attendanceRate = completed.length + missed.length > 0
     ? Math.round((completed.length / (completed.length + missed.length)) * 100) : 100;
   const nextClass = upcoming[0];
-  const isCodingStudent = profile?.category && profile.category !== "academic_tuition";
-  // Compute the single "next lesson" across all modules for the coding curriculum
+  const isCodingStudent = effectiveCourse === "coding" || effectiveCourse === "math";
+  // Compute the single "next lesson" across all modules for the coding/math curriculum
   const nextLessonInfo = isCodingStudent ? getNextLessonLabel(currModules, lessonProgressMap) : null;
 
   const tabs = [
@@ -970,7 +972,7 @@ export default function StudentDashboard() {
 
               {activeTab === "curriculum" && (
                 <motion.div key="cu" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                  <StudentCurriculumView category={profile?.category} studentName={profile?.name} studentId={userId} />
+                  <StudentCurriculumView course={getEffectiveCourse(profile)} category={profile?.category} studentName={profile?.name} studentId={userId} />
                 </motion.div>
               )}
 

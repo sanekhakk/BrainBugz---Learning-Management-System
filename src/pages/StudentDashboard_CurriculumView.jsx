@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, ChevronDown, ChevronRight, Loader2,
-  AlertCircle, Image as ImageIcon, Clock, Award,
+  AlertCircle, Clock, Award, FileText,
 } from "lucide-react";
 import { db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
-import { getStudentCurriculumWithDetails } from "../utils/curriculumData";
+import { CATEGORIES, getEffectiveCourse } from "../utils/curriculumData";
 
 const C = {
   bg: "#F4F6FB", card: "#FFFFFF", border: "#E5E9F2",
@@ -18,78 +18,35 @@ const C = {
   gradPrimary: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)",
 };
 
-const catColor = {
-  little_pearls:    { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C", light: "#FED7AA" },
-  bright_pearls:    { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A", light: "#BBF7D0" },
-  rising_pearls:    { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB", light: "#BFDBFE" },
-};
-
-const catLabel = {
-  little_pearls: "🐥 Little Pearls",
-  bright_pearls: "🌱 Bright Pearls",
-  rising_pearls: "🦋 Rising Pearls",
+const tierColor = {
+  little_pearls: { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C", light: "#FED7AA" },
+  bright_pearls: { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A", light: "#BBF7D0" },
+  rising_pearls: { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB", light: "#BFDBFE" },
 };
 
 /**
- * Lesson Card - displays lesson with thumbnail
+ * Lesson Card — shows only the Student Resource Link (never the PPT link or
+ * the teacher resource link — those are for admins and tutors respectively).
  */
-function LessonCard({ lesson }) {
-  const col = catColor[lesson.category];
-  
+function LessonCard({ lesson, col }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: C.shadowCard }}>
-      
-      {/* Lesson Image / Thumbnail - bigger section */}
-      <div style={{ width: "100%", height: 140, background: col.light, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" }}>
-        {lesson.thumbnailUrl ? (
-          <img src={lesson.thumbnailUrl} alt={lesson.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, color: col.text, opacity: 0.6 }}>
-            <ImageIcon style={{ width: 32, height: 32 }} />
-            <p style={{ fontSize: 10, fontWeight: 600 }}>No Thumbnail</p>
-          </div>
-        )}
-      </div>
-
-      {/* Lesson Details */}
-      <div style={{ padding: 14 }}>
-        {/* Lesson Title - Prominent */}
-        <h4 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, marginBottom: 8, lineHeight: 1.3 }}>
-          {lesson.title}
-        </h4>
-
-        {/* Category badge */}
-        <div style={{ display: "inline-block", background: col.bg, border: `1px solid ${col.border}`, color: col.text, padding: "3px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700, marginBottom: 10 }}>
-          {catLabel[lesson.category]}
+      style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 14 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <div style={{ width: 30, height: 30, borderRadius: 9, background: col.light, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 800, color: col.text }}>
+          {lesson.lessonNumber}
         </div>
-
-        {/* Platform */}
-        {lesson.platform && (
-          <p style={{ fontSize: 11, color: C.cyan, fontWeight: 600, marginBottom: 6 }}>
-            📱 {lesson.platform}
-          </p>
-        )}
-
-        {/* Description */}
-        {lesson.description && (
-          <p style={{ fontSize: 12, color: C.textSecondary, lineHeight: 1.4, marginBottom: 10 }}>
-            {lesson.description}
-          </p>
-        )}
-
-        {/* Meta info */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {lesson.pptLink && (
-            <a href={lesson.pptLink} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 11, color: C.indigo, fontWeight: 600, padding: "4px 8px", background: C.indigoLight, borderRadius: 4, textDecoration: "none" }}>
-              🔗 Resource
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h4 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, lineHeight: 1.3, marginBottom: 6 }}>
+            {lesson.title}
+          </h4>
+          {lesson.studentResourceLink ? (
+            <a href={lesson.studentResourceLink} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 12, color: C.indigo, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
+              🔗 View Lesson Resource →
             </a>
-          )}
-          {lesson.notes && (
-            <div style={{ fontSize: 11, color: C.textMuted, padding: "4px 8px", background: C.bg, borderRadius: 4 }}>
-              📝 Has tutor notes
-            </div>
+          ) : (
+            <p style={{ fontSize: 11, color: C.textMuted }}>No resource shared yet</p>
           )}
         </div>
       </div>
@@ -98,58 +55,45 @@ function LessonCard({ lesson }) {
 }
 
 /**
- * Module View - collapsible module with lessons grid
+ * Module View — collapsible module with a lesson list
  */
-function ModuleView({ module, lessons }) {
+function ModuleView({ module, col }) {
   const [open, setOpen] = useState(true);
-  const col = catColor[module.category];
-  
-  const moduleLessons = lessons.filter(l => l.moduleId === module.id)
-    .sort((a, b) => (a.lessonNumber || 0) - (b.lessonNumber || 0));
+  const lessons = (module.lessons || []).slice().sort((a, b) => (a.lessonNumber || 0) - (b.lessonNumber || 0));
 
   return (
-    <motion.div
-      style={{ marginBottom: 20 }}>
-      {/* Module Header */}
+    <motion.div style={{ marginBottom: 16 }}>
       <motion.button onClick={() => setOpen(o => !o)} whileTap={{ scale: 0.98 }}
         style={{ width: "100%", padding: "14px 16px", background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", marginBottom: 12 }}>
-        
-        <div style={{ width: 48, height: 48, borderRadius: 12, background: col.light, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
-          {module.moduleEmoji}
+
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: col.light, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: col.text, flexShrink: 0 }}>
+          M{module.moduleNumber}
         </div>
-        
+
         <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
           <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>
             Module {module.moduleNumber}: {module.moduleName}
           </p>
           <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
-            {moduleLessons.length} lessons
+            {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <div style={{ padding: "6px 12px", background: col.bg, borderRadius: 8, border: `1px solid ${col.border}` }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: col.text }}>
-              {catLabel[module.category]}
-            </p>
-          </div>
-          {open ? <ChevronDown style={{ width: 18, height: 18, color: C.textMuted }} /> : <ChevronRight style={{ width: 18, height: 18, color: C.textMuted }} />}
-        </div>
+        {open ? <ChevronDown style={{ width: 18, height: 18, color: C.textMuted }} /> : <ChevronRight style={{ width: 18, height: 18, color: C.textMuted }} />}
       </motion.button>
 
-      {/* Lessons Grid */}
       <AnimatePresence>
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             style={{ overflow: "hidden" }}>
-            {moduleLessons.length === 0 ? (
+            {lessons.length === 0 ? (
               <div style={{ padding: 20, textAlign: "center", color: C.textMuted, background: C.bg, borderRadius: 12 }}>
-                <p>No lessons assigned yet</p>
+                <p>No lessons added yet</p>
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
-                {moduleLessons.map(lesson => (
-                  <LessonCard key={lesson.id} lesson={lesson} />
+                {lessons.map(lesson => (
+                  <LessonCard key={lesson.id} lesson={lesson} col={col} />
                 ))}
               </div>
             )}
@@ -161,41 +105,124 @@ function ModuleView({ module, lessons }) {
 }
 
 /**
- * Main Student Curriculum View
+ * Chapters View — for Academic Tuition students (custom per-student list)
  */
-export function StudentCurriculumView() {
-  const { uid } = useAuth();
-  const [modules, setModules] = useState([]);
-  const [lessons, setLessons] = useState([]);
+function ChaptersView({ studentId }) {
+  const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [expanded, setExpanded] = useState({});
 
   useEffect(() => {
-    const loadCurriculum = async () => {
-      if (!uid) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const { modules: mods, lessons: less } = await getStudentCurriculumWithDetails(uid);
-        setModules(mods.sort((a, b) => a.moduleNumber - b.moduleNumber));
-        setLessons(less);
-      } catch (err) {
-        console.error("Error loading student curriculum:", err);
-        setError(err.message);
-      }
+    if (!studentId) { setLoading(false); return; }
+    const unsub = onSnapshot(doc(db, "studentChapters", studentId), snap => {
+      const data = snap.exists() ? snap.data() : { chapters: [] };
+      setChapters((data.chapters || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0)));
       setLoading(false);
-    };
+    }, () => setLoading(false));
+    return () => unsub();
+  }, [studentId]);
 
-    loadCurriculum();
-  }, [uid]);
+  if (loading) {
+    return <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 style={{ width: 26, height: 26, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>;
+  }
+  if (chapters.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: 40, background: C.bg, borderRadius: 16 }}>
+        <BookOpen style={{ width: 40, height: 40, color: C.textMuted, opacity: 0.5, margin: "0 auto 10px" }} />
+        <p style={{ fontSize: 13, color: C.textMuted }}>Your syllabus is being set up. Check back soon!</p>
+      </div>
+    );
+  }
 
-  if (!uid) return <div style={{ padding: 20, textAlign: "center", color: C.textMuted }}>Please log in</div>;
-  if (loading) return (
-    <div style={{ padding: 40, textAlign: "center" }}>
-      <Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite", margin: "0 auto" }} />
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {chapters.map((chap, i) => {
+        const isOpen = expanded[chap.id];
+        return (
+          <div key={chap.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
+            <div onClick={() => setExpanded(p => ({ ...p, [chap.id]: !p[chap.id] }))}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", cursor: "pointer" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: C.indigoLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: C.indigo, flexShrink: 0 }}>
+                <FileText style={{ width: 16, height: 16 }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: 800, fontSize: 14, color: C.textPrimary }}>Chapter {i + 1}: {chap.title}</p>
+              </div>
+              {isOpen ? <ChevronDown style={{ width: 16, height: 16, color: C.textMuted }} /> : <ChevronRight style={{ width: 16, height: 16, color: C.textMuted }} />}
+            </div>
+            <AnimatePresence>
+              {isOpen && chap.content && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
+                  <div style={{ borderTop: `1px solid ${C.border}`, padding: "14px 16px" }}>
+                    <p style={{ fontSize: 12, color: C.textSecondary, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{chap.content}</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
     </div>
   );
+}
+
+/**
+ * Main Student Curriculum View — routes to the shared Module/Lesson
+ * curriculum (Coding / Math) or the per-student Chapters list
+ * (Academic Tuition), based on the student's profile.
+ */
+export function StudentCurriculumView() {
+  const { userId } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [modules, setModules] = useState([]);
+  const [loadingModules, setLoadingModules] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Load the student's own profile to find their course + tier
+  useEffect(() => {
+    if (!userId) { setLoadingProfile(false); return; }
+    const unsub = onSnapshot(doc(db, "userSummaries", userId), snap => {
+      setProfile(snap.exists() ? { uid: snap.id, ...snap.data() } : null);
+      setLoadingProfile(false);
+    }, err => {
+      console.error("Error loading student profile:", err);
+      setError(err.message);
+      setLoadingProfile(false);
+    });
+    return () => unsub();
+  }, [userId]);
+
+  const course = getEffectiveCourse(profile);
+  const category = profile?.category || null;
+  const isTiered = course === "coding" || course === "math";
+
+  // Load modules for coding/math students
+  useEffect(() => {
+    if (!isTiered || !category) { setLoadingModules(false); return; }
+    setLoadingModules(true);
+    const q = query(collection(db, "curriculum"), where("course", "==", course), where("category", "==", category));
+    const unsub = onSnapshot(q, snap => {
+      const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.moduleNumber || 0) - (b.moduleNumber || 0));
+      setModules(mods);
+      setLoadingModules(false);
+    }, err => {
+      console.error("Error loading curriculum:", err);
+      setError(err.message);
+      setLoadingModules(false);
+    });
+    return () => unsub();
+  }, [isTiered, course, category]);
+
+  if (!userId) return <div style={{ padding: 20, textAlign: "center", color: C.textMuted }}>Please log in</div>;
+
+  if (loadingProfile) {
+    return (
+      <div style={{ padding: 40, textAlign: "center" }}>
+        <Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite", margin: "0 auto" }} />
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -209,21 +236,28 @@ export function StudentCurriculumView() {
     );
   }
 
-  if (modules.length === 0 && lessons.length === 0) {
+  if (!course || (isTiered && !category)) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         style={{ padding: 40, textAlign: "center", background: C.bg, borderRadius: 14 }}>
         <BookOpen style={{ width: 48, height: 48, color: C.textMuted, margin: "0 auto", opacity: 0.5 }} />
-        <p style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginTop: 12 }}>No Curriculum Assigned Yet</p>
+        <p style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginTop: 12 }}>No Course Assigned Yet</p>
         <p style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>
-          Your admin will customize your curriculum shortly. Come back soon!
+          Your admin will assign your course shortly. Come back soon!
         </p>
       </motion.div>
     );
   }
 
-  const totalLessons = lessons.length;
-  const categories = new Set(modules.map(m => m.category));
+  // Academic Tuition — custom per-student chapters
+  if (!isTiered) {
+    return <ChaptersView studentId={userId} />;
+  }
+
+  // Coding / Math — shared Module/Lesson curriculum
+  const catInfo = CATEGORIES.find(c => c.value === category);
+  const col = tierColor[category] || tierColor.little_pearls;
+  const totalLessons = modules.reduce((s, m) => s + (m.lessons?.length || 0), 0);
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -238,7 +272,7 @@ export function StudentCurriculumView() {
             <BookOpen style={{ width: 24, height: 24, color: C.indigo, opacity: 0.3 }} />
           </div>
         </div>
-        
+
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
@@ -252,8 +286,8 @@ export function StudentCurriculumView() {
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
-              <p style={{ fontSize: 28, fontWeight: 800, color: C.cyan }}>{categories.size}</p>
-              <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Categories</p>
+              <p style={{ fontSize: 16, fontWeight: 800, color: C.cyan }}>{course === "math" ? "➗ Math" : "💻 Coding"}</p>
+              <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>{catInfo?.label}</p>
             </div>
             <Clock style={{ width: 24, height: 24, color: C.cyan, opacity: 0.3 }} />
           </div>
@@ -263,9 +297,19 @@ export function StudentCurriculumView() {
       {/* Modules List */}
       <div>
         <h2 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, marginBottom: 20 }}>Your Learning Path</h2>
-        {modules.map(mod => (
-          <ModuleView key={mod.id} module={mod} lessons={lessons} />
-        ))}
+        {loadingModules ? (
+          <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
+            <Loader2 style={{ width: 26, height: 26, color: C.emerald, animation: "spin 1s linear infinite" }} />
+          </div>
+        ) : modules.length === 0 ? (
+          <div style={{ padding: 40, textAlign: "center", background: C.bg, borderRadius: 14 }}>
+            <p style={{ fontSize: 13, color: C.textMuted }}>Curriculum is being set up. Check back soon!</p>
+          </div>
+        ) : (
+          modules.map(mod => (
+            <ModuleView key={mod.id} module={mod} col={col} />
+          ))
+        )}
       </div>
     </motion.div>
   );

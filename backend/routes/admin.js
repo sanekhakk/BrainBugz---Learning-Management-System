@@ -33,28 +33,35 @@ router.post("/create-user", verifyIdToken, requireAdmin, async (req, res) => {
         assignments,
         permanentClassLink,
         timezone,
-        category,       // "little_pearls" | "bright_pearls" | "rising_pearls"
-        tutorTypes,     // ["coding"] | ["cs_tuition"] | ["coding", "cs_tuition"]
+        category,       // "little_pearls" | "bright_pearls" | "rising_pearls" (only for coding/math courses)
+        course,         // "coding" | "math" | "academic_tuition"
+        tutorTypes,     // ["coding"] | ["math"] | ["cs_tuition"] | any combination
     } = req.body;
 
     if (!email || !password || !name || !role) {
       return res.status(400).json({ success: false, error: "Missing required fields: name, email, password, role" });
     }
 
-    // Validate student category
+    // Validate student course + category
     if (role === 'student') {
-      const validCategories = ['little_pearls', 'bright_pearls', 'rising_pearls', 'academic_tuition', 'courses'];
-      if (!category || !validCategories.includes(category)) {
-        return res.status(400).json({ success: false, error: "Student category is required (little_pearls, bright_pearls, rising_pearls, academic_tuition, or courses)" });
+      const validCourses = ['coding', 'math', 'academic_tuition'];
+      if (!course || !validCourses.includes(course)) {
+        return res.status(400).json({ success: false, error: "Student course is required (coding, math, or academic_tuition)" });
+      }
+      if (course === 'coding' || course === 'math') {
+        const validCategories = ['little_pearls', 'bright_pearls', 'rising_pearls'];
+        if (!category || !validCategories.includes(category)) {
+          return res.status(400).json({ success: false, error: "Student tier is required for coding/math (little_pearls, bright_pearls, or rising_pearls)" });
+        }
       }
     }
 
     // Validate tutor types
     if (role === 'tutor') {
-      const validTypes = ['coding', 'cs_tuition'];
+      const validTypes = ['coding', 'math', 'cs_tuition'];
       const providedTypes = tutorTypes || [];
       if (providedTypes.length === 0) {
-        return res.status(400).json({ success: false, error: "Tutor must have at least one category: coding or cs_tuition" });
+        return res.status(400).json({ success: false, error: "Tutor must have at least one category: coding, math, or cs_tuition" });
       }
       const invalidTypes = providedTypes.filter(t => !validTypes.includes(t));
       if (invalidTypes.length > 0) {
@@ -108,6 +115,7 @@ router.post("/create-user", verifyIdToken, requireAdmin, async (req, res) => {
       tutorUids,
       permanentClassLink: permanentClassLink || "",
       // NEW
+      course: role === 'student' ? (course || "") : "",
       category: role === 'student' ? (category || "") : "",
       tutorTypes: role === 'tutor' ? (tutorTypes || []) : [],
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -130,6 +138,7 @@ router.post("/create-user", verifyIdToken, requireAdmin, async (req, res) => {
       tutorUids,
       subjects: role === 'tutor' ? (subjects || []) : [], 
       permanentClassLink: permanentClassLink || "",
+      course: role === 'student' ? (course || "") : "",
       category: role === 'student' ? (category || "") : "",
       tutorTypes: role === 'tutor' ? (tutorTypes || []) : [],
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -167,11 +176,34 @@ router.put("/update-user/:uid", verifyIdToken, requireAdmin, async (req, res) =>
     role,
     timezone,
     category,
+    course,
     tutorTypes,
   } = req.body;
 
   if (!uid) {
     return res.status(400).json({ success: false, error: "Missing User ID (uid)" });
+  }
+
+  // Validate student course + category on update too
+  if (role === 'student') {
+    const validCourses = ['coding', 'math', 'academic_tuition'];
+    if (!course || !validCourses.includes(course)) {
+      return res.status(400).json({ success: false, error: "Student course is required (coding, math, or academic_tuition)" });
+    }
+    if (course === 'coding' || course === 'math') {
+      const validCategories = ['little_pearls', 'bright_pearls', 'rising_pearls'];
+      if (!category || !validCategories.includes(category)) {
+        return res.status(400).json({ success: false, error: "Student tier is required for coding/math (little_pearls, bright_pearls, or rising_pearls)" });
+      }
+    }
+  }
+  if (role === 'tutor') {
+    const validTypes = ['coding', 'math', 'cs_tuition'];
+    const providedTypes = tutorTypes || [];
+    const invalidTypes = providedTypes.filter(t => !validTypes.includes(t));
+    if (invalidTypes.length > 0) {
+      return res.status(400).json({ success: false, error: `Invalid tutor type(s): ${invalidTypes.join(', ')}` });
+    }
   }
 
   try {
@@ -199,6 +231,7 @@ router.put("/update-user/:uid", verifyIdToken, requireAdmin, async (req, res) =>
         profileUpdates.tutorUids = tutorUids;
         profileUpdates.syllabus = syllabus || "";
         profileUpdates.permanentClassLink = permanentClassLink || "";
+        profileUpdates.course = course || "";
         profileUpdates.category = category || ""; 
 
         summaryUpdates.subjects = profileUpdates.subjects;
@@ -206,6 +239,7 @@ router.put("/update-user/:uid", verifyIdToken, requireAdmin, async (req, res) =>
         summaryUpdates.tutorUids = profileUpdates.tutorUids;
         summaryUpdates.syllabus = profileUpdates.syllabus;
         summaryUpdates.permanentClassLink = profileUpdates.permanentClassLink;
+        summaryUpdates.course = course || "";
         summaryUpdates.category = category || "";  
 
     } else if (role === 'tutor') {

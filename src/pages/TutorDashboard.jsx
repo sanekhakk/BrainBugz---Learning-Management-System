@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { getProgressRef } from "../utils/paths";
 import { getDisplayTime } from "../utils/timeUtils";
-import { CATEGORIES } from "../utils/curriculumData";
+import { CATEGORIES, getEffectiveCourse } from "../utils/curriculumData";
 import PearlxLogo from "../assets/flat_logo.webp";
 import TutorNotesSection from "./TutorNotesSection";
 
@@ -42,10 +42,6 @@ const catLabel = {
   bright_pearls: { label: "🌱 Bright Pearls", color: "#16A34A", bg: "#F0FDF4" },
   rising_pearls: { label: "🦋 Rising Pearls", color: "#2563EB", bg: "#EFF6FF" },
 };
-
-// Categories that use a per-student custom Chapters list (studentChapters/{uid})
-// instead of the shared coding Module/Lesson curriculum (curriculum/{docId}).
-const CHAPTER_BASED_CATEGORIES = ["academic_tuition", "courses"];
 
 // Helper: get next/ongoing lesson from progress map
 function getNextLessonLabel(modules, lessonProgressMap) {
@@ -125,10 +121,12 @@ const AttendanceModal = ({ classItem, onClose, markAttendance }) => {
       setCurrLoading(true);
       try {
         const snap = await getDoc(doc(db, "userSummaries", classItem.studentId));
-        const category = snap.exists() ? snap.data().category : null;
+        const studentProfile = snap.exists() ? snap.data() : null;
+        const category = studentProfile?.category || null;
+        const effCourse = getEffectiveCourse(studentProfile);
         setStudentCategory(category);
-        if (category) {
-          const q = query(collection(db, "curriculum"), where("category", "==", category));
+        if (category && (effCourse === "coding" || effCourse === "math")) {
+          const q = query(collection(db, "curriculum"), where("course", "==", effCourse), where("category", "==", category));
           const currSnap = await getDocs(q);
           const mods = currSnap.docs
             .map(d => ({ id: d.id, ...d.data() }))
@@ -389,7 +387,8 @@ const ProgressUpdateModal = ({ student, onClose }) => {
   );
 
   const catInfo = catLabel[student.category];
-  const isChapterBased = CHAPTER_BASED_CATEGORIES.includes(student.category);
+  const studentEffCourse = getEffectiveCourse(student);
+  const isChapterBased = studentEffCourse === "academic_tuition";
 
   // Chapter-based curriculum (Academic Tuition / Courses)
   const [chapters, setChapters] = useState([]);
@@ -418,10 +417,10 @@ const ProgressUpdateModal = ({ student, onClose }) => {
     setSavingChapter(null);
   };
 
-  // Fetch curriculum for student's category (coding categories only)
+  // Fetch curriculum for student's course + category (coding/math only)
   useEffect(() => {
     if (!student.category || isChapterBased) { setLoadingCurr(false); return; }
-    const q = query(collection(db, "curriculum"), where("category", "==", student.category));
+    const q = query(collection(db, "curriculum"), where("course", "==", studentEffCourse), where("category", "==", student.category));
     getDocs(q).then(snap => {
       const mods = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => a.moduleNumber - b.moduleNumber);
@@ -429,7 +428,7 @@ const ProgressUpdateModal = ({ student, onClose }) => {
       if (mods.length > 0) setExpandedMods({ [mods[0].id]: true });
       setLoadingCurr(false);
     }).catch(() => setLoadingCurr(false));
-  }, [student.category, isChapterBased]);
+  }, [student.category, studentEffCourse, isChapterBased]);
 
   // Listen to progress for each subject the student has
   useEffect(() => {
@@ -858,6 +857,160 @@ const ClassCard = ({ cls, onMark, studentLinkMap, timezone, nextLesson }) => {
   );
 };
 
+// Tutor's read-only view of an assigned student's curriculum — shows the
+// same modules/lessons as the student sees, but with the Teacher Resource
+// Link instead of the Student Resource Link.
+const tierColorTutor = {
+  little_pearls: { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C", light: "#FED7AA" },
+  bright_pearls: { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A", light: "#BBF7D0" },
+  rising_pearls: { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB", light: "#BFDBFE" },
+};
+
+function TutorStudentCurriculumModules({ course, category }) {
+  const [modules, setModules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState({});
+
+  useEffect(() => {
+    if (!course || !category) { setLoading(false); return; }
+    setLoading(true);
+    const q = query(collection(db, "curriculum"), where("course", "==", course), where("category", "==", category));
+    const unsub = onSnapshot(q, snap => {
+      const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
+      setModules(mods);
+      if (mods.length > 0) setExpanded({ [mods[0].id]: true });
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => unsub();
+  }, [course, category]);
+
+  const col = tierColorTutor[category] || tierColorTutor.little_pearls;
+
+  if (loading) {
+    return <div style={{ display: "flex", justifyContent: "center", padding: 30 }}><Loader2 style={{ width: 22, height: 22, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>;
+  }
+  if (modules.length === 0) {
+    return <p style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "20px 0" }}>No curriculum published yet for this course/tier.</p>;
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {modules.map(mod => {
+        const isOpen = expanded[mod.id];
+        const lessons = (mod.lessons || []).slice().sort((a, b) => a.lessonNumber - b.lessonNumber);
+        return (
+          <div key={mod.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
+            <div onClick={() => setExpanded(p => ({ ...p, [mod.id]: !p[mod.id] }))}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: col.text, flexShrink: 0 }}>
+                M{mod.moduleNumber}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: 800, fontSize: 13, color: C.textPrimary }}>{mod.moduleName}</p>
+                <p style={{ fontSize: 11, color: C.textMuted }}>{lessons.length} lesson{lessons.length !== 1 ? "s" : ""}</p>
+              </div>
+              {isOpen ? <ChevronDown style={{ width: 15, height: 15, color: C.textMuted }} /> : <ChevronRight style={{ width: 15, height: 15, color: C.textMuted }} />}
+            </div>
+            <AnimatePresence>
+              {isOpen && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
+                  <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                    {lessons.length === 0 ? (
+                      <p style={{ fontSize: 12, color: C.textMuted, textAlign: "center", padding: "6px 0" }}>No lessons yet</p>
+                    ) : lessons.map(lesson => (
+                      <div key={lesson.id} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 10px", borderRadius: 10, background: C.bg, border: `1px solid ${C.border}` }}>
+                        <div style={{ width: 22, height: 22, borderRadius: 6, background: col.light, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 10, fontWeight: 800, color: col.text }}>
+                          {lesson.lessonNumber}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 700, fontSize: 12, color: C.textPrimary }}>{lesson.title}</p>
+                          {lesson.teacherResourceLink ? (
+                            <a href={lesson.teacherResourceLink} target="_blank" rel="noopener noreferrer"
+                              style={{ fontSize: 11, color: C.emeraldDark, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, textDecoration: "none" }}>
+                              🔗 Teacher Resource →
+                            </a>
+                          ) : (
+                            <p style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>No teacher resource shared yet</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TutorStudentCurriculumView({ students }) {
+  const eligibleStudents = students.filter(s => {
+    const c = getEffectiveCourse(s);
+    return (c === "coding" || c === "math") && s.category;
+  });
+  const [selectedId, setSelectedId] = useState(eligibleStudents[0]?.uid || null);
+
+  useEffect(() => {
+    if (!selectedId && eligibleStudents.length > 0) setSelectedId(eligibleStudents[0].uid);
+  }, [eligibleStudents, selectedId]);
+
+  const selected = eligibleStudents.find(s => s.uid === selectedId);
+  const selCourse = selected ? getEffectiveCourse(selected) : null;
+
+  if (eligibleStudents.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "60px 20px", background: C.card, borderRadius: 16, border: `1px solid ${C.border}` }}>
+        <BookOpen style={{ width: 36, height: 36, color: C.textMuted, opacity: 0.4, margin: "0 auto 12px" }} />
+        <p style={{ fontSize: 13, color: C.textMuted }}>None of your assigned students are enrolled in Coding or Math yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16 }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", height: "fit-content" }}>
+        <div style={{ padding: 12, borderBottom: `1px solid ${C.border}`, background: C.bg }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase" }}>Your Students</p>
+        </div>
+        <div style={{ maxHeight: 560, overflowY: "auto" }}>
+          {eligibleStudents.map(s => {
+            const c = getEffectiveCourse(s);
+            const catInfo = CATEGORIES.find(cat => cat.value === s.category);
+            return (
+              <button key={s.uid} onClick={() => setSelectedId(s.uid)}
+                style={{ width: "100%", padding: "12px 14px", borderBottom: `1px solid ${C.border}`, background: selectedId === s.uid ? C.indigoLight : "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
+                <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>{s.name}</p>
+                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
+                  {c === "math" ? "➗ Math" : "💻 Coding"} · {catInfo?.label || s.category}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16 }}>
+        {!selected ? (
+          <p style={{ textAlign: "center", color: C.textMuted, padding: 40 }}>Select a student</p>
+        ) : (
+          <>
+            <div style={{ marginBottom: 14 }}>
+              <p style={{ fontWeight: 800, fontSize: 15, color: C.textPrimary }}>{selected.name}'s Curriculum</p>
+              <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
+                {selCourse === "math" ? "➗ Math" : "💻 Coding"} · {CATEGORIES.find(c => c.value === selected.category)?.label}
+              </p>
+            </div>
+            <TutorStudentCurriculumModules course={selCourse} category={selected.category} />
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 // Main Dashboard 
 export default function TutorDashboard() {
   const { userId, logout, tutorMarkAttendance, tutorUpdateChapterProgress, tutorDeleteChapterProgress, tutorSaveLessonProgress } = useAuth();
@@ -951,19 +1104,26 @@ export default function TutorDashboard() {
     });
   }, [userId]);
 
-  // Load curriculum modules per category (for next-lesson chips)
+  // Load curriculum modules per course+tier (for next-lesson chips)
   useEffect(() => {
     if (!students.length) return;
-    const codingCategories = [...new Set(
+    const tieredKeys = [...new Set(
       students
-        .filter(s => s.category && s.category !== "academic_tuition")
-        .map(s => s.category)
+        .map(s => {
+          const effCourse = getEffectiveCourse(s);
+          if ((effCourse === "coding" || effCourse === "math") && s.category) {
+            return `${effCourse}::${s.category}`;
+          }
+          return null;
+        })
+        .filter(Boolean)
     )];
-    const unsubs = codingCategories.map(cat => {
-      const q = query(collection(db, "curriculum"), where("category", "==", cat));
+    const unsubs = tieredKeys.map(key => {
+      const [courseVal, cat] = key.split("::");
+      const q = query(collection(db, "curriculum"), where("course", "==", courseVal), where("category", "==", cat));
       return onSnapshot(q, snap => {
         const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
-        setCatModules(prev => ({ ...prev, [cat]: mods }));
+        setCatModules(prev => ({ ...prev, [key]: mods }));
       }, () => {});
     });
     return () => unsubs.forEach(u => u());
@@ -974,7 +1134,7 @@ export default function TutorDashboard() {
     if (!students.length) return;
     const unsubs = [];
     students.forEach(st => {
-      if (st.category === "academic_tuition") return;
+      if (getEffectiveCourse(st) === "academic_tuition") return;
       (st.assignments || []).forEach(a => {
         const unsub = onSnapshot(getProgressRef(st.uid, a.subject), snap => {
           if (snap.exists()) {
@@ -999,10 +1159,11 @@ export default function TutorDashboard() {
   const tabs = [
     { id: "overview",      label: "Overview",         icon: Home },
     { id: "students",      label: "My Students",      icon: Users,      count: students.length },
+    { id: "curriculum",    label: "Student Curriculum", icon: BookOpen },
     { id: "activeClasses", label: "Active Classes",   icon: Calendar,   count: activeClasses.length },
     { id: "history",       label: "Class History",    icon: BarChart2 },
     { id: "progress",      label: "Progress Tracker", icon: TrendingUp },
-    { id: "notes", label: "Notes", icon: FileText, icon: BookOpen  },
+    { id: "notes",         label: "Notes",            icon: FileText },
   ];
 
   const handleTabChange = (tabId) => { setActiveTab(tabId); setSidebarOpen(false); };
@@ -1287,6 +1448,10 @@ export default function TutorDashboard() {
               </motion.div>
             )}
 
+            {activeTab === "curriculum" && (
+              <TutorStudentCurriculumView students={students} />
+            )}
+
             {activeTab === "activeClasses" && (
               <motion.div key="ac" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {loadingClasses
@@ -1295,10 +1460,11 @@ export default function TutorDashboard() {
                   : activeClasses.map(cls => {
                     // Compute next lesson for this specific student + subject
                     const student = studentsWP.find(s => s.uid === cls.studentId);
-                    const isCoding = student?.category && student.category !== "academic_tuition";
+                    const studentEffCourse = getEffectiveCourse(student);
+                    const isCoding = studentEffCourse === "coding" || studentEffCourse === "math";
                     let nextLesson = null;
                     if (isCoding && student) {
-                      const modules = categoryModulesMap[student.category] || [];
+                      const modules = categoryModulesMap[`${studentEffCourse}::${student.category}`] || [];
                       const subjectProgress = studentLessonProgress[student.uid]?.[cls.subject] || {};
                       nextLesson = getNextLessonLabel(modules, subjectProgress);
                     }

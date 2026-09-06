@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlusCircle, Loader2, XCircle, X, CheckCircle, ArrowLeft } from "lucide-react";
 import { TIMEZONES } from "../utils/timeUtils";
+import { COURSES, CATEGORIES } from "../utils/curriculumData";
 
 const C = {
   bg: "#F4F6FB", card: "#FFFFFF", border: "#E5E9F2",
@@ -17,15 +18,7 @@ const C = {
   shadowCard: "0 1px 4px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.04)",
 };
 
-export const STUDENT_CATEGORIES = [
-  { value: "little_pearls",     label: "🐥 Little Pearls  (Ages 5–7 • Grades K–2)" },
-  { value: "bright_pearls",     label: "🌱 Bright Pearls  (Ages 8–11 • Grades 3–6)" },
-  { value: "rising_pearls",     label: "🦋 Rising Pearls  (Ages 12–15 • Grades 7–10)" },
-  { value: "academic_tuition",  label: "📖 Academic Tuition  (CS Subjects – Custom Syllabus)" },
-  { value: "courses",           label: "📘 Courses  (Self-Paced • Custom Chapters)" },
-];
-
-// Categories that follow the shared coding Module/Lesson curriculum
+// Categories that follow the shared coding/math Module/Lesson curriculum
 export const CODING_CATEGORIES = ["little_pearls", "bright_pearls", "rising_pearls"];
 // Categories that get a per-student custom Chapters list instead
 export const CUSTOM_CHAPTER_CATEGORIES = ["academic_tuition", "courses"];
@@ -105,31 +98,35 @@ const TutorTypeCheckboxes = ({ selectedTypes, onChange }) => (
   </LabeledInput>
 );
 
-const CategorySelector = ({ value, onChange }) => (
+const courseColorMap = {
+  coding:            { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB" },
+  math:              { bg: "#FDF4FF", border: "#D946EF", text: "#A21CAF" },
+  academic_tuition:  { bg: "#F5F3FF", border: "#8B5CF6", text: "#6D28D9" },
+};
+
+const tierColorMap = {
+  little_pearls: { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C" },
+  bright_pearls: { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A" },
+  rising_pearls: { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB" },
+};
+
+// Step 1: which of the 3 courses is this student enrolled in
+const CourseSelector = ({ value, onChange }) => (
   <div style={{ gridColumn: "1 / -1" }}>
     <label style={{ fontSize: 12, fontWeight: 700, color: C.textSecondary, display: "block", marginBottom: 8 }}>
-      Student Category <span style={{ color: C.red }}>*</span>
+      Course <span style={{ color: C.red }}>*</span>
     </label>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
-      {STUDENT_CATEGORIES.map(cat => {
-        const selected = value === cat.value;
-        const emoji    = cat.label.charAt(0);
-        const name     = cat.label.slice(2, cat.label.indexOf("(")).trim();
-        const sub      = cat.label.slice(cat.label.indexOf("("));
-        const colorMap = {
-          little_pearls:    { bg: "#FFF7ED", border: "#FB923C", text: "#EA580C" },
-          bright_pearls:    { bg: "#F0FDF4", border: "#22C55E", text: "#16A34A" },
-          rising_pearls:    { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB" },
-          academic_tuition: { bg: "#F5F3FF", border: "#8B5CF6", text: "#6D28D9" },
-          courses:          { bg: "#FDF2F8", border: "#EC4899", text: "#BE185D" },
-        };
-        const col = colorMap[cat.value];
+      {COURSES.map(course => {
+        const selected = value === course.value;
+        const emoji = course.label.charAt(0);
+        const name  = course.label.slice(2).trim();
+        const col = courseColorMap[course.value];
         return (
-          <motion.div key={cat.value} onClick={() => onChange(cat.value)} whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
+          <motion.div key={course.value} onClick={() => onChange(course.value)} whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
             style={{ cursor: "pointer", padding: "14px 12px", borderRadius: 14, border: `2px solid ${selected ? col.border : C.border}`, background: selected ? col.bg : C.bg, transition: "all 0.15s", textAlign: "center" }}>
             <div style={{ fontSize: 26, marginBottom: 6 }}>{emoji}</div>
             <p style={{ fontSize: 12, fontWeight: 800, color: selected ? col.text : C.textPrimary, lineHeight: 1.3 }}>{name}</p>
-            <p style={{ fontSize: 10, color: selected ? col.text : C.textMuted, marginTop: 4, lineHeight: 1.4 }}>{sub}</p>
             {selected && (
               <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 20, background: col.border, color: "#fff" }}>
                 <CheckCircle style={{ width: 10, height: 10 }} />
@@ -140,15 +137,46 @@ const CategorySelector = ({ value, onChange }) => (
         );
       })}
     </div>
-    {(value === "academic_tuition" || value === "courses") && (
-      <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 12, background: value === "courses" ? "#FDF2F8" : "#F5F3FF", border: `1px solid ${value === "courses" ? "#EC489925" : "#8B5CF625"}`, display: "flex", alignItems: "flex-start", gap: 8 }}>
+    {value === "academic_tuition" && (
+      <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 12, background: "#F5F3FF", border: "1px solid #8B5CF625", display: "flex", alignItems: "flex-start", gap: 8 }}>
         <span style={{ fontSize: 16, flexShrink: 0 }}>📌</span>
-        <p style={{ fontSize: 12, color: value === "courses" ? "#BE185D" : "#6D28D9", lineHeight: 1.6 }}>
-          <strong>{value === "courses" ? "Courses" : "Academic Tuition"} students</strong> follow a <strong>custom per-student chapter list</strong> instead of the shared coding curriculum.
+        <p style={{ fontSize: 12, color: "#6D28D9", lineHeight: 1.6 }}>
+          <strong>Academic Tuition students</strong> follow a <strong>custom per-student chapter list</strong> instead of the shared curriculum.
           After registering, go to <strong>Curriculum → Assign to Students</strong> to add chapters for this student.
         </p>
       </div>
     )}
+  </div>
+);
+
+// Step 2: which tier, shown only when the course is "coding" or "math"
+const TierSelector = ({ value, onChange }) => (
+  <div style={{ gridColumn: "1 / -1" }}>
+    <label style={{ fontSize: 12, fontWeight: 700, color: C.textSecondary, display: "block", marginBottom: 8 }}>
+      Student Tier <span style={{ color: C.red }}>*</span>
+    </label>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
+      {CATEGORIES.map(cat => {
+        const selected = value === cat.value;
+        const emoji = cat.label.charAt(0);
+        const name  = cat.label.slice(2).trim();
+        const col = tierColorMap[cat.value];
+        return (
+          <motion.div key={cat.value} onClick={() => onChange(cat.value)} whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
+            style={{ cursor: "pointer", padding: "14px 12px", borderRadius: 14, border: `2px solid ${selected ? col.border : C.border}`, background: selected ? col.bg : C.bg, transition: "all 0.15s", textAlign: "center" }}>
+            <div style={{ fontSize: 26, marginBottom: 6 }}>{emoji}</div>
+            <p style={{ fontSize: 12, fontWeight: 800, color: selected ? col.text : C.textPrimary, lineHeight: 1.3 }}>{name}</p>
+            <p style={{ fontSize: 10, color: selected ? col.text : C.textMuted, marginTop: 4, lineHeight: 1.4 }}>{cat.ages}</p>
+            {selected && (
+              <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 20, background: col.border, color: "#fff" }}>
+                <CheckCircle style={{ width: 10, height: 10 }} />
+                <span style={{ fontSize: 10, fontWeight: 700 }}>Selected</span>
+              </div>
+            )}
+          </motion.div>
+        );
+      })}
+    </div>
   </div>
 );
 
@@ -205,9 +233,12 @@ export function RegistrationPanel({ form, regRole, regStatus, regLoading, handle
   const [currentSubjectInput, setCurrentSubjectInput] = useState("");
   const [selectedTutor, setSelectedTutor]             = useState({ id: "", name: "" });
   const [assignedSubjects, setAssignedSubjects]       = useState([]);
-  // NEW: student category & tutor type state
+  // NEW: student course, tier (category) & tutor type state
+  const [studentCourse, setStudentCourse]             = useState("");
   const [studentCategory, setStudentCategory]         = useState("");
   const [tutorTypes, setTutorTypes]                   = useState([]);
+
+  const isTieredCourse = studentCourse === "coding" || studentCourse === "math";
 
   const tutorOptions = tutors.map(t => ({ value: t.uid, label: `${t.name} (${(t.subjects || []).join(", ") || "Any"})` }));
 
@@ -230,7 +261,8 @@ export function RegistrationPanel({ form, regRole, regStatus, regLoading, handle
     if (!form.name?.trim() || !form.email?.trim() || !form.password?.trim() || !form.contactNumber?.trim()) return false;
     if (regRole === "student") {
       return (
-        studentCategory !== "" &&
+        studentCourse !== "" &&
+        (!isTieredCourse || studentCategory !== "") &&
         form.grade?.trim() &&
         form.emergencyContact?.trim() &&
         form.permanentClassLink?.trim() &&
@@ -260,7 +292,8 @@ export function RegistrationPanel({ form, regRole, regStatus, regLoading, handle
       ...Object.fromEntries(Object.entries(form).map(([k, v]) => typeof v === "string" ? [k, v.trim()] : [k, v])),
       role: regRole,
       // Student fields
-      category: regRole === "student" ? studentCategory : "",
+      course: regRole === "student" ? studentCourse : "",
+      category: regRole === "student" ? (isTieredCourse ? studentCategory : "") : "",
       classLevel: regRole === "student" ? form.grade : form.classLevel, // keep classLevel in sync
       grade: regRole === "student" ? form.grade : "",
       subjects: regRole === "student" ? assignedSubjects.map(a => a.subject) : form.subjects || [],
@@ -276,7 +309,7 @@ export function RegistrationPanel({ form, regRole, regStatus, regLoading, handle
       if (res?.success) {
         setRegStatus({ ok: true, msg: res.message || `${regRole} created successfully!` });
         setAssignedSubjects([]); setCurrentSubjectInput(""); setSelectedTutor({ id: "", name: "" });
-        setStudentCategory(""); setTutorTypes([]);
+        setStudentCourse(""); setStudentCategory(""); setTutorTypes([]);
         setForm(initialFormState);
         setTimeout(() => { setRegStatus(null); setActiveView("list"); }, 1200);
       } else {
@@ -295,7 +328,7 @@ export function RegistrationPanel({ form, regRole, regStatus, regLoading, handle
       {/* Role toggle */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, padding: 4, background: C.bg, borderRadius: 14, border: `1px solid ${C.border}` }}>
         {["student", "tutor"].map(r => (
-          <button key={r} type="button" onClick={() => { setRegRole(r); setForm(initialFormState); setAssignedSubjects([]); setStudentCategory(""); setTutorTypes([]); }}
+          <button key={r} type="button" onClick={() => { setRegRole(r); setForm(initialFormState); setAssignedSubjects([]); setStudentCourse(""); setStudentCategory(""); setTutorTypes([]); }}
             style={{ flex: 1, padding: "10px", borderRadius: 12, border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer",
               background: regRole === r ? C.gradPrimary : "transparent",
               color: regRole === r ? "#fff" : C.textMuted, transition: "all 0.2s" }}>
@@ -317,8 +350,9 @@ export function RegistrationPanel({ form, regRole, regStatus, regLoading, handle
 
           {/*  STUDENT FIELDS  */}
           {regRole === "student" && (<>
-            {/* Category selector spans full width */}
-            <CategorySelector value={studentCategory} onChange={setStudentCategory} />
+            {/* Course, then tier — both span full width */}
+            <CourseSelector value={studentCourse} onChange={(c) => { setStudentCourse(c); setStudentCategory(""); }} />
+            {isTieredCourse && <TierSelector value={studentCategory} onChange={setStudentCategory} />}
 
             <TextInput label="Student Grade / Class" name="grade" value={form.grade || ""} onChange={handleFormChange}
               placeholder="e.g. Grade 3, Class 5, KG" required />
@@ -381,7 +415,14 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
     subjects = [], qualifications = "", hourlyRate = "", permanentClassLink = "",
     assignments: initialAssignments = [], syllabus = "",
     category: initialCategory = "", grade: initialGrade = "",
+    course: initialCourseRaw = "",
     tutorTypes: initialTutorTypes = [] } = user;
+
+  // Back-fill `course` for students saved before this field existed
+  const initialCourse = initialCourseRaw || (
+    initialCategory === "academic_tuition" || initialCategory === "courses" ? "academic_tuition" :
+    ["little_pearls", "bright_pearls", "rising_pearls"].includes(initialCategory) ? "coding" : ""
+  );
 
   const [form, setForm] = useState({
     name, email, contactNumber, emergencyContact,
@@ -390,8 +431,10 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
     timezone: user.timezone || "Asia/Kolkata",
     tutorSubjectsString: role === "tutor" ? subjects.join(", ") : "",
   });
+  const [studentCourse, setStudentCourse]             = useState(initialCourse);
   const [studentCategory, setStudentCategory]         = useState(initialCategory);
   const [tutorTypes, setTutorTypes]                   = useState(initialTutorTypes);
+  const isTieredCourse = studentCourse === "coding" || studentCourse === "math";
   const [assignedSubjects, setAssignedSubjects]       = useState(initialAssignments);
   const [currentSubjectInput, setCurrentSubjectInput] = useState("");
   const [selectedTutor, setSelectedTutor]             = useState({ id: "", name: "" });
@@ -415,7 +458,7 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
 
   const localIsFormValid = () => {
     if (!form.name || !form.email || !form.contactNumber) return false;
-    if (role === "student" && (!studentCategory || !form.grade || !form.emergencyContact || !form.permanentClassLink || assignedSubjects.length === 0)) return false;
+    if (role === "student" && (!studentCourse || (isTieredCourse && !studentCategory) || !form.grade || !form.emergencyContact || !form.permanentClassLink || assignedSubjects.length === 0)) return false;
     if (role === "tutor" && (!form.qualifications || !form.hourlyRate || tutorTypes.length === 0)) return false;
     return true;
   };
@@ -427,7 +470,8 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
     const tutorSubjectsArray = form.tutorSubjectsString ? form.tutorSubjectsString.split(",").map(s => s.trim()).filter(Boolean) : [];
     const finalForm = {
       ...form, role,
-      category: role === "student" ? studentCategory : "",
+      course: role === "student" ? studentCourse : "",
+      category: role === "student" ? (isTieredCourse ? studentCategory : "") : "",
       classLevel: role === "student" ? form.grade : form.classLevel,
       grade: role === "student" ? form.grade : "",
       subjects: role === "tutor" ? tutorSubjectsArray : assignedSubjects.map(a => a.subject),
@@ -464,7 +508,8 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
           <TextInput label="Contact Number" name="contactNumber" value={form.contactNumber} onChange={handleFormChange} required />
 
           {role === "student" && (<>
-            <CategorySelector value={studentCategory} onChange={setStudentCategory} />
+            <CourseSelector value={studentCourse} onChange={(c) => { setStudentCourse(c); setStudentCategory(""); }} />
+            {isTieredCourse && <TierSelector value={studentCategory} onChange={setStudentCategory} />}
             <TextInput label="Student Grade / Class" name="grade" value={form.grade} onChange={handleFormChange}
               placeholder="e.g. Grade 3" required />
             <SelectInput label="Timezone" name="timezone" value={form.timezone} onChange={handleFormChange} options={TIMEZONES} required />

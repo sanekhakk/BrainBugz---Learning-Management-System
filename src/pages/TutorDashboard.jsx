@@ -10,11 +10,12 @@ import {
   Loader2, User, CheckCircle, XCircle, X, Trash2, Calendar, Clock,
   TrendingUp, LogOut, Users, AlertCircle, Video, ArrowRight, Menu,
   Home, BarChart2, Bell, Award, Phone, BookOpen, ChevronDown, ChevronRight,
-  GraduationCap, Play, Zap,FileText
+  GraduationCap, Play, PlayCircle, Zap, FileText, Check, AlertTriangle,
+  RefreshCw, CheckCircle2, Link as LinkIcon, Image as ImageIcon, ClipboardCheck,
 } from "lucide-react";
 import { getProgressRef } from "../utils/paths";
 import { getDisplayTime } from "../utils/timeUtils";
-import { CATEGORIES, getEffectiveCourse } from "../utils/curriculumData";
+import { CATEGORIES, COURSES, MODULE_ICON, getEffectiveCourse } from "../utils/curriculumData";
 import PearlxLogo from "../assets/flat_logo.webp";
 import TutorNotesSection from "./TutorNotesSection";
 
@@ -38,9 +39,9 @@ const C = {
 };
 
 const catLabel = {
-  little_pearls: { label: "🐥 Little Pearls", color: "#EA580C", bg: "#FFF7ED" },
-  bright_pearls: { label: "🌱 Bright Pearls", color: "#16A34A", bg: "#F0FDF4" },
-  rising_pearls: { label: "🦋 Rising Pearls", color: "#2563EB", bg: "#EFF6FF" },
+  little_pearls: { label: "Little Pearls", icon: CATEGORIES.find(c => c.value === "little_pearls")?.icon, color: "#EA580C", bg: "#FFF7ED" },
+  bright_pearls: { label: "Bright Pearls", icon: CATEGORIES.find(c => c.value === "bright_pearls")?.icon, color: "#16A34A", bg: "#F0FDF4" },
+  rising_pearls: { label: "Rising Pearls", icon: CATEGORIES.find(c => c.value === "rising_pearls")?.icon, color: "#2563EB", bg: "#EFF6FF" },
 };
 
 // Helper: get next/ongoing lesson from progress map
@@ -51,8 +52,8 @@ function getNextLessonLabel(modules, lessonProgressMap) {
     for (const lesson of lessons) {
       const key = `M${mod.moduleNumber}:L${lesson.lessonNumber} ${lesson.title}`;
       const status = lessonProgressMap?.[key];
-      if (status === "ongoing") return { label: lesson.title, mod: mod.moduleName, status: "ongoing", emoji: mod.moduleEmoji };
-      if (!status || status === "not_covered") return { label: lesson.title, mod: mod.moduleName, status: "next", emoji: mod.moduleEmoji };
+      if (status === "ongoing") return { label: lesson.title, mod: mod.moduleName, status: "ongoing" };
+      if (!status || status === "not_covered") return { label: lesson.title, mod: mod.moduleName, status: "next" };
     }
   }
   return null;
@@ -217,25 +218,27 @@ const AttendanceModal = ({ classItem, onClose, markAttendance }) => {
           <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 4 }}>
             <span style={{ color: C.emerald, fontWeight: 700 }}>{classItem.subject}</span> · {classItem.studentName}
           </p>
-          {studentCategory && (
+          {studentCategory && catLabel[studentCategory] && (
             <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: catLabel[studentCategory]?.bg, color: catLabel[studentCategory]?.color, marginBottom: 16 }}>
               {catLabel[studentCategory]?.label}
             </span>
           )}
 
           {error && <div style={{ background: C.redLight, borderRadius: 12, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: C.red, display: "flex", gap: 8, alignItems: "center" }}><AlertCircle style={{ width: 15, height: 15 }} />{error}</div>}
-          {success && <div style={{ background: C.emeraldLight, borderRadius: 12, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: C.emerald, fontWeight: 600 }}>✓ {success}</div>}
+          {success && <div style={{ background: C.emeraldLight, borderRadius: 12, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: C.emerald, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}><Check style={{ width: 14, height: 14 }} strokeWidth={3} />{success}</div>}
 
           <form onSubmit={handleSubmit}>
             {/* Attendance status */}
             <p style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, marginBottom: 10 }}>Attendance Status</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 22 }}>
-              {[{ val: "completed", label: "Present ✓", color: C.emerald, bg: C.emeraldLight },
-                { val: "missed",    label: "Absent ✗",  color: C.red,     bg: C.redLight }].map(opt => {
+              {[{ val: "completed", label: "Present", icon: Check, color: C.emerald, bg: C.emeraldLight },
+                { val: "missed",    label: "Absent",  icon: X,     color: C.red,     bg: C.redLight }].map(opt => {
                 const active = status === opt.val;
+                const OptIcon = opt.icon;
                 return (
                   <button key={opt.val} type="button" onClick={() => setStatus(opt.val)}
-                    style={{ padding: "14px 10px", borderRadius: 14, border: `2px solid ${active ? opt.color : C.border}`, background: active ? opt.bg : C.bg, color: active ? opt.color : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "14px 10px", borderRadius: 14, border: `2px solid ${active ? opt.color : C.border}`, background: active ? opt.bg : C.bg, color: active ? opt.color : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                    <OptIcon style={{ width: 15, height: 15 }} strokeWidth={2.5} />
                     {opt.label}
                   </button>
                 );
@@ -259,8 +262,8 @@ const AttendanceModal = ({ classItem, onClose, markAttendance }) => {
                     </span>
                   </div>
                 </div>
-                <p style={{ fontSize: 11, color: C.textMuted, marginBottom: 10 }}>
-                  Click once = 🔄 Ongoing &nbsp;·&nbsp; Click twice = ✅ Completed &nbsp;·&nbsp; Click again = clear
+                <p style={{ fontSize: 11, color: C.textMuted, marginBottom: 10, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                  Click once = <RefreshCw style={{ width: 10, height: 10 }} /> Ongoing &nbsp;·&nbsp; Click twice = <CheckCircle2 style={{ width: 10, height: 10 }} /> Completed &nbsp;·&nbsp; Click again = clear
                 </p>
 
                 {currLoading ? (
@@ -268,8 +271,8 @@ const AttendanceModal = ({ classItem, onClose, markAttendance }) => {
                     <Loader2 style={{ width: 20, height: 20, color: C.emerald, animation: "spin 1s linear infinite" }} />
                   </div>
                 ) : currModules.length === 0 ? (
-                  <div style={{ padding: "12px 14px", borderRadius: 10, background: C.amberLight, fontSize: 12, color: C.amber, fontWeight: 600 }}>
-                    ⚠️ No curriculum found for this student's category. Ask admin to add curriculum data.
+                  <div style={{ padding: "12px 14px", borderRadius: 10, background: C.amberLight, fontSize: 12, color: C.amber, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                    <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0 }} /> No curriculum found for this student's category. Ask admin to add curriculum data.
                   </div>
                 ) : (
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
@@ -281,16 +284,16 @@ const AttendanceModal = ({ classItem, onClose, markAttendance }) => {
                         <div key={mod.id} style={{ borderBottom: mIdx < currModules.length - 1 ? `1px solid ${C.border}` : "none" }}>
                           <div onClick={() => toggleModule(mod.id)}
                             style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", cursor: "pointer", background: isOpen ? C.bg : C.card, userSelect: "none" }}>
-                            <span style={{ fontSize: 16 }}>{mod.moduleEmoji}</span>
+                            <MODULE_ICON style={{ width: 15, height: 15, color: C.textSecondary, flexShrink: 0 }} />
                             <span style={{ flex: 1, fontWeight: 700, fontSize: 13, color: C.textPrimary }}>
                               M{mod.moduleNumber}: {mod.moduleName}
                             </span>
                             <div style={{ display: "flex", gap: 5 }}>
                               {modOngoing > 0 && (
-                                <span style={{ fontSize: 10, fontWeight: 700, color: C.amber, background: C.amberLight, padding: "2px 7px", borderRadius: 20 }}>🔄 {modOngoing}</span>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: C.amber, background: C.amberLight, padding: "2px 7px", borderRadius: 20 }}><RefreshCw style={{ width: 9, height: 9 }} /> {modOngoing}</span>
                               )}
                               {modCompleted > 0 && (
-                                <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "2px 7px", borderRadius: 20 }}>✅ {modCompleted}</span>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "2px 7px", borderRadius: 20 }}><CheckCircle2 style={{ width: 9, height: 9 }} /> {modCompleted}</span>
                               )}
                             </div>
                             {isOpen ? <ChevronDown style={{ width: 14, height: 14, color: C.textMuted }} /> : <ChevronRight style={{ width: 14, height: 14, color: C.textMuted }} />}
@@ -311,12 +314,12 @@ const AttendanceModal = ({ classItem, onClose, markAttendance }) => {
                                       <div key={lesson.id} onClick={() => cycleLesson(key)}
                                         style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", borderRadius: 10, cursor: "pointer", background: rowBg, border: `1px solid ${rowBorder}`, transition: "all 0.12s" }}>
                                         {/* Status indicator */}
-                                        <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13,
+                                        <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                                           background: isCompleted ? C.emerald : isOngoing ? C.amber : C.border,
                                           border: `2px solid ${isCompleted ? C.emeraldDark : isOngoing ? "#D97706" : C.border}`,
                                           transition: "all 0.12s" }}>
-                                          {isCompleted ? <span style={{ color: "#fff", fontSize: 12 }}>✓</span>
-                                            : isOngoing ? <span style={{ color: "#fff", fontSize: 11 }}>↻</span>
+                                          {isCompleted ? <Check style={{ width: 12, height: 12, color: "#fff" }} strokeWidth={3} />
+                                            : isOngoing ? <RefreshCw style={{ width: 11, height: 11, color: "#fff" }} />
                                             : null}
                                         </div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -344,10 +347,10 @@ const AttendanceModal = ({ classItem, onClose, markAttendance }) => {
                 {selectedLessons.length > 0 && (
                   <div style={{ marginTop: 8, display: "flex", gap: 12, fontSize: 11, fontWeight: 600 }}>
                     {Object.values(lessonStates).filter(v => v === "ongoing").length > 0 && (
-                      <span style={{ color: C.amber }}>🔄 {Object.values(lessonStates).filter(v => v === "ongoing").length} ongoing</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: C.amber }}><RefreshCw style={{ width: 11, height: 11 }} /> {Object.values(lessonStates).filter(v => v === "ongoing").length} ongoing</span>
                     )}
                     {Object.values(lessonStates).filter(v => v === "completed").length > 0 && (
-                      <span style={{ color: C.emerald }}>✅ {Object.values(lessonStates).filter(v => v === "completed").length} completed</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: C.emerald }}><CheckCircle2 style={{ width: 11, height: 11 }} /> {Object.values(lessonStates).filter(v => v === "completed").length} completed</span>
                     )}
                   </div>
                 )}
@@ -588,14 +591,14 @@ const ProgressUpdateModal = ({ student, onClose }) => {
                         background: chap.completed ? C.emerald : "#E2E8F0" }}>
                         {isSaving
                           ? <Loader2 style={{ width: 12, height: 12, color: "#fff", animation: "spin 1s linear infinite" }} />
-                          : chap.completed ? <span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>✓</span>
+                          : chap.completed ? <Check style={{ width: 13, height: 13, color: "#fff" }} strokeWidth={3} />
                           : <span style={{ color: "#94A3B8", fontSize: 11 }}>{i + 1}</span>}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13, fontWeight: chap.completed ? 700 : 500, color: C.textPrimary }}>{chap.title}</p>
                         {chap.content && <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{chap.content}</p>}
                       </div>
-                      {chap.completed && <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "3px 8px", borderRadius: 20, flexShrink: 0 }}>✅ Done</span>}
+                      {chap.completed && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "3px 8px", borderRadius: 20, flexShrink: 0 }}><CheckCircle2 style={{ width: 10, height: 10 }} /> Done</span>}
                     </div>
                   );
                 })}
@@ -628,14 +631,14 @@ const ProgressUpdateModal = ({ student, onClose }) => {
                 <div key={mod.id} style={{ borderBottom: `1px solid ${C.border}` }}>
                   <div onClick={() => setExpandedMods(p => ({ ...p, [mod.id]: !p[mod.id] }))}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 24px", cursor: "pointer", background: isOpen ? C.bg : C.card, userSelect: "none" }}>
-                    <span style={{ fontSize: 18 }}>{mod.moduleEmoji}</span>
+                    <MODULE_ICON style={{ width: 16, height: 16, color: C.textSecondary, flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>M{mod.moduleNumber}: {mod.moduleName}</p>
                       <p style={{ fontSize: 11, color: C.textMuted }}>{modLessons.length} lessons</p>
                     </div>
                     <div style={{ display: "flex", gap: 5 }}>
-                      {modOngoing > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.amber, background: C.amberLight, padding: "2px 7px", borderRadius: 20 }}>🔄 {modOngoing}</span>}
-                      {modCompleted > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "2px 7px", borderRadius: 20 }}>✅ {modCompleted}/{modLessons.length}</span>}
+                      {modOngoing > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: C.amber, background: C.amberLight, padding: "2px 7px", borderRadius: 20 }}><RefreshCw style={{ width: 9, height: 9 }} /> {modOngoing}</span>}
+                      {modCompleted > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "2px 7px", borderRadius: 20 }}><CheckCircle2 style={{ width: 9, height: 9 }} /> {modCompleted}/{modLessons.length}</span>}
                     </div>
                     {isOpen ? <ChevronDown style={{ width: 14, height: 14, color: C.textMuted }} /> : <ChevronRight style={{ width: 14, height: 14, color: C.textMuted }} />}
                   </div>
@@ -664,8 +667,8 @@ const ProgressUpdateModal = ({ student, onClose }) => {
                                   transition: "all 0.12s" }}>
                                   {isSaving
                                     ? <Loader2 style={{ width: 12, height: 12, color: "#fff", animation: "spin 1s linear infinite" }} />
-                                    : isCompleted ? <span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>✓</span>
-                                    : isOngoing   ? <span style={{ color: "#fff", fontSize: 11 }}>↻</span>
+                                    : isCompleted ? <Check style={{ width: 13, height: 13, color: "#fff" }} strokeWidth={3} />
+                                    : isOngoing   ? <RefreshCw style={{ width: 12, height: 12, color: "#fff" }} />
                                     : <span style={{ color: "#94A3B8", fontSize: 11 }}>{lesson.lessonNumber}</span>}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -673,10 +676,9 @@ const ProgressUpdateModal = ({ student, onClose }) => {
                                     <span style={{ color: C.textMuted, fontSize: 11 }}>L{lesson.lessonNumber} · </span>
                                     {lesson.title}
                                   </p>
-                                  <p style={{ fontSize: 11, color: C.cyan, marginTop: 2 }}>{lesson.platform}</p>
                                 </div>
-                                {isOngoing   && <span style={{ fontSize: 10, fontWeight: 700, color: C.amber,   background: C.amberLight,   padding: "3px 8px", borderRadius: 20, flexShrink: 0 }}>🔄 Ongoing</span>}
-                                {isCompleted && <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "3px 8px", borderRadius: 20, flexShrink: 0 }}>✅ Done</span>}
+                                {isOngoing   && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: C.amber,   background: C.amberLight,   padding: "3px 8px", borderRadius: 20, flexShrink: 0 }}><RefreshCw style={{ width: 9, height: 9 }} /> Ongoing</span>}
+                                {isCompleted && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: C.emerald, background: C.emeraldLight, padding: "3px 8px", borderRadius: 20, flexShrink: 0 }}><CheckCircle2 style={{ width: 9, height: 9 }} /> Done</span>}
                               </div>
                             );
                           })}
@@ -737,8 +739,8 @@ const ClassCard = ({ cls, onMark, studentLinkMap, timezone, nextLesson }) => {
       <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 6, zIndex: 2 }}>
         {due && (
           <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }}
-            style={{ background: C.red, color: "#fff", fontSize: 10, fontWeight: 800, padding: "4px 10px", borderRadius: 20, letterSpacing: "0.05em" }}>
-            ⚡ ATTENDANCE DUE
+            style={{ background: C.red, color: "#fff", fontSize: 10, fontWeight: 800, padding: "4px 10px", borderRadius: 20, letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
+            <Zap style={{ width: 10, height: 10 }} /> ATTENDANCE DUE
           </motion.div>
         )}
         {cls.isRescheduled && !due && (
@@ -781,12 +783,15 @@ const ClassCard = ({ cls, onMark, studentLinkMap, timezone, nextLesson }) => {
                 border: `1px solid ${nextLesson.status === "ongoing" ? C.amber + "40" : C.indigo + "30"}`,
                 maxWidth: "100%",
               }}>
-                <span style={{ fontSize: 15, flexShrink: 0 }}>{nextLesson.emoji}</span>
+                <div style={{ width: 26, height: 26, borderRadius: 8, background: nextLesson.status === "ongoing" ? C.amber : C.indigo, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <MODULE_ICON style={{ width: 13, height: 13, color: "#fff" }} />
+                </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ marginBottom: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 1 }}>
+                    {nextLesson.status === "ongoing" ? <Clock style={{ width: 10, height: 10, color: C.amber }} /> : <PlayCircle style={{ width: 10, height: 10, color: C.indigo }} />}
                     <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.05em",
                       color: nextLesson.status === "ongoing" ? C.amber : C.indigo }}>
-                      {nextLesson.status === "ongoing" ? "⏳ CONTINUING" : "▶ NEXT LESSON"}
+                      {nextLesson.status === "ongoing" ? "CONTINUING" : "NEXT LESSON"}
                     </span>
                   </div>
                   <p style={{ fontSize: 12, fontWeight: 700, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 230 }}>
@@ -809,10 +814,11 @@ const ClassCard = ({ cls, onMark, studentLinkMap, timezone, nextLesson }) => {
               <span style={{ padding: "9px 12px", borderRadius: 12, background: C.redLight, color: C.red, fontSize: 12, fontWeight: 600 }}>No Link</span>
             )}
             <button onClick={() => onMark(cls)}
-              style={{ padding: "9px 16px", borderRadius: 12, border: `1px solid ${due ? C.red + "40" : C.border}`, background: due ? C.redLight : C.bg, color: due ? C.red : C.indigo, fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all 0.15s" }}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12, border: `1px solid ${due ? C.red + "40" : C.border}`, background: due ? C.redLight : C.bg, color: due ? C.red : C.indigo, fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all 0.15s" }}
               onMouseEnter={e => { e.currentTarget.style.background = due ? C.red : C.indigo; e.currentTarget.style.color = "#fff"; }}
               onMouseLeave={e => { e.currentTarget.style.background = due ? C.redLight : C.bg; e.currentTarget.style.color = due ? C.red : C.indigo; }}>
-              {due ? "⚡ Mark Now" : "Mark Attendance"}
+              {due && <Zap style={{ width: 12, height: 12 }} />}
+              {due ? "Mark Now" : "Mark Attendance"}
             </button>
           </div>
         </div>
@@ -902,11 +908,11 @@ function TutorStudentCurriculumModules({ course, category }) {
           <div key={mod.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
             <div onClick={() => setExpanded(p => ({ ...p, [mod.id]: !p[mod.id] }))}
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: col.text, flexShrink: 0 }}>
-                M{mod.moduleNumber}
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <MODULE_ICON style={{ width: 16, height: 16, color: col.text }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 800, fontSize: 13, color: C.textPrimary }}>{mod.moduleName}</p>
+                <p style={{ fontWeight: 800, fontSize: 13, color: C.textPrimary }}>Module {mod.moduleNumber}: {mod.moduleName}</p>
                 <p style={{ fontSize: 11, color: C.textMuted }}>{lessons.length} lesson{lessons.length !== 1 ? "s" : ""}</p>
               </div>
               {isOpen ? <ChevronDown style={{ width: 15, height: 15, color: C.textMuted }} /> : <ChevronRight style={{ width: 15, height: 15, color: C.textMuted }} />}
@@ -914,23 +920,34 @@ function TutorStudentCurriculumModules({ course, category }) {
             <AnimatePresence>
               {isOpen && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
-                  <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 14px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
                     {lessons.length === 0 ? (
-                      <p style={{ fontSize: 12, color: C.textMuted, textAlign: "center", padding: "6px 0" }}>No lessons yet</p>
+                      <p style={{ fontSize: 12, color: C.textMuted, textAlign: "center", padding: "6px 0", gridColumn: "1 / -1" }}>No lessons yet</p>
                     ) : lessons.map(lesson => (
-                      <div key={lesson.id} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 10px", borderRadius: 10, background: C.bg, border: `1px solid ${C.border}` }}>
-                        <div style={{ width: 22, height: 22, borderRadius: 6, background: col.light, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 10, fontWeight: 800, color: col.text }}>
-                          {lesson.lessonNumber}
+                      <div key={lesson.id} style={{ borderRadius: 12, background: C.bg, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                        {/* Banner image — 16:9, responsive via object-fit: cover */}
+                        <div style={{ width: "100%", aspectRatio: "16 / 9", background: col.light, position: "relative", overflow: "hidden" }}>
+                          {lesson.bannerImageUrl ? (
+                            <img src={lesson.bannerImageUrl} alt={lesson.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                          ) : (
+                            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <ImageIcon style={{ width: 20, height: 20, color: col.text, opacity: 0.35 }} />
+                            </div>
+                          )}
+                          <div style={{ position: "absolute", top: 6, left: 6, width: 20, height: 20, borderRadius: 6, background: "rgba(15,23,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff" }}>
+                            {lesson.lessonNumber}
+                          </div>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontWeight: 700, fontSize: 12, color: C.textPrimary }}>{lesson.title}</p>
+                        <div style={{ padding: "9px 11px" }}>
+                          <p style={{ fontWeight: 700, fontSize: 12, color: C.textPrimary, marginBottom: 4 }}>{lesson.title}</p>
                           {lesson.teacherResourceLink ? (
                             <a href={lesson.teacherResourceLink} target="_blank" rel="noopener noreferrer"
-                              style={{ fontSize: 11, color: C.emeraldDark, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, textDecoration: "none" }}>
-                              🔗 Teacher Resource →
+                              style={{ fontSize: 11, color: C.emeraldDark, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
+                              <LinkIcon style={{ width: 10, height: 10 }} /> Teacher Resource
+                              <ArrowRight style={{ width: 10, height: 10 }} />
                             </a>
                           ) : (
-                            <p style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>No teacher resource shared yet</p>
+                            <p style={{ fontSize: 10, color: C.textMuted }}>No teacher resource shared yet</p>
                           )}
                         </div>
                       </div>
@@ -959,6 +976,7 @@ function TutorStudentCurriculumView({ students }) {
 
   const selected = eligibleStudents.find(s => s.uid === selectedId);
   const selCourse = selected ? getEffectiveCourse(selected) : null;
+  const selCourseInfo = COURSES.find(c => c.value === selCourse);
 
   if (eligibleStudents.length === 0) {
     return (
@@ -978,13 +996,15 @@ function TutorStudentCurriculumView({ students }) {
         <div style={{ maxHeight: 560, overflowY: "auto" }}>
           {eligibleStudents.map(s => {
             const c = getEffectiveCourse(s);
+            const cInfo = COURSES.find(co => co.value === c);
+            const CIcon = cInfo?.icon;
             const catInfo = CATEGORIES.find(cat => cat.value === s.category);
             return (
               <button key={s.uid} onClick={() => setSelectedId(s.uid)}
                 style={{ width: "100%", padding: "12px 14px", borderBottom: `1px solid ${C.border}`, background: selectedId === s.uid ? C.indigoLight : "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
                 <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>{s.name}</p>
-                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
-                  {c === "math" ? "➗ Math" : "💻 Coding"} · {catInfo?.label || s.category}
+                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                  {CIcon && <CIcon style={{ width: 11, height: 11 }} />} {cInfo?.label} · {catInfo?.label || s.category}
                 </p>
               </button>
             );
@@ -999,8 +1019,8 @@ function TutorStudentCurriculumView({ students }) {
           <>
             <div style={{ marginBottom: 14 }}>
               <p style={{ fontWeight: 800, fontSize: 15, color: C.textPrimary }}>{selected.name}'s Curriculum</p>
-              <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
-                {selCourse === "math" ? "➗ Math" : "💻 Coding"} · {CATEGORIES.find(c => c.value === selected.category)?.label}
+              <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
+                {selCourseInfo?.icon && <selCourseInfo.icon style={{ width: 12, height: 12 }} />} {selCourseInfo?.label} · {CATEGORIES.find(c => c.value === selected.category)?.label}
               </p>
             </div>
             <TutorStudentCurriculumModules course={selCourse} category={selected.category} />
@@ -1268,10 +1288,17 @@ export default function TutorDashboard() {
                 <div style={{ borderRadius: 20, padding: isMobile ? "20px" : "24px 28px", marginBottom: 24, background: C.gradEmerald, position: "relative", overflow: "hidden" }}>
                   <div style={{ position: "absolute", right: -20, top: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.12)" }} />
                   <div style={{ position: "relative", zIndex: 1 }}>
-                    <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: "#fff", marginBottom: 6 }}>Hello, {tutorData?.name?.split(" ")[0] || "Tutor"}! 🎓</h2>
+                    <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: "#fff", marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                      Hello, {tutorData?.name?.split(" ")[0] || "Tutor"}!
+                      <GraduationCap style={{ width: isMobile ? 16 : 18, height: isMobile ? 16 : 18 }} />
+                    </h2>
                     <p style={{ fontSize: isMobile ? 13 : 14, color: "rgba(255,255,255,0.85)" }}>
                       {activeClasses.length} active {activeClasses.length === 1 ? "class" : "classes"} · {students.length} {students.length === 1 ? "student" : "students"} assigned
-                      {dueCount > 0 && <span style={{ color: "#FDE68A", fontWeight: 700 }}> · ⚠️ {dueCount} attendance{dueCount > 1 ? "s" : ""} pending!</span>}
+                      {dueCount > 0 && (
+                        <span style={{ color: "#FDE68A", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          {" · "}<AlertTriangle style={{ width: 12, height: 12 }} /> {dueCount} attendance{dueCount > 1 ? "s" : ""} pending!
+                        </span>
+                      )}
                     </p>
                     {dueCount > 0 && (
                       <button onClick={() => handleTabChange("activeClasses")}
@@ -1536,14 +1563,14 @@ export default function TutorDashboard() {
                               {/* Ongoing lessons */}
                               {recentOngoing.map((l, li) => (
                                 <div key={li} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 8px", borderRadius: 8, background: C.amberLight, marginBottom: 4 }}>
-                                  <span style={{ fontSize: 11 }}>🔄</span>
+                                  <RefreshCw style={{ width: 11, height: 11, color: "#92400E", flexShrink: 0 }} />
                                   <span style={{ fontSize: 11, color: "#92400E", fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>L{l.lessonNumber} {l.title}</span>
                                 </div>
                               ))}
                               {/* Recently completed */}
                               {recentCompleted.map((l, li) => (
                                 <div key={li} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 8px", borderRadius: 8, background: C.emeraldLight, marginBottom: 4 }}>
-                                  <span style={{ fontSize: 11 }}>✅</span>
+                                  <CheckCircle2 style={{ width: 11, height: 11, color: C.emeraldDark, flexShrink: 0 }} />
                                   <span style={{ fontSize: 11, color: C.emeraldDark, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>L{l.lessonNumber} {l.title}</span>
                                 </div>
                               ))}
@@ -1576,7 +1603,11 @@ export default function TutorDashboard() {
                           </div>
                           <p style={{ fontSize: 13, color: C.textSecondary, marginBottom: 2 }}>{cls.studentName}</p>
                           <p style={{ fontSize: 12, color: C.textMuted, marginBottom: cls.summary ? 8 : 0 }}>{cls.classDate}</p>
-                          {cls.summary && <p style={{ fontSize: 12, padding: "8px 12px", borderRadius: 10, background: C.emeraldLight, color: C.emerald }}>📋 {cls.summary}</p>}
+                          {cls.summary && (
+                            <p style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12, padding: "8px 12px", borderRadius: 10, background: C.emeraldLight, color: C.emerald }}>
+                              <ClipboardCheck style={{ width: 13, height: 13, flexShrink: 0, marginTop: 1 }} /> <span>{cls.summary}</span>
+                            </p>
+                          )}
                         </div>
                       ))}
                   </div>

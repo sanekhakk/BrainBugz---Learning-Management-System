@@ -9,9 +9,9 @@ import {
 import { getWhatsAppLink } from "../utils/whatsapp";
 import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
 
-import lp1 from "../assets/kids/LP1.webp";
-import bp1 from "../assets/kids/BP1.webp";
-import rp1 from "../assets/kids/RP1.webp";
+import lp1 from "../assets/kids/LP2.webp";
+import bp1 from "../assets/kids/BP2.webp";
+import rp1 from "../assets/kids/RP2.webp";
 import heroimage from "../assets/kids/mathhero.webp";
 
 const LEVELS = [

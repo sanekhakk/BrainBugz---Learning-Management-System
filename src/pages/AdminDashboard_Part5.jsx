@@ -1,19 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PlusCircle, Pencil, Trash2, ChevronDown, ChevronRight,
   BookOpen, Loader2, CheckCircle, XCircle, X, Link as LinkIcon,
-  FileText, ArrowUp, ArrowDown, Users,
+  FileText, ArrowUp, ArrowDown, Users, Image as ImageIcon, Upload,
 } from "lucide-react";
 import {
   collection, query, where, onSnapshot, doc, getDoc, setDoc, serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import {
-  COURSES, CATEGORIES, getEffectiveCourse,
+  COURSES, CATEGORIES, MODULE_ICON, getEffectiveCourse,
   curriculumModulesQuery,
   createCurriculumModule, renameCurriculumModule, deleteCurriculumModule,
   addCurriculumLesson, updateCurriculumLesson, deleteCurriculumLesson,
+  uploadLessonBannerImage, deleteLessonBannerImageByUrl,
 } from "../utils/curriculumData";
 
 const C = {
@@ -118,25 +119,63 @@ function ModuleModal({ initialName, onClose, onSave }) {
   );
 }
 
-// Modal for creating/editing a lesson: title + 3 optional resource links
-function LessonModal({ lesson, onClose, onSave }) {
+// Modal for creating/editing a lesson: title, banner image, + 3 optional resource links
+function LessonModal({ lesson, course, category, moduleId, onClose, onSave }) {
   const isEdit = !!lesson;
+  const fileInputRef = useRef(null);
+  // Stable id for a NEW lesson, generated once, so the uploaded image path
+  // matches the lesson id the doc will actually be saved with.
+  const [newLessonId] = useState(() => lesson?.id || `${moduleId}_l${Date.now()}`);
+
   const [form, setForm] = useState({
     title: lesson?.title || "",
     pptLink: lesson?.pptLink || "",
     studentResourceLink: lesson?.studentResourceLink || "",
     teacherResourceLink: lesson?.teacherResourceLink || "",
   });
+  const [file, setFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(lesson?.bannerImageUrl || "");
+  const [removeImage, setRemoveImage] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
+  const handleFileChange = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith("image/")) { setErr("Please choose an image file."); return; }
+    if (f.size > 5 * 1024 * 1024) { setErr("Image must be under 5MB."); return; }
+    setErr(null);
+    setFile(f);
+    setRemoveImage(false);
+    setPreviewUrl(URL.createObjectURL(f));
+  };
+
+  const handleRemoveImage = () => {
+    setFile(null);
+    setPreviewUrl("");
+    setRemoveImage(true);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSave = async () => {
     if (!form.title.trim()) { setErr("Lesson title is required."); return; }
     setSaving(true); setErr(null);
     try {
-      await onSave(form);
+      let bannerImageUrl = lesson?.bannerImageUrl || "";
+
+      if (file) {
+        bannerImageUrl = await uploadLessonBannerImage(file, { course, category, moduleId, lessonId: newLessonId });
+      } else if (removeImage) {
+        if (lesson?.bannerImageUrl) await deleteLessonBannerImageByUrl(lesson.bannerImageUrl);
+        bannerImageUrl = "";
+      }
+
+      const payload = { ...form, bannerImageUrl };
+      if (!isEdit) payload.id = newLessonId; // forces addCurriculumLesson to use this exact id
+
+      await onSave(payload);
       onClose();
     } catch (e) {
       setErr(e.message || "Failed to save lesson.");
@@ -162,6 +201,35 @@ function LessonModal({ lesson, onClose, onSave }) {
         <div style={{ marginBottom: 14 }}>
           <FieldLabel required>Lesson Title</FieldLabel>
           <input autoFocus value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Sequences: Step by Step" style={fieldStyle} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <FieldLabel>Banner Image <span style={{ color: C.textMuted, fontWeight: 500 }}>(optional — shown to students &amp; tutors, not in this dashboard's list view)</span></FieldLabel>
+          {previewUrl ? (
+            <div style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: `1px solid ${C.border}`, aspectRatio: "16 / 9", background: C.bg }}>
+              <img src={previewUrl} alt="Lesson banner preview" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              <button onClick={handleRemoveImage} type="button"
+                style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: 8, border: "none", background: "rgba(15,23,42,0.7)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <X style={{ width: 14, height: 14, color: "#fff" }} />
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => fileInputRef.current?.click()}
+              style={{ width: "100%", aspectRatio: "16 / 9", borderRadius: 10, border: `1.5px dashed ${C.border}`, background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer" }}>
+              <Upload style={{ width: 20, height: 20, color: C.textMuted }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.textSecondary }}>Click to upload banner image</span>
+            </button>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
+          {!previewUrl && (
+            <button type="button" onClick={() => fileInputRef.current?.click()}
+              style={{ marginTop: 8, fontSize: 11, color: C.indigo, fontWeight: 700, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+              Choose file
+            </button>
+          )}
+          <p style={{ fontSize: 10, color: C.textMuted, marginTop: 6, lineHeight: 1.5 }}>
+            Recommended: 1200×675px (16:9), under 500KB (JPG/WebP). It'll display full-width and crop-to-fit automatically on any screen size.
+          </p>
         </div>
 
         <div style={{ marginBottom: 14 }}>
@@ -220,11 +288,12 @@ function LessonRow({ lesson, onEdit, onDelete }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>{lesson.title}</p>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+          {lesson.bannerImageUrl && <span style={{ fontSize: 10, fontWeight: 700, color: C.amber, background: C.amberLight, padding: "3px 8px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 3 }}><ImageIcon style={{ width: 9, height: 9 }} /> Banner set</span>}
           {lesson.pptLink && <span style={{ fontSize: 10, fontWeight: 700, color: C.violet, background: C.violetLight, padding: "3px 8px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 3 }}><LinkIcon style={{ width: 9, height: 9 }} /> PPT</span>}
           {lesson.studentResourceLink && <span style={{ fontSize: 10, fontWeight: 700, color: C.indigo, background: C.indigoLight, padding: "3px 8px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 3 }}><LinkIcon style={{ width: 9, height: 9 }} /> Student Link</span>}
           {lesson.teacherResourceLink && <span style={{ fontSize: 10, fontWeight: 700, color: C.emeraldDark, background: C.emeraldLight, padding: "3px 8px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 3 }}><LinkIcon style={{ width: 9, height: 9 }} /> Teacher Link</span>}
-          {!lesson.pptLink && !lesson.studentResourceLink && !lesson.teacherResourceLink && (
-            <span style={{ fontSize: 10, color: C.textMuted }}>No resource links added yet</span>
+          {!lesson.bannerImageUrl && !lesson.pptLink && !lesson.studentResourceLink && !lesson.teacherResourceLink && (
+            <span style={{ fontSize: 10, color: C.textMuted }}>No resources added yet</span>
           )}
         </div>
       </div>
@@ -240,7 +309,7 @@ function LessonRow({ lesson, onEdit, onDelete }) {
   );
 }
 
-function ModuleCard({ module, onRename, onDeleteModule, onAddLesson, onEditLesson, onDeleteLesson }) {
+function ModuleCard({ module, course, category, onRename, onDeleteModule, onAddLesson, onEditLesson, onDeleteLesson }) {
   const [open, setOpen] = useState(false);
   const [showModuleModal, setShowModuleModal] = useState(false);
   const [showLessonModal, setShowLessonModal] = useState(false);
@@ -254,11 +323,11 @@ function ModuleCard({ module, onRename, onDeleteModule, onAddLesson, onEditLesso
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", boxShadow: C.shadowCard, marginBottom: 12 }}>
       <div onClick={() => setOpen(o => !o)}
         style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", cursor: "pointer" }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: C.bg, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: C.textSecondary, flexShrink: 0 }}>
-          M{module.moduleNumber}
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: C.bg, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <MODULE_ICON style={{ width: 18, height: 18, color: C.textSecondary }} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontWeight: 800, fontSize: 14, color: C.textPrimary }}>{module.moduleName}</p>
+          <p style={{ fontWeight: 800, fontSize: 14, color: C.textPrimary }}>Module {module.moduleNumber}: {module.moduleName}</p>
           <p style={{ fontSize: 12, color: C.textMuted }}>{lessons.length} lesson{lessons.length !== 1 ? "s" : ""}</p>
         </div>
         <button onClick={e => { e.stopPropagation(); setShowModuleModal(true); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 6 }}>
@@ -297,11 +366,11 @@ function ModuleCard({ module, onRename, onDeleteModule, onAddLesson, onEditLesso
           onSave={(name) => onRename(module.id, name)} />
       )}
       {showLessonModal && (
-        <LessonModal onClose={() => setShowLessonModal(false)}
+        <LessonModal course={course} category={category} moduleId={module.id} onClose={() => setShowLessonModal(false)}
           onSave={(data) => onAddLesson(module.id, data)} />
       )}
       {editingLesson && (
-        <LessonModal lesson={editingLesson} onClose={() => setEditingLesson(null)}
+        <LessonModal lesson={editingLesson} course={course} category={category} moduleId={module.id} onClose={() => setEditingLesson(null)}
           onSave={(data) => onEditLesson(module.id, editingLesson.id, data)} />
       )}
       {confirmDeleteModule && (
@@ -390,9 +459,11 @@ function CodingMathCurriculumManager() {
         {tieredCourses.map(c => {
           const selected = course === c.value;
           const col = courseColor[c.value] || courseColor.coding;
+          const Icon = c.icon;
           return (
             <button key={c.value} onClick={() => setCourse(c.value)}
-              style={{ padding: "9px 18px", borderRadius: 12, border: `2px solid ${selected ? col.border : C.border}`, background: selected ? col.bg : C.card, color: selected ? col.text : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 12, border: `2px solid ${selected ? col.border : C.border}`, background: selected ? col.bg : C.card, color: selected ? col.text : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              <Icon style={{ width: 14, height: 14 }} />
               {c.label}
             </button>
           );
@@ -404,9 +475,11 @@ function CodingMathCurriculumManager() {
         {CATEGORIES.map(cat => {
           const selected = category === cat.value;
           const col = tierColor[cat.value];
+          const Icon = cat.icon;
           return (
             <button key={cat.value} onClick={() => setCategory(cat.value)}
-              style={{ padding: "8px 16px", borderRadius: 12, border: `2px solid ${selected ? col.border : C.border}`, background: selected ? col.bg : C.card, color: selected ? col.text : C.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 12, border: `2px solid ${selected ? col.border : C.border}`, background: selected ? col.bg : C.card, color: selected ? col.text : C.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+              <Icon style={{ width: 13, height: 13 }} />
               {cat.label}
             </button>
           );
@@ -416,7 +489,7 @@ function CodingMathCurriculumManager() {
       {/* Summary bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "14px 18px", marginBottom: 18, boxShadow: C.shadowCard }}>
         <div style={{ width: 44, height: 44, borderRadius: 12, background: (courseColor[course] || courseColor.coding).bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <BookOpen style={{ width: 20, height: 20, color: (courseColor[course] || courseColor.coding).text }} />
+          {courseInfo?.icon ? <courseInfo.icon style={{ width: 20, height: 20, color: (courseColor[course] || courseColor.coding).text }} /> : <BookOpen style={{ width: 20, height: 20, color: (courseColor[course] || courseColor.coding).text }} />}
         </div>
         <div style={{ flex: 1 }}>
           <p style={{ fontWeight: 800, fontSize: 14, color: C.textPrimary }}>{courseInfo?.label} · {catInfo?.label}</p>
@@ -439,7 +512,7 @@ function CodingMathCurriculumManager() {
         </div>
       ) : (
         modules.map(mod => (
-          <ModuleCard key={mod.id} module={mod}
+          <ModuleCard key={mod.id} module={mod} course={course} category={category}
             onRename={handleRenameModule}
             onDeleteModule={handleDeleteModule}
             onAddLesson={handleAddLesson}
@@ -737,12 +810,13 @@ export function CurriculumManager() {
 
       <div style={{ display: "flex", gap: 2, marginBottom: 20, background: C.bg, padding: 4, borderRadius: 12 }}>
         <button onClick={() => setTab("curriculum")}
-          style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "none", background: tab === "curriculum" ? C.card : "transparent", color: tab === "curriculum" ? C.textPrimary : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-          💻 Coding &amp; Math Curriculum
+          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 14px", borderRadius: 10, border: "none", background: tab === "curriculum" ? C.card : "transparent", color: tab === "curriculum" ? C.textPrimary : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          <MODULE_ICON style={{ width: 14, height: 14 }} />
+          Coding &amp; Math Curriculum
         </button>
         <button onClick={() => setTab("tuition")}
-          style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "none", background: tab === "tuition" ? C.card : "transparent", color: tab === "tuition" ? C.textPrimary : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-          <Users style={{ width: 13, height: 13, display: "inline", marginRight: 4, verticalAlign: -2 }} />
+          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 14px", borderRadius: 10, border: "none", background: tab === "tuition" ? C.card : "transparent", color: tab === "tuition" ? C.textPrimary : C.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          <Users style={{ width: 13, height: 13 }} />
           Academic Tuition Chapters
         </button>
       </div>

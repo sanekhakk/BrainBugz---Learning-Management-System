@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusCircle, Loader2, XCircle, X, CheckCircle, ArrowLeft } from "lucide-react";
+import { PlusCircle, Loader2, XCircle, X, CheckCircle, ArrowLeft, Info } from "lucide-react";
 import { TIMEZONES } from "../utils/timeUtils";
 import { COURSES, CATEGORIES } from "../utils/curriculumData";
 
@@ -24,8 +24,9 @@ export const CODING_CATEGORIES = ["little_pearls", "bright_pearls", "rising_pear
 export const CUSTOM_CHAPTER_CATEGORIES = ["academic_tuition", "courses"];
 
 const TUTOR_TYPE_OPTIONS = [
-  { value: "coding",   label: "💻 Coding Classes" },
-  { value: "cs_tuition", label: "📚 Computer Science Tuition" },
+  { value: "coding",     label: "Coding Classes",           icon: COURSES.find(c => c.value === "coding")?.icon },
+  { value: "math",       label: "Math Classes",             icon: COURSES.find(c => c.value === "math")?.icon },
+  { value: "cs_tuition", label: "Computer Science Tuition", icon: COURSES.find(c => c.value === "academic_tuition")?.icon },
 ];
 
 const fieldStyle = {
@@ -71,6 +72,7 @@ const TutorTypeCheckboxes = ({ selectedTypes, onChange }) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg }}>
       {TUTOR_TYPE_OPTIONS.map(opt => {
         const checked = selectedTypes.includes(opt.value);
+        const Icon = opt.icon;
         return (
           <label key={opt.value}
             style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "8px 10px", borderRadius: 10, background: checked ? C.emeraldLight : "transparent", border: `1px solid ${checked ? C.emerald + "40" : "transparent"}`, transition: "all 0.15s" }}>
@@ -82,6 +84,7 @@ const TutorTypeCheckboxes = ({ selectedTypes, onChange }) => (
                 </svg>
               )}
             </div>
+            {Icon && <Icon style={{ width: 14, height: 14, color: checked ? C.emerald : C.textMuted, flexShrink: 0 }} />}
             <span onClick={() => onChange(opt.value)} style={{ fontSize: 13, fontWeight: checked ? 700 : 500, color: checked ? C.textPrimary : C.textSecondary }}>{opt.label}</span>
           </label>
         );
@@ -89,9 +92,9 @@ const TutorTypeCheckboxes = ({ selectedTypes, onChange }) => (
       {selectedTypes.length === 0 && (
         <p style={{ fontSize: 11, color: C.red, margin: "2px 0 0 4px" }}>Please select at least one category</p>
       )}
-      {selectedTypes.length === 2 && (
+      {selectedTypes.length >= 2 && (
         <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8, background: C.amberLight, marginTop: 2 }}>
-          <span style={{ fontSize: 11, color: C.amber, fontWeight: 600 }}>⭐ This tutor handles both coding and CS tuition</span>
+          <span style={{ fontSize: 11, color: C.amber, fontWeight: 600 }}>This tutor handles multiple categories</span>
         </div>
       )}
     </div>
@@ -119,14 +122,15 @@ const CourseSelector = ({ value, onChange }) => (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
       {COURSES.map(course => {
         const selected = value === course.value;
-        const emoji = course.label.charAt(0);
-        const name  = course.label.slice(2).trim();
+        const Icon = course.icon;
         const col = courseColorMap[course.value];
         return (
           <motion.div key={course.value} onClick={() => onChange(course.value)} whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
             style={{ cursor: "pointer", padding: "14px 12px", borderRadius: 14, border: `2px solid ${selected ? col.border : C.border}`, background: selected ? col.bg : C.bg, transition: "all 0.15s", textAlign: "center" }}>
-            <div style={{ fontSize: 26, marginBottom: 6 }}>{emoji}</div>
-            <p style={{ fontSize: 12, fontWeight: 800, color: selected ? col.text : C.textPrimary, lineHeight: 1.3 }}>{name}</p>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: selected ? col.border : C.card, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 8px" }}>
+              <Icon style={{ width: 18, height: 18, color: selected ? "#fff" : C.textSecondary }} />
+            </div>
+            <p style={{ fontSize: 12, fontWeight: 800, color: selected ? col.text : C.textPrimary, lineHeight: 1.3 }}>{course.label}</p>
             {selected && (
               <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 20, background: col.border, color: "#fff" }}>
                 <CheckCircle style={{ width: 10, height: 10 }} />
@@ -139,10 +143,10 @@ const CourseSelector = ({ value, onChange }) => (
     </div>
     {value === "academic_tuition" && (
       <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 12, background: "#F5F3FF", border: "1px solid #8B5CF625", display: "flex", alignItems: "flex-start", gap: 8 }}>
-        <span style={{ fontSize: 16, flexShrink: 0 }}>📌</span>
+        <Info style={{ width: 16, height: 16, color: "#6D28D9", flexShrink: 0, marginTop: 1 }} />
         <p style={{ fontSize: 12, color: "#6D28D9", lineHeight: 1.6 }}>
           <strong>Academic Tuition students</strong> follow a <strong>custom per-student chapter list</strong> instead of the shared curriculum.
-          After registering, go to <strong>Curriculum → Assign to Students</strong> to add chapters for this student.
+          After registering, go to <strong>Curriculum → Academic Tuition Chapters</strong> to add chapters for this student.
         </p>
       </div>
     )}
@@ -158,14 +162,15 @@ const TierSelector = ({ value, onChange }) => (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
       {CATEGORIES.map(cat => {
         const selected = value === cat.value;
-        const emoji = cat.label.charAt(0);
-        const name  = cat.label.slice(2).trim();
+        const Icon = cat.icon;
         const col = tierColorMap[cat.value];
         return (
           <motion.div key={cat.value} onClick={() => onChange(cat.value)} whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
             style={{ cursor: "pointer", padding: "14px 12px", borderRadius: 14, border: `2px solid ${selected ? col.border : C.border}`, background: selected ? col.bg : C.bg, transition: "all 0.15s", textAlign: "center" }}>
-            <div style={{ fontSize: 26, marginBottom: 6 }}>{emoji}</div>
-            <p style={{ fontSize: 12, fontWeight: 800, color: selected ? col.text : C.textPrimary, lineHeight: 1.3 }}>{name}</p>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: selected ? col.border : C.card, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 8px" }}>
+              <Icon style={{ width: 18, height: 18, color: selected ? "#fff" : C.textSecondary }} />
+            </div>
+            <p style={{ fontSize: 12, fontWeight: 800, color: selected ? col.text : C.textPrimary, lineHeight: 1.3 }}>{cat.label}</p>
             <p style={{ fontSize: 10, color: selected ? col.text : C.textMuted, marginTop: 4, lineHeight: 1.4 }}>{cat.ages}</p>
             {selected && (
               <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 20, background: col.border, color: "#fff" }}>

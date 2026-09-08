@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { motion } from "framer-motion";
 import { COLORS } from "./utils/theme";
 import DemoBookingModal from "./components/Demobookingmodal";
+import DemoInterestPopup from "./components/DemoInterestPopup";
 import OfferCarousel from "./components/OfferCarousel";
 import NavBar from "./components/NavBar";
 import ScrollToTop from "./components/ScrollToTop";
@@ -47,14 +48,25 @@ function MainApp() {
 
   if (!isAuthReady) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3" style={{ background: COLORS.bgPrimary }}>
+      <div
+        className="min-h-screen flex flex-col items-center justify-center gap-3"
+        style={{ background: COLORS.bgPrimary }}
+      >
         <motion.div
           className="w-8 h-8 rounded-full border-2 border-t-transparent"
-          style={{ borderColor: COLORS.indigo, borderTopColor: "transparent" }}
+          style={{
+            borderColor: COLORS.indigo,
+            borderTopColor: "transparent",
+          }}
           animate={{ rotate: 360 }}
           transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
         />
-        <p className="text-sm font-medium" style={{ color: COLORS.textMuted }}>Loading Pearlx...</p>
+        <p
+          className="text-sm font-medium"
+          style={{ color: COLORS.textMuted }}
+        >
+          Loading Pearlx...
+        </p>
       </div>
     );
   }
@@ -66,20 +78,42 @@ function MainApp() {
   return (
     <div className="grain" style={{ background: COLORS.bgPrimary }}>
       <ScrollToTop />
+
       <OfferCarousel openDemoModal={openDemoModal} />
       <NavBar openDemoModal={openDemoModal} />
+
       <main>
         <Routes>
-          <Route path="/" element={<GuestHome openDemoModal={openDemoModal} />} />
-          <Route path="/services/education" element={<ComputerScienceClasses openDemoModal={openDemoModal} />} />
+          <Route
+            path="/"
+            element={<GuestHome openDemoModal={openDemoModal} />}
+          />
+          <Route
+            path="/services/education"
+            element={<ComputerScienceClasses openDemoModal={openDemoModal} />}
+          />
           <Route path="/courses" element={<Courses openDemoModal={openDemoModal} />} />
-          <Route path="/mathsclasses" element={<MathsClasses openDemoModal={openDemoModal} />} />
-          <Route path="/services/academic-tuition" element={<AcademicTuition openDemoModal={openDemoModal} />} />
-          <Route path="/pricing" element={<Pricing openDemoModal={openDemoModal} />} />
+          <Route
+            path="/mathsclasses"
+            element={<MathsClasses openDemoModal={openDemoModal} />}
+          />
+          <Route
+            path="/services/academic-tuition"
+            element={<AcademicTuition openDemoModal={openDemoModal} />}
+          />
+          <Route
+            path="/pricing"
+            element={<Pricing openDemoModal={openDemoModal} />}
+          />
         </Routes>
       </main>
+
       <Footer openDemoModal={openDemoModal} />
       <AuthModal />
+
+      {/* Appears a few seconds after the first visit in this browser session. */}
+      <DemoInterestPopup onBookDemo={openDemoModal} delay={5000} />
+
       <DemoBookingModal
         isOpen={demoModalOpen}
         onClose={() => setDemoModalOpen(false)}

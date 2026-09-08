@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, ChevronDown, ChevronRight, Loader2,
   AlertCircle, Clock, Award, FileText,
+  Link as LinkIcon, ArrowRight, Image as ImageIcon, GraduationCap, Zap, BookMarked,
 } from "lucide-react";
 import { db } from "../firebase";
 import { doc, getDoc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
-import { CATEGORIES, getEffectiveCourse } from "../utils/curriculumData";
+import { CATEGORIES, MODULE_ICON, getEffectiveCourse } from "../utils/curriculumData";
 
 const C = {
   bg: "#F4F6FB", card: "#FFFFFF", border: "#E5E9F2",
@@ -25,30 +26,38 @@ const tierColor = {
 };
 
 /**
- * Lesson Card — shows only the Student Resource Link (never the PPT link or
- * the teacher resource link — those are for admins and tutors respectively).
+ * Lesson Card — banner image (16:9) + title + Student Resource Link only
+ * (never the PPT link or the teacher resource link — those are for admins
+ * and tutors respectively).
  */
 function LessonCard({ lesson, col }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 14 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 9, background: col.light, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 800, color: col.text }}>
+      style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+      <div style={{ width: "100%", aspectRatio: "16 / 9", background: col.light, position: "relative", overflow: "hidden" }}>
+        {lesson.bannerImageUrl ? (
+          <img src={lesson.bannerImageUrl} alt={lesson.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ImageIcon style={{ width: 24, height: 24, color: col.text, opacity: 0.35 }} />
+          </div>
+        )}
+        <div style={{ position: "absolute", top: 8, left: 8, width: 24, height: 24, borderRadius: 7, background: "rgba(15,23,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff" }}>
           {lesson.lessonNumber}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h4 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, lineHeight: 1.3, marginBottom: 6 }}>
-            {lesson.title}
-          </h4>
-          {lesson.studentResourceLink ? (
-            <a href={lesson.studentResourceLink} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 12, color: C.indigo, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
-              🔗 View Lesson Resource →
-            </a>
-          ) : (
-            <p style={{ fontSize: 11, color: C.textMuted }}>No resource shared yet</p>
-          )}
-        </div>
+      </div>
+      <div style={{ padding: 14 }}>
+        <h4 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, lineHeight: 1.3, marginBottom: 6 }}>
+          {lesson.title}
+        </h4>
+        {lesson.studentResourceLink ? (
+          <a href={lesson.studentResourceLink} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 12, color: C.indigo, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
+            <LinkIcon style={{ width: 12, height: 12 }} /> View Lesson Resource <ArrowRight style={{ width: 12, height: 12 }} />
+          </a>
+        ) : (
+          <p style={{ fontSize: 11, color: C.textMuted }}>No resource shared yet</p>
+        )}
       </div>
     </motion.div>
   );
@@ -66,8 +75,8 @@ function ModuleView({ module, col }) {
       <motion.button onClick={() => setOpen(o => !o)} whileTap={{ scale: 0.98 }}
         style={{ width: "100%", padding: "14px 16px", background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", marginBottom: 12 }}>
 
-        <div style={{ width: 44, height: 44, borderRadius: 12, background: col.light, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: col.text, flexShrink: 0 }}>
-          M{module.moduleNumber}
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: col.light, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <MODULE_ICON style={{ width: 20, height: 20, color: col.text }} />
         </div>
 
         <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
@@ -91,7 +100,7 @@ function ModuleView({ module, col }) {
                 <p>No lessons added yet</p>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
                 {lessons.map(lesson => (
                   <LessonCard key={lesson.id} lesson={lesson} col={col} />
                 ))}
@@ -286,7 +295,10 @@ export function StudentCurriculumView() {
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
-              <p style={{ fontSize: 16, fontWeight: 800, color: C.cyan }}>{course === "math" ? "➗ Math" : "💻 Coding"}</p>
+              <p style={{ fontSize: 16, fontWeight: 800, color: C.cyan, display: "flex", alignItems: "center", gap: 6 }}>
+                {course === "math" ? <Zap style={{ width: 15, height: 15 }} /> : <BookMarked style={{ width: 15, height: 15 }} />}
+                {course === "math" ? "Math" : "Coding"}
+              </p>
               <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>{catInfo?.label}</p>
             </div>
             <Clock style={{ width: 24, height: 24, color: C.cyan, opacity: 0.3 }} />

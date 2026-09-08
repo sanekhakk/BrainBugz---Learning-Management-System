@@ -16,9 +16,11 @@ import {
   BookOpen, User, Loader2, CheckCircle, XCircle, TrendingUp,
   Calendar, Clock, LogOut, Award, Target, Video, ArrowRight,
   Bell, Home, BarChart2, Star, Menu, X, ChevronDown, ChevronRight,
-  Zap, BookMarked, GraduationCap, Play, FileText, Receipt
+  Zap, BookMarked, GraduationCap, Play, PlayCircle, FileText, Receipt,
+  Image as ImageIcon, Link as LinkIcon, ClipboardCheck, AlertTriangle,
+  Check, Sparkles,
 } from "lucide-react";
-import { CATEGORIES, getEffectiveCourse } from "../utils/curriculumData";
+import { CATEGORIES, MODULE_ICON, getEffectiveCourse } from "../utils/curriculumData";
 import { getProgressRef } from "../utils/paths";
 import { getDisplayTime } from "../utils/timeUtils";
 import PearlxLogo from "../assets/flat_logo.webp";
@@ -88,8 +90,8 @@ function getNextLessonLabel(modules, lessonProgressMap) {
     for (const lesson of lessons) {
       const key = `M${mod.moduleNumber}:L${lesson.lessonNumber} ${lesson.title}`;
       const status = lessonProgressMap?.[key];
-      if (status === "ongoing") return { label: lesson.title, mod: mod.moduleName, status: "ongoing", emoji: mod.moduleEmoji };
-      if (!status || status === "not_covered") return { label: lesson.title, mod: mod.moduleName, status: "next", emoji: mod.moduleEmoji };
+      if (status === "ongoing") return { label: lesson.title, mod: mod.moduleName, status: "ongoing" };
+      if (!status || status === "not_covered") return { label: lesson.title, mod: mod.moduleName, status: "next" };
     }
   }
   return null; // all done
@@ -159,7 +161,7 @@ const ClassCard = ({ cls, type, permanentClassLink, timezone, nextLesson }) => {
               <span style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary }}>with <span style={{ color: C.textPrimary, fontWeight: 700 }}>{cls.tutorName}</span></span>
             </div>
 
-            {/* Next lesson chip — only for upcoming coding classes */}
+            {/* Next lesson chip — only for upcoming coding/math classes */}
             {type === "upcoming" && nextLesson && (
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
@@ -168,12 +170,15 @@ const ClassCard = ({ cls, type, permanentClassLink, timezone, nextLesson }) => {
                 border: `1px solid ${nextLesson.status === "ongoing" ? C.amber + "40" : C.indigo + "30"}`,
                 maxWidth: "100%",
               }}>
-                <span style={{ fontSize: 15, flexShrink: 0 }}>{nextLesson.emoji}</span>
+                <div style={{ width: 26, height: 26, borderRadius: 8, background: nextLesson.status === "ongoing" ? C.amber : C.indigo, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <MODULE_ICON style={{ width: 13, height: 13, color: "#fff" }} />
+                </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 1 }}>
+                    {nextLesson.status === "ongoing" ? <Clock style={{ width: 10, height: 10, color: C.amber }} /> : <PlayCircle style={{ width: 10, height: 10, color: C.indigo }} />}
                     <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.05em",
                       color: nextLesson.status === "ongoing" ? C.amber : C.indigo }}>
-                      {nextLesson.status === "ongoing" ? "⏳ CONTINUING" : "▶ NEXT UP"}
+                      {nextLesson.status === "ongoing" ? "CONTINUING" : "NEXT UP"}
                     </span>
                   </div>
                   <p style={{ fontSize: 12, fontWeight: 700, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>
@@ -186,8 +191,9 @@ const ClassCard = ({ cls, type, permanentClassLink, timezone, nextLesson }) => {
 
             {/* Completed/missed summary */}
             {cls.summary && (type === "completed" || type === "missed") && (
-              <div style={{ padding: "9px 13px", borderRadius: 12, fontSize: 12, background: cfg.badgeBg, color: cfg.badgeText, lineHeight: 1.5, marginTop: 4 }}>
-                {type === "completed" ? "📋 " : "⚠️ "}{cls.summary}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 6, padding: "9px 13px", borderRadius: 12, fontSize: 12, background: cfg.badgeBg, color: cfg.badgeText, lineHeight: 1.5, marginTop: 4 }}>
+                {type === "completed" ? <ClipboardCheck style={{ width: 13, height: 13, flexShrink: 0, marginTop: 2 }} /> : <AlertTriangle style={{ width: 13, height: 13, flexShrink: 0, marginTop: 2 }} />}
+                <span>{cls.summary}</span>
               </div>
             )}
           </div>
@@ -283,13 +289,14 @@ function StudentChaptersView({ studentId, category }) {
 
   const catInfo = CATEGORIES.find(c => c.value === category);
   const col = { bg: "#EEF2FF", border: "#6366F1", text: "#4F46E5", light: "#E0E7FF" };
+  const HeaderIcon = catInfo?.icon || GraduationCap;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ background: C.card, borderRadius: 18, border: `2px solid ${col.border}`, padding: "18px 22px", boxShadow: C.shadowCard }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>
-            {catInfo?.label.charAt(0) || "📘"}
+          <div style={{ width: 52, height: 52, borderRadius: 16, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <HeaderIcon style={{ width: 26, height: 26, color: col.text }} />
           </div>
           <div>
             <p style={{ fontWeight: 800, fontSize: 16, color: col.text }}>{catInfo?.label || "Custom Curriculum"}</p>
@@ -385,18 +392,20 @@ function StudentCurriculumView({ course, category, studentName, studentId }) {
 
   const catInfo = CATEGORIES.find(c => c.value === category);
   const col = catColors[category] || catColors.little_pearls;
+  const TierIcon = catInfo?.icon || GraduationCap;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Category header banner */}
       <div style={{ background: C.card, borderRadius: 18, border: `2px solid ${col.border}`, padding: "18px 22px", boxShadow: C.shadowCard }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>
-            {catInfo?.label.charAt(0)}
+          <div style={{ width: 52, height: 52, borderRadius: 16, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <TierIcon style={{ width: 26, height: 26, color: col.text }} />
           </div>
           <div>
-            <p style={{ fontWeight: 800, fontSize: 16, color: col.text }}>
-              {course === "math" ? "➗ Math · " : "💻 Coding · "}{catInfo?.label}
+            <p style={{ fontWeight: 800, fontSize: 16, color: col.text, display: "flex", alignItems: "center", gap: 6 }}>
+              {course === "math" ? <Zap style={{ width: 15, height: 15 }} /> : <BookMarked style={{ width: 15, height: 15 }} />}
+              {course === "math" ? "Math" : "Coding"} · {catInfo?.label}
             </p>
             <p style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{catInfo?.ages} · {modules.length} modules · {modules.reduce((s, m) => s + (m.lessons?.length || 0), 0)} lessons</p>
           </div>
@@ -416,8 +425,8 @@ function StudentCurriculumView({ course, category, studentName, studentId }) {
             <div key={mod.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", boxShadow: C.shadowCard }}>
               <div onClick={() => setExpandedModules(p => ({ ...p, [mod.id]: !p[mod.id] }))}
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", cursor: "pointer" }}>
-                <div style={{ width: 44, height: 44, borderRadius: 13, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: col.text, flexShrink: 0 }}>
-                  M{mod.moduleNumber}
+                <div style={{ width: 44, height: 44, borderRadius: 13, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <MODULE_ICON style={{ width: 20, height: 20, color: col.text }} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 800, fontSize: 14, color: C.textPrimary }}>Module {mod.moduleNumber}: {mod.moduleName}</p>
@@ -428,21 +437,32 @@ function StudentCurriculumView({ course, category, studentName, studentId }) {
               <AnimatePresence>
                 {isOpen && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
-                    <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ borderTop: `1px solid ${C.border}`, padding: "14px 16px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
                       {(mod.lessons || []).sort((a, b) => a.lessonNumber - b.lessonNumber).map(lesson => (
-                        <div key={lesson.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 12, background: C.bg, border: `1px solid ${C.border}` }}>
-                          <div style={{ width: 28, height: 28, borderRadius: 8, background: col.light, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 11, fontWeight: 800, color: col.text }}>
-                            {lesson.lessonNumber}
+                        <div key={lesson.id} style={{ borderRadius: 14, background: C.bg, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                          {/* Banner image — 16:9, responsive via object-fit: cover */}
+                          <div style={{ width: "100%", aspectRatio: "16 / 9", background: col.light, position: "relative", overflow: "hidden" }}>
+                            {lesson.bannerImageUrl ? (
+                              <img src={lesson.bannerImageUrl} alt={lesson.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                            ) : (
+                              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <ImageIcon style={{ width: 26, height: 26, color: col.text, opacity: 0.35 }} />
+                              </div>
+                            )}
+                            <div style={{ position: "absolute", top: 8, left: 8, width: 24, height: 24, borderRadius: 7, background: "rgba(15,23,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff" }}>
+                              {lesson.lessonNumber}
+                            </div>
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary, marginBottom: 3 }}>{lesson.title}</p>
+                          <div style={{ padding: "12px 14px" }}>
+                            <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary, marginBottom: 5 }}>{lesson.title}</p>
                             {lesson.studentResourceLink ? (
                               <a href={lesson.studentResourceLink} target="_blank" rel="noopener noreferrer"
-                                style={{ fontSize: 11, color: C.indigo, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, marginTop: 5, textDecoration: "none" }}>
-                                🔗 View Lesson Resource →
+                                style={{ fontSize: 11, color: C.indigo, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
+                                <LinkIcon style={{ width: 11, height: 11 }} /> View Lesson Resource
+                                <ArrowRight style={{ width: 11, height: 11 }} />
                               </a>
                             ) : (
-                              <p style={{ fontSize: 11, color: C.textMuted, marginTop: 5 }}>No resource shared yet</p>
+                              <p style={{ fontSize: 11, color: C.textMuted }}>No resource shared yet</p>
                             )}
                           </div>
                         </div>
@@ -728,7 +748,10 @@ export default function StudentDashboard() {
                     <div style={{ position: "absolute", right: -20, top: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.12)" }} />
                     <div style={{ position: "absolute", right: 30, bottom: -40, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
                     <div style={{ position: "relative", zIndex: 1 }}>
-                      <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: "#fff", marginBottom: 6 }}>Welcome back, {profile?.name?.split(" ")[0] || "Student"}! 👋</h2>
+                      <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: "#fff", marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                        Welcome back, {profile?.name?.split(" ")[0] || "Student"}!
+                        <Sparkles style={{ width: isMobile ? 16 : 18, height: isMobile ? 16 : 18 }} />
+                      </h2>
                       <p style={{ fontSize: isMobile ? 13 : 14, color: "rgba(255,255,255,0.85)" }}>
                         You have <strong>{upcoming.length}</strong> upcoming {upcoming.length === 1 ? "class" : "classes"} and completed <strong>{totalModules}</strong> modules so far.
                       </p>
@@ -908,7 +931,7 @@ export default function StudentDashboard() {
                           {chapterList.map((chap, i) => (
                             <div key={chap.id || i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: chap.completed ? C.emeraldLight : C.bg, border: `1px solid ${chap.completed ? C.emerald + "35" : C.border}` }}>
                               <div style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: chap.completed ? C.emerald : "#E2E8F0" }}>
-                                {chap.completed ? <span style={{ color: "#fff", fontSize: 11, fontWeight: 800 }}>✓</span> : <span style={{ color: "#94A3B8", fontSize: 10 }}>{i + 1}</span>}
+                                {chap.completed ? <Check style={{ width: 12, height: 12, color: "#fff" }} strokeWidth={3} /> : <span style={{ color: "#94A3B8", fontSize: 10 }}>{i + 1}</span>}
                               </div>
                               <p style={{ fontSize: 13, fontWeight: chap.completed ? 700 : 500, color: C.textPrimary }}>{chap.title}</p>
                             </div>
@@ -941,7 +964,9 @@ export default function StudentDashboard() {
                                 </div>
                                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                                   {data.completedChapters?.map((ch, ci) => (
-                                    <span key={ci} style={{ padding: "4px 10px", borderRadius: 20, background: C.emeraldLight, color: C.emerald, fontSize: 12, fontWeight: 600 }}>✓ {ch}</span>
+                                    <span key={ci} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 20, background: C.emeraldLight, color: C.emerald, fontSize: 12, fontWeight: 600 }}>
+                                      <Check style={{ width: 11, height: 11 }} strokeWidth={3} /> {ch}
+                                    </span>
                                   ))}
                                   {done === 0 && <p style={{ fontSize: 13, color: C.textMuted }}>No chapters completed yet</p>}
                                 </div>
@@ -965,7 +990,7 @@ export default function StudentDashboard() {
               {/*  MISSED  */}
               {activeTab === "missed" && (
                 <motion.div key="mi" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {missed.length === 0 ? <Empty icon={CheckCircle} msg="No missed classes — great work! 🎉" color={C.emerald} />
+                  {missed.length === 0 ? <Empty icon={CheckCircle} msg="No missed classes — great work!" color={C.emerald} />
                     : missed.map(cls => <ClassCard key={cls.id} cls={cls} type="missed" permanentClassLink={permanentClassLink} timezone={profile?.timezone} nextLesson={null} />)}
                 </motion.div>
               )}

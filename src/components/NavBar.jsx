@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Menu, X, Sparkles } from "lucide-react";
-import PearlxLogo from "../assets/flat_logo_dark.webp";
+import PearlxLogo from "/pearlxlogodark.webp";
 
 const navLinks = [
   { label: "Home", to: "/" },

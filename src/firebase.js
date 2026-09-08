@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 /**
  * Primary app - used by the rest of the app (this is what keeps admin logged in)
@@ -27,6 +28,8 @@ const secondaryAuth = getAuth(secondaryApp);
 
 const db = getFirestore(app);
 
+const storage = getStorage(app);
+
 const appId = "brainbugz-26b5c";
 
-export { app, auth, secondaryAuth, db, appId };
+export { app, auth, secondaryAuth, db, storage, appId };

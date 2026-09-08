@@ -11,6 +11,7 @@ import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
 import lp1 from "../assets/kids/LP1.webp";
 import bp1 from "../assets/kids/BP1.webp";
 import rp1 from "../assets/kids/RP1.webp";
+import heroimage from "../assets/kids/codinghero.webp"
 
 const LEVELS = [
   {
@@ -318,7 +319,7 @@ const ComputerScienceClasses = ({ openDemoModal }) => {
                     background: `linear-gradient(145deg, ${COLORS.cyanLight}, ${COLORS.bgPrimary})`,
                   }}
                 >
-                  <div className="absolute left-5 top-5">
+                  {/* <div className="absolute left-5 top-5">
                     <span
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black text-white"
                       style={{ background: COLORS.indigo }}
@@ -326,7 +327,7 @@ const ComputerScienceClasses = ({ openDemoModal }) => {
                       <Code2 className="w-3 h-3" />
                       CREATE MODE
                     </span>
-                  </div>
+                  </div> */}
 
                   <motion.div
                     animate={{ y: [0, -10, 0], rotate: [-1, 1, -1] }}
@@ -338,7 +339,7 @@ const ComputerScienceClasses = ({ openDemoModal }) => {
                   </motion.div>
 
                   <motion.img
-                    src={bp1}
+                    src={heroimage}
                     alt="Pearlx coding student"
                     animate={{ y: [0, -8, 0] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -346,7 +347,7 @@ const ComputerScienceClasses = ({ openDemoModal }) => {
                     style={{ filter: "drop-shadow(0 20px 24px rgba(15,23,42,0.15))" }}
                   />
 
-                  <div
+                  {/* <div
                     className="absolute left-4 bottom-4 px-3 py-2.5 rounded-2xl bg-white border"
                     style={{ borderColor: COLORS.border, boxShadow: SHADOWS.sm }}
                   >
@@ -354,15 +355,15 @@ const ComputerScienceClasses = ({ openDemoModal }) => {
                       PROJECT UNLOCKED
                     </div>
                     <div className="text-xs font-black mt-0.5">My first game 🎮</div>
-                  </div>
+                  </div> */}
 
-                  <div
+                  {/* <div
                     className="absolute right-4 bottom-4 px-3 py-2.5 rounded-2xl"
                     style={{ background: COLORS.navDark, color: COLORS.white }}
                   >
                     <div className="text-[9px] opacity-60 font-bold">LEVEL</div>
                     <div className="text-sm font-black">02 / 03</div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </motion.div>

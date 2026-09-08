@@ -12,6 +12,7 @@ import { COLORS, GRADIENTS, SHADOWS } from "../utils/theme";
 import lp1 from "../assets/kids/LP1.webp";
 import bp1 from "../assets/kids/BP1.webp";
 import rp1 from "../assets/kids/RP1.webp";
+import heroimage from "../assets/kids/mathhero.webp";
 
 const LEVELS = [
   {
@@ -365,7 +366,7 @@ const MathsClasses = ({ openDemoModal }) => {
                     background: `linear-gradient(145deg, ${COLORS.indigoLight}, ${COLORS.bgPrimary})`,
                   }}
                 >
-                  <div className="absolute left-5 top-5">
+                  {/* <div className="absolute left-5 top-5">
                     <span
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black text-white"
                       style={{ background: COLORS.indigo }}
@@ -373,18 +374,18 @@ const MathsClasses = ({ openDemoModal }) => {
                       <Sparkles className="w-3 h-3" />
                       PUZZLE MODE
                     </span>
-                  </div>
+                  </div> */}
 
-                  <motion.div
+                  {/* <motion.div
                     animate={{ y: [0, -9, 0], rotate: [-2, 2, -2] }}
                     transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
                     className="absolute right-5 top-14 w-16 h-16 rounded-2xl flex items-center justify-center bg-white border-2 rotate-6"
                     style={{ borderColor: `${COLORS.gold}35`, boxShadow: SHADOWS.sm }}
                   >
                     <span className="text-3xl">🧩</span>
-                  </motion.div>
+                  </motion.div> */}
 
-                  <motion.div
+                  {/* <motion.div
                     animate={{ y: [0, -7, 0] }}
                     transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
                     className="absolute left-5 bottom-7 w-24 h-20 rounded-2xl bg-white border-2 p-2"
@@ -396,17 +397,17 @@ const MathsClasses = ({ openDemoModal }) => {
                     <div className="text-xl font-black mt-2" style={{ color: COLORS.indigo }}>
                       8 × 7
                     </div>
-                  </motion.div>
+                  </motion.div> */}
 
                   <motion.img
-                    src={bp1}
+                    src={heroimage}
                     alt="Pearlx maths student"
                     animate={{ y: [0, -8, 0] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                     className="relative z-10 h-[78%] sm:h-[82%] max-w-[82%] object-contain"
                   />
 
-                  <div
+                  {/* <div
                     className="absolute right-5 bottom-6 rounded-2xl px-4 py-2 bg-white border-2"
                     style={{ borderColor: `${COLORS.emerald}30`, boxShadow: SHADOWS.sm }}
                   >
@@ -414,7 +415,7 @@ const MathsClasses = ({ openDemoModal }) => {
                       SOLVED!
                     </div>
                     <div className="text-xs font-black mt-0.5">Nice thinking ✓</div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </motion.div>

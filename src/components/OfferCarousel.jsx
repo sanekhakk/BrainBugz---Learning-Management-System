@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, MessageCircle, X } from "lucide-react";
+import { ArrowRight, MessageCircle } from "lucide-react";
 import { COLORS, GRADIENTS } from "../utils/theme";
 
 const WHATSAPP_LINK = "https://wa.link/2sqe3g";
@@ -33,7 +33,6 @@ const OFFERS = [
 export default function OfferCarousel() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [closed, setClosed] = useState(false);
   const timer = useRef(null);
 
   const restart = () => {
@@ -47,8 +46,6 @@ export default function OfferCarousel() {
     if (!paused) restart();
     return () => clearInterval(timer.current);
   }, [paused]);
-
-  if (closed) return null;
 
   const offer = OFFERS[active];
 
@@ -213,15 +210,6 @@ export default function OfferCarousel() {
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setClosed(true)}
-            aria-label="Close offers"
-            className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg opacity-50 transition-opacity hover:opacity-100"
-            style={{ color: COLORS.white }}
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
       </div>
     </div>

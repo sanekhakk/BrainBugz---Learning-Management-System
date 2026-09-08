@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Play, CheckCircle2, Code2, Calculator, BookOpen } from "lucide-react";
 import heroKid from "../assets/kids/heroKid.webp";
 
+
 const HeroSection = ({ openDemoModal }) => {
   const highlights = [
     { icon: Code2, label: "Coding", color: "#10B981" },
@@ -136,10 +137,10 @@ const HeroSection = ({ openDemoModal }) => {
           </motion.div>
         </div>
 
-        <div className="border-t border-slate-100 py-5 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+        {/* <div className="border-t border-slate-100 py-5 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
           <span className="font-semibold">Built for curious minds. Trusted by parents.</span>
           <span>Online • Interactive • Structured</span>
-        </div>
+        </div> */}
       </div>
     </section>
   );

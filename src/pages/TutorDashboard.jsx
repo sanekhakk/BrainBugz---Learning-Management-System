@@ -1469,7 +1469,7 @@ export default function TutorDashboard() {
                             return (
                               <div key={s.uid} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, background: C.bg, cursor: "pointer" }}
                                 onClick={() => { setSelProgress({ student: s }); setShowProgress(true); }}>
-                                <Avatar url={s.photoURL} name={s.name} size={36} fontSize={14} />
+                                <Avatar url={s.photoURL} name={s.name} size={100} fontSize={50} />
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>{s.name}</p>
                                   <p style={{ fontSize: 11, color: catInfo?.color || C.textMuted }}>{catInfo ? catInfo.label : `Grade ${s.classLevel}`}</p>
@@ -1510,7 +1510,7 @@ export default function TutorDashboard() {
                 ) : (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 18 }}>
                     {loadingStudents
-                      ? <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", padding: 60 }}><Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
+                      ? <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center" }}><Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
                       : students.length === 0 ? <div style={{ gridColumn: "1/-1" }}><Empty icon={Users} msg="No students assigned yet" /></div>
                       : students.map(s => {
                         const effCourse = getEffectiveCourse(s);
@@ -1525,10 +1525,10 @@ export default function TutorDashboard() {
                           <motion.button key={s.uid} onClick={() => setSelectedStudentId(s.uid)}
                             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                             whileHover={{ y: -4, boxShadow: C.shadowHover }} whileTap={{ scale: 0.98 }}
-                            style={{ aspectRatio: "1 / 1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 20, cursor: "pointer", textAlign: "center", boxShadow: C.shadowCard, fontFamily: "inherit" }}>
-                            <Avatar url={s.photoURL} name={s.name} size={56} fontSize={22} />
-                            <p style={{ fontWeight: 800, fontSize: 15, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{s.name}</p>
-                            <p style={{ fontSize: 12, color: C.textMuted }}>Class {s.classLevel || s.grade || "\u2014"}</p>
+                            style={{ aspectRatio: "2 / 1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 20, cursor: "pointer", textAlign: "center", boxShadow: C.shadowCard, fontFamily: "inherit" }}>
+                            <Avatar url={s.photoURL} name={s.name} size={150} fontSize={22} />
+                            <p style={{ fontWeight: 800, fontSize: 20, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{s.name}</p>
+                            <p style={{ fontSize: 15, color: C.textMuted }}>Class {s.classLevel || s.grade || "\u2014"}</p>
                             <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20, background: C.indigoLight, color: C.indigo, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{categoryLabel}</span>
                           </motion.button>
                         );

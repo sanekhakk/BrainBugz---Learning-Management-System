@@ -10,6 +10,7 @@ import {
   where,
   getDoc,
   getDocs,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import {
@@ -18,9 +19,10 @@ import {
   Bell, Home, BarChart2, Star, Menu, X, ChevronDown, ChevronRight,
   Zap, BookMarked, GraduationCap, Play, PlayCircle, FileText, Receipt,
   Image as ImageIcon, Link as LinkIcon, ClipboardCheck, AlertTriangle,
-  Check, Sparkles,
+  Check, Sparkles, Camera,
 } from "lucide-react";
 import { CATEGORIES, MODULE_ICON, getEffectiveCourse } from "../utils/curriculumData";
+import { DEFAULT_AVATARS, resolveAvatarUrl } from "../utils/defaultAvatars";
 import { getProgressRef } from "../utils/paths";
 import { getDisplayTime } from "../utils/timeUtils";
 import PearlxLogo from "../assets/flat_logo.webp";
@@ -81,6 +83,99 @@ const StatCard = ({ icon: Icon, label, value, light, iconColor }) => (
     <div style={{ fontSize: 12, color: C.textMuted, fontWeight: 500, marginTop: 4 }}>{label}</div>
   </motion.div>
 );
+
+// Circular avatar — shows the student's profile photo cropped to a circle
+// (overflow:hidden + border-radius:50% clips away any square canvas the
+// photo was exported with, leaving only the circular content), or falls
+// back to an initial on a gradient background when no photo is set.
+const Avatar = ({ url, name, size = 44, fontSize }) => {
+  const resolvedUrl = resolveAvatarUrl(url);
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+      background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center",
+      color: "#fff", fontWeight: 800, fontSize: fontSize || Math.round(size * 0.42),
+    }}>
+      {resolvedUrl ? (
+        <img src={resolvedUrl} alt={name || "avatar"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      ) : (
+        name?.charAt(0)?.toUpperCase() || "S"
+      )}
+    </div>
+  );
+};
+
+// Edit-profile modal — intentionally scoped to ONLY the profile photo, and
+// only to picking from the bundled default-avatar gallery. There is no
+// upload-from-device option here — students choose among the images in
+// src/assets/avatars/, the same set an admin can assign.
+const AvatarEditModal = ({ userId, currentAvatarId, name, onClose, onSaved }) => {
+  const [selected, setSelected] = useState(currentAvatarId || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSave = async () => {
+    if (!selected || selected === currentAvatarId) { onClose(); return; }
+    setSaving(true);
+    setError(null);
+    try {
+      await updateDoc(doc(db, "userSummaries", userId), { photoURL: selected });
+      onSaved(selected);
+      onClose();
+    } catch (e) {
+      setError(e.message || "Could not save your selection.");
+    }
+    setSaving(false);
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(8px)" }}
+      onClick={onClose}>
+      <motion.div initial={{ scale: 0.94, y: 16 }} animate={{ scale: 1, y: 0 }}
+        style={{ background: C.card, borderRadius: 24, width: "100%", maxWidth: 400, padding: 28, boxShadow: "0 24px 64px rgba(15,23,42,0.18)" }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>Choose Profile Photo</h3>
+          <button onClick={onClose} style={{ background: C.bg, border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            <X style={{ width: 16, height: 16, color: C.textMuted }} />
+          </button>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+          <Avatar url={selected} name={name} size={100} fontSize={38} />
+        </div>
+
+        {DEFAULT_AVATARS.length === 0 ? (
+          <p style={{ fontSize: 12, color: C.textMuted, textAlign: "center", padding: "12px 0" }}>No avatars are available yet — check back soon!</p>
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, marginBottom: 20 }}>
+            {DEFAULT_AVATARS.map(av => {
+              const isSelected = selected === av.id;
+              return (
+                <motion.button key={av.id} type="button" onClick={() => setSelected(av.id)} whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
+                  style={{
+                    width: 56, height: 56, borderRadius: "50%", overflow: "hidden", padding: 0, cursor: "pointer", flexShrink: 0,
+                    border: isSelected ? `3px solid ${C.emerald}` : `2px solid ${C.border}`,
+                    boxShadow: isSelected ? `0 0 0 3px ${C.emeraldLight}` : "none", background: C.bg, transition: "all 0.15s",
+                  }}>
+                  <img src={av.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                </motion.button>
+              );
+            })}
+          </div>
+        )}
+
+        {error && <div style={{ background: C.redLight, borderRadius: 12, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: C.red, textAlign: "center" }}>{error}</div>}
+
+        <button onClick={handleSave} disabled={saving || !selected}
+          style={{ width: "100%", padding: 13, borderRadius: 14, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 14, cursor: (saving || !selected) ? "default" : "pointer", opacity: (saving || !selected) ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          {saving ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : "Save Photo"}
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 // Helper: get the next lesson to cover from progress data 
 function getNextLessonLabel(modules, lessonProgressMap) {
@@ -493,6 +588,7 @@ export default function StudentDashboard() {
   const [activeTab, setActiveTab]     = useState("overview");
   const [isMobile, setIsMobile]       = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showAvatarEdit, setShowAvatarEdit] = useState(false);
   // Curriculum & lesson state for next-lesson chips
   const [currModules, setCurrModules]         = useState([]);  // for coding students
   const [lessonProgressMap, setLessonProgress] = useState({}); // { key: status }
@@ -626,9 +722,14 @@ export default function StudentDashboard() {
 
       <div style={{ padding: "16px 14px", borderBottom: `1px solid ${C.border}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 13, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 17, flexShrink: 0 }}>
-            {profile?.name?.charAt(0) || "S"}
-          </div>
+          <button onClick={() => setShowAvatarEdit(true)}
+            style={{ position: "relative", background: "none", border: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}
+            title="Edit profile photo">
+            <Avatar url={profile?.photoURL} name={profile?.name} size={42} />
+            <span style={{ position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: "50%", background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff" }}>
+              <Camera style={{ width: 9, height: 9, color: "#fff" }} />
+            </span>
+          </button>
           <div style={{ minWidth: 0 }}>
             <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile?.name || "Student"}</p>
             <p style={{ fontSize: 12, color: C.textMuted }}>{profile?.customId || ""} · Student</p>
@@ -727,9 +828,7 @@ export default function StudentDashboard() {
                 <Bell style={{ width: 14, height: 14, color: C.indigo }} />
               </div>
             )}
-            <div style={{ width: 36, height: 36, borderRadius: 11, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 15 }}>
-              {profile?.name?.charAt(0) || "S"}
-            </div>
+            <Avatar url={profile?.photoURL} name={profile?.name} size={36} fontSize={15} />
           </div>
         </div>
 
@@ -1005,6 +1104,18 @@ export default function StudentDashboard() {
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {showAvatarEdit && (
+          <AvatarEditModal
+            userId={userId}
+            currentAvatarId={profile?.photoURL}
+            name={profile?.name}
+            onClose={() => setShowAvatarEdit(false)}
+            onSaved={(avatarId) => setProfile(prev => prev ? { ...prev, photoURL: avatarId } : prev)}
+          />
+        )}
+      </AnimatePresence>
 
       <style>{`
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PlusCircle, Loader2, XCircle, X, CheckCircle, ArrowLeft, Info } from "lucide-react";
 import { TIMEZONES } from "../utils/timeUtils";
 import { COURSES, CATEGORIES } from "../utils/curriculumData";
+import { DEFAULT_AVATARS, resolveAvatarUrl } from "../utils/defaultAvatars";
 
 const C = {
   bg: "#F4F6FB", card: "#FFFFFF", border: "#E5E9F2",
@@ -234,6 +235,65 @@ const AssignmentRow = ({ assignment, onRemove, index }) => (
   </motion.div>
 );
 
+// ---------------------------------------------------------------------
+// Profile photo — admins (and, elsewhere in the app, students) can only
+// choose from the bundled default-avatar gallery in src/assets/avatars/.
+// There is no upload-from-device option anywhere; the list of choices is
+// defined entirely by which images live in that folder (see
+// src/utils/defaultAvatars.js).
+// ---------------------------------------------------------------------
+
+// Circular preview — crops any square source image to a circle (clips
+// away white/transparent canvas margins) via overflow:hidden + 50% radius.
+const AvatarPreview = ({ avatarId, size = 72 }) => {
+  const url = resolveAvatarUrl(avatarId);
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: C.bg, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {url ? (
+        <img src={url} alt="avatar preview" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      ) : (
+        <span style={{ fontSize: 11, color: C.textMuted }}>No photo</span>
+      )}
+    </div>
+  );
+};
+
+// Preset gallery — click a thumbnail to select it as the avatar.
+const AvatarPicker = ({ value, onChange }) => (
+  <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+    {DEFAULT_AVATARS.length === 0 ? (
+      <p style={{ fontSize: 12, color: C.textMuted }}>
+        No avatars available yet — add PNG/JPG/WebP images to <code>src/assets/avatars/</code> to populate this gallery.
+      </p>
+    ) : DEFAULT_AVATARS.map(av => {
+      const selected = value === av.id;
+      return (
+        <motion.button key={av.id} type="button" onClick={() => onChange(av.id)} whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
+          style={{
+            width: 58, height: 58, borderRadius: "50%", overflow: "hidden", padding: 0, cursor: "pointer", flexShrink: 0,
+            border: selected ? `3px solid ${C.emerald}` : `2px solid ${C.border}`,
+            boxShadow: selected ? `0 0 0 3px ${C.emerald}25` : "none", background: C.bg, transition: "all 0.15s",
+          }}>
+          <img src={av.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        </motion.button>
+      );
+    })}
+  </div>
+);
+
+// Full profile-photo field used in both Register and Edit forms — a live
+// circular preview plus the picker gallery. Nothing here ever accepts a
+// file from the admin's own device.
+const AvatarField = ({ value, onChange, label = "Default Avatar" }) => (
+  <div style={{ gridColumn: "1 / -1", display: "flex", gap: 16, alignItems: "flex-start", padding: 16, borderRadius: 14, background: C.bg, border: `1px solid ${C.border}` }}>
+    <AvatarPreview avatarId={value} size={72} />
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <label style={{ fontSize: 12, fontWeight: 700, color: C.textSecondary, display: "block", marginBottom: 8 }}>{label}</label>
+      <AvatarPicker value={value} onChange={onChange} />
+    </div>
+  </div>
+);
+
 export function RegistrationPanel({ form, regRole, regStatus, regLoading, handleFormChange, setRegRole, setActiveView, setRegStatus, tutors, setForm, initialFormState, adminRegisterUser, setRegLoading }) {
   const [currentSubjectInput, setCurrentSubjectInput] = useState("");
   const [selectedTutor, setSelectedTutor]             = useState({ id: "", name: "" });
@@ -242,6 +302,7 @@ export function RegistrationPanel({ form, regRole, regStatus, regLoading, handle
   const [studentCourse, setStudentCourse]             = useState("");
   const [studentCategory, setStudentCategory]         = useState("");
   const [tutorTypes, setTutorTypes]                   = useState([]);
+  const [selectedPhoto, setSelectedPhoto]             = useState(DEFAULT_AVATARS[0]?.id || "");
 
   const isTieredCourse = studentCourse === "coding" || studentCourse === "math";
 
@@ -296,6 +357,7 @@ export function RegistrationPanel({ form, regRole, regStatus, regLoading, handle
     const finalForm = {
       ...Object.fromEntries(Object.entries(form).map(([k, v]) => typeof v === "string" ? [k, v.trim()] : [k, v])),
       role: regRole,
+      photoURL: selectedPhoto,
       // Student fields
       course: regRole === "student" ? studentCourse : "",
       category: regRole === "student" ? (isTieredCourse ? studentCategory : "") : "",
@@ -314,7 +376,7 @@ export function RegistrationPanel({ form, regRole, regStatus, regLoading, handle
       if (res?.success) {
         setRegStatus({ ok: true, msg: res.message || `${regRole} created successfully!` });
         setAssignedSubjects([]); setCurrentSubjectInput(""); setSelectedTutor({ id: "", name: "" });
-        setStudentCourse(""); setStudentCategory(""); setTutorTypes([]);
+        setStudentCourse(""); setStudentCategory(""); setTutorTypes([]); setSelectedPhoto(DEFAULT_AVATARS[0]?.id || "");
         setForm(initialFormState);
         setTimeout(() => { setRegStatus(null); setActiveView("list"); }, 1200);
       } else {
@@ -333,7 +395,7 @@ export function RegistrationPanel({ form, regRole, regStatus, regLoading, handle
       {/* Role toggle */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, padding: 4, background: C.bg, borderRadius: 14, border: `1px solid ${C.border}` }}>
         {["student", "tutor"].map(r => (
-          <button key={r} type="button" onClick={() => { setRegRole(r); setForm(initialFormState); setAssignedSubjects([]); setStudentCourse(""); setStudentCategory(""); setTutorTypes([]); }}
+          <button key={r} type="button" onClick={() => { setRegRole(r); setForm(initialFormState); setAssignedSubjects([]); setStudentCourse(""); setStudentCategory(""); setTutorTypes([]); setSelectedPhoto(DEFAULT_AVATARS[0]?.id || ""); }}
             style={{ flex: 1, padding: "10px", borderRadius: 12, border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer",
               background: regRole === r ? C.gradPrimary : "transparent",
               color: regRole === r ? "#fff" : C.textMuted, transition: "all 0.2s" }}>
@@ -347,6 +409,8 @@ export function RegistrationPanel({ form, regRole, regStatus, regLoading, handle
       <form onSubmit={handleSubmit}>
         {/* Basic fields */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <AvatarField value={selectedPhoto} onChange={setSelectedPhoto} label="Choose a Default Avatar" />
+
           <TextInput label="Full Name" name="name" value={form.name} onChange={handleFormChange} required />
           <TextInput label="Email Address" name="email" value={form.email} onChange={handleFormChange} type="email" required />
           <TextInput label="Temporary Password" name="password" value={form.password} onChange={handleFormChange} type="password" required />
@@ -420,7 +484,7 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
     subjects = [], qualifications = "", hourlyRate = "", permanentClassLink = "",
     assignments: initialAssignments = [], syllabus = "",
     category: initialCategory = "", grade: initialGrade = "",
-    course: initialCourseRaw = "",
+    course: initialCourseRaw = "", photoURL: initialPhotoURL = "",
     tutorTypes: initialTutorTypes = [] } = user;
 
   // Back-fill `course` for students saved before this field existed
@@ -439,6 +503,7 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
   const [studentCourse, setStudentCourse]             = useState(initialCourse);
   const [studentCategory, setStudentCategory]         = useState(initialCategory);
   const [tutorTypes, setTutorTypes]                   = useState(initialTutorTypes);
+  const [selectedPhoto, setSelectedPhoto]             = useState(initialPhotoURL || DEFAULT_AVATARS[0]?.id || "");
   const isTieredCourse = studentCourse === "coding" || studentCourse === "math";
   const [assignedSubjects, setAssignedSubjects]       = useState(initialAssignments);
   const [currentSubjectInput, setCurrentSubjectInput] = useState("");
@@ -475,6 +540,7 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
     const tutorSubjectsArray = form.tutorSubjectsString ? form.tutorSubjectsString.split(",").map(s => s.trim()).filter(Boolean) : [];
     const finalForm = {
       ...form, role,
+      photoURL: selectedPhoto,
       course: role === "student" ? studentCourse : "",
       category: role === "student" ? (isTieredCourse ? studentCategory : "") : "",
       classLevel: role === "student" ? form.grade : form.classLevel,
@@ -508,6 +574,8 @@ export function EditUserPanel({ user, setActiveView, tutors, adminUpdateUser }) 
 
       <form onSubmit={handleSubmit}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <AvatarField value={selectedPhoto} onChange={setSelectedPhoto} label="Default Avatar" />
+
           <TextInput label="Full Name" name="name" value={form.name} onChange={handleFormChange} required />
           <TextInput label="Email (Read-only)" name="email" value={form.email} readOnly disabled />
           <TextInput label="Contact Number" name="contactNumber" value={form.contactNumber} onChange={handleFormChange} required />

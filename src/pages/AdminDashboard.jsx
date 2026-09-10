@@ -14,6 +14,7 @@ import { RegistrationPanel, EditUserPanel } from "./AdminDashboard_Part2";
 import { StudentSelectionView, ClassSchedulingForm } from "./AdminDashboard_Part3";
 import { CurriculumManager } from "./AdminDashboard_Part5";
 import { ClassesOverview } from "./AdminDashboard_Part4";
+import { resolveAvatarUrl } from "../utils/defaultAvatars";
 import PearlxLogo from "../assets/flat_logo.webp";
 
 // Design Tokens (same as Tutor/Student)
@@ -189,8 +190,19 @@ function UserList({ users, isLoadingUsers, userError, setActiveView, adminDelete
                       <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: b.bg, color: b.color }}>{b.label}</span>
                     </td>
                     <td style={{ padding: "14px 18px" }}>
-                      <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary }}>{u.name}</p>
-                      <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{u.customId || "—"}</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {resolveAvatarUrl(u.photoURL) ? (
+                            <img src={resolveAvatarUrl(u.photoURL)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                          ) : (
+                            <span style={{ color: "#fff", fontWeight: 800, fontSize: 13 }}>{u.name?.charAt(0)?.toUpperCase() || "?"}</span>
+                          )}
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary }}>{u.name}</p>
+                          <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{u.customId || "—"}</p>
+                        </div>
+                      </div>
                     </td>
                     <td style={{ padding: "14px 18px", fontSize: 13, color: C.textSecondary }}>{u.email}</td>
                     <td style={{ padding: "14px 18px", fontSize: 12, color: C.textMuted }}>

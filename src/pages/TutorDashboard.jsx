@@ -12,10 +12,12 @@ import {
   Home, BarChart2, Bell, Award, Phone, BookOpen, ChevronDown, ChevronRight,
   GraduationCap, Play, PlayCircle, Zap, FileText, Check, AlertTriangle,
   RefreshCw, CheckCircle2, Link as LinkIcon, Image as ImageIcon, ClipboardCheck,
+  ChevronLeft,
 } from "lucide-react";
 import { getProgressRef } from "../utils/paths";
 import { getDisplayTime } from "../utils/timeUtils";
 import { CATEGORIES, COURSES, MODULE_ICON, getEffectiveCourse } from "../utils/curriculumData";
+import { resolveAvatarUrl } from "../utils/defaultAvatars";
 import PearlxLogo from "../assets/flat_logo.webp";
 import TutorNotesSection from "./TutorNotesSection";
 
@@ -85,6 +87,26 @@ const StatCard = ({ icon: Icon, label, value, light, iconColor, onClick, badge }
     <div style={{ fontSize: 12, color: C.textMuted, fontWeight: 500, marginTop: 4 }}>{label}</div>
   </motion.div>
 );
+
+// Read-only circular avatar for students — shows their profile photo cropped
+// to a circle (overflow:hidden + border-radius:50% clips away any square
+// canvas margin), or falls back to an initial on a gradient background.
+const Avatar = ({ url, name, size = 44, fontSize, radius }) => {
+  const resolvedUrl = resolveAvatarUrl(url);
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: radius ?? "50%", overflow: "hidden", flexShrink: 0,
+      background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center",
+      color: "#fff", fontWeight: 800, fontSize: fontSize || Math.round(size * 0.42),
+    }}>
+      {resolvedUrl ? (
+        <img src={resolvedUrl} alt={name || "avatar"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      ) : (
+        name?.charAt(0)?.toUpperCase() || "S"
+      )}
+    </div>
+  );
+};
 
 const SideNavItem = ({ tab, active, onClick }) => (
   <motion.button onClick={onClick} whileTap={{ scale: 0.97 }}
@@ -505,9 +527,7 @@ const ProgressUpdateModal = ({ student, onClose }) => {
             </button>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 13, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 17, flexShrink: 0 }}>
-              {student.name?.charAt(0)}
-            </div>
+            <Avatar url={student.photoURL} name={student.name} size={40} fontSize={17} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary }}>{student.name}</p>
               <p style={{ fontSize: 12, color: C.textMuted }}>{student.customId} · Grade {student.classLevel || student.grade}</p>
@@ -872,19 +892,46 @@ const tierColorTutor = {
   rising_pearls: { bg: "#EFF6FF", border: "#60A5FA", text: "#2563EB", light: "#BFDBFE" },
 };
 
-function TutorStudentCurriculumModules({ course, category }) {
+// Lesson banner thumbnail — uses a padding-top box (not just CSS aspect-ratio,
+// which some webviews/older browsers ignore and collapse to 0 height) and
+// falls back to the placeholder icon if the image URL 404s / fails to load.
+const LessonBanner = ({ url, alt, iconColor, bg }) => {
+  const [failed, setFailed] = useState(false);
+  const showImage = !!url && !failed;
+  return (
+    <div style={{ width: "100%", position: "relative", overflow: "hidden", paddingTop: "56.25%", background: bg }}>
+      <div style={{ position: "absolute", inset: 0 }}>
+        {showImage ? (
+          <img
+            src={url}
+            alt={alt}
+            onError={() => setFailed(true)}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ImageIcon style={{ width: 20, height: 20, color: iconColor, opacity: 0.35 }} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+function TutorStudentCurriculumModules({ course, category, isMobile }) {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
+  // All modules start closed — nothing pre-expanded.
   const [expanded, setExpanded] = useState({});
 
   useEffect(() => {
     if (!course || !category) { setLoading(false); return; }
     setLoading(true);
+    setExpanded({});
     const q = query(collection(db, "curriculum"), where("course", "==", course), where("category", "==", category));
     const unsub = onSnapshot(q, snap => {
       const mods = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.moduleNumber - b.moduleNumber);
       setModules(mods);
-      if (mods.length > 0) setExpanded({ [mods[0].id]: true });
       setLoading(false);
     }, () => setLoading(false));
     return () => unsub();
@@ -900,54 +947,48 @@ function TutorStudentCurriculumModules({ course, category }) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {modules.map(mod => {
-        const isOpen = expanded[mod.id];
+        const isOpen = !!expanded[mod.id];
         const lessons = (mod.lessons || []).slice().sort((a, b) => a.lessonNumber - b.lessonNumber);
         return (
-          <div key={mod.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
+          <div key={mod.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>
+            {/* Module header — closed by default, click to drop down lessons */}
             <div onClick={() => setExpanded(p => ({ ...p, [mod.id]: !p[mod.id] }))}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <MODULE_ICON style={{ width: 16, height: 16, color: col.text }} />
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", cursor: "pointer", userSelect: "none" }}>
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: col.bg, border: `1px solid ${col.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <MODULE_ICON style={{ width: 18, height: 18, color: col.text }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 800, fontSize: 13, color: C.textPrimary }}>Module {mod.moduleNumber}: {mod.moduleName}</p>
-                <p style={{ fontSize: 11, color: C.textMuted }}>{lessons.length} lesson{lessons.length !== 1 ? "s" : ""}</p>
+                <p style={{ fontWeight: 800, fontSize: 14, color: C.textPrimary }}>Module {mod.moduleNumber}: {mod.moduleName}</p>
+                <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{lessons.length} lesson{lessons.length !== 1 ? "s" : ""}</p>
               </div>
-              {isOpen ? <ChevronDown style={{ width: 15, height: 15, color: C.textMuted }} /> : <ChevronRight style={{ width: 15, height: 15, color: C.textMuted }} />}
+              {isOpen ? <ChevronDown style={{ width: 18, height: 18, color: C.textMuted }} /> : <ChevronRight style={{ width: 18, height: 18, color: C.textMuted }} />}
             </div>
             <AnimatePresence>
               {isOpen && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
-                  <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 14px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
+                  {/* Each lesson: medium-size row — banner thumbnail on the left, lesson info on the right */}
+                  <div style={{ borderTop: `1px solid ${C.border}`, padding: 14, display: "flex", flexDirection: "column", gap: 12, background: C.bg }}>
                     {lessons.length === 0 ? (
-                      <p style={{ fontSize: 12, color: C.textMuted, textAlign: "center", padding: "6px 0", gridColumn: "1 / -1" }}>No lessons yet</p>
+                      <p style={{ fontSize: 12, color: C.textMuted, textAlign: "center", padding: "10px 0" }}>No lessons yet</p>
                     ) : lessons.map(lesson => (
-                      <div key={lesson.id} style={{ borderRadius: 12, background: C.bg, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                        {/* Banner image — 16:9, responsive via object-fit: cover */}
-                        <div style={{ width: "100%", aspectRatio: "16 / 9", background: col.light, position: "relative", overflow: "hidden" }}>
-                          {lesson.bannerImageUrl ? (
-                            <img src={lesson.bannerImageUrl} alt={lesson.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                          ) : (
-                            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <ImageIcon style={{ width: 20, height: 20, color: col.text, opacity: 0.35 }} />
-                            </div>
-                          )}
-                          <div style={{ position: "absolute", top: 6, left: 6, width: 20, height: 20, borderRadius: 6, background: "rgba(15,23,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff" }}>
-                            {lesson.lessonNumber}
-                          </div>
+                      <div key={lesson.id} style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", gap: isMobile ? 10 : 16, borderRadius: 14, background: C.card, border: `1px solid ${C.border}`, padding: 12 }}>
+                        {/* Medium-size banner thumbnail — full width on top for mobile, fixed width on the left for desktop */}
+                        <div style={{ width: isMobile ? "100%" : 220, flexShrink: 0, borderRadius: 10, overflow: "hidden" }}>
+                          <LessonBanner url={lesson.bannerImageUrl} alt={lesson.title} iconColor={col.text} bg={col.light} />
                         </div>
-                        <div style={{ padding: "9px 11px" }}>
-                          <p style={{ fontWeight: 700, fontSize: 12, color: C.textPrimary, marginBottom: 4 }}>{lesson.title}</p>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, marginBottom: 4 }}>Lesson {lesson.lessonNumber}</p>
+                          <p style={{ fontWeight: 800, fontSize: 16, color: C.textPrimary, marginBottom: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lesson.title}</p>
                           {lesson.teacherResourceLink ? (
                             <a href={lesson.teacherResourceLink} target="_blank" rel="noopener noreferrer"
-                              style={{ fontSize: 11, color: C.emeraldDark, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
-                              <LinkIcon style={{ width: 10, height: 10 }} /> Teacher Resource
-                              <ArrowRight style={{ width: 10, height: 10 }} />
+                              style={{ fontSize: 13, color: C.emeraldDark, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}>
+                              <LinkIcon style={{ width: 13, height: 13 }} /> Teacher Resource
+                              <ArrowRight style={{ width: 13, height: 13 }} />
                             </a>
                           ) : (
-                            <p style={{ fontSize: 10, color: C.textMuted }}>No teacher resource shared yet</p>
+                            <p style={{ fontSize: 12, color: C.textMuted }}>No teacher resource shared yet</p>
                           )}
                         </div>
                       </div>
@@ -963,68 +1004,108 @@ function TutorStudentCurriculumModules({ course, category }) {
   );
 }
 
-function TutorStudentCurriculumView({ students }) {
-  const eligibleStudents = students.filter(s => {
-    const c = getEffectiveCourse(s);
-    return (c === "coding" || c === "math") && s.category;
-  });
-  const [selectedId, setSelectedId] = useState(eligibleStudents[0]?.uid || null);
+// Read-only chapter list for Academic Tuition / Courses students (no banners —
+// this course type has never used the banner-based module/lesson structure).
+function TutorStudentChapterListReadOnly({ studentUid }) {
+  const [chapters, setChapters] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!selectedId && eligibleStudents.length > 0) setSelectedId(eligibleStudents[0].uid);
-  }, [eligibleStudents, selectedId]);
+    setLoading(true);
+    const unsub = onSnapshot(doc(db, "studentChapters", studentUid), snap => {
+      const data = snap.exists() ? snap.data() : { chapters: [] };
+      setChapters((data.chapters || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0)));
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => unsub();
+  }, [studentUid]);
 
-  const selected = eligibleStudents.find(s => s.uid === selectedId);
-  const selCourse = selected ? getEffectiveCourse(selected) : null;
-  const selCourseInfo = COURSES.find(c => c.value === selCourse);
-
-  if (eligibleStudents.length === 0) {
-    return (
-      <div style={{ textAlign: "center", padding: "60px 20px", background: C.card, borderRadius: 16, border: `1px solid ${C.border}` }}>
-        <BookOpen style={{ width: 36, height: 36, color: C.textMuted, opacity: 0.4, margin: "0 auto 12px" }} />
-        <p style={{ fontSize: 13, color: C.textMuted }}>None of your assigned students are enrolled in Coding or Math yet.</p>
-      </div>
-    );
+  if (loading) {
+    return <div style={{ display: "flex", justifyContent: "center", padding: 30 }}><Loader2 style={{ width: 22, height: 22, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>;
+  }
+  if (chapters.length === 0) {
+    return <p style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "20px 0" }}>No chapters assigned yet for this student.</p>;
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16 }}>
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", height: "fit-content" }}>
-        <div style={{ padding: 12, borderBottom: `1px solid ${C.border}`, background: C.bg }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase" }}>Your Students</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {chapters.map((chap, i) => (
+        <div key={chap.id || i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 12, background: chap.completed ? C.emeraldLight : C.card, border: `1px solid ${chap.completed ? C.emerald + "35" : C.border}` }}>
+          <div style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: chap.completed ? C.emerald : "#E2E8F0" }}>
+            {chap.completed ? <Check style={{ width: 13, height: 13, color: "#fff" }} strokeWidth={3} /> : <span style={{ color: "#94A3B8", fontSize: 11 }}>{i + 1}</span>}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 13, fontWeight: chap.completed ? 700 : 500, color: C.textPrimary }}>{chap.title}</p>
+            {chap.content && <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{chap.content}</p>}
+          </div>
+          {chap.completed && <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald, flexShrink: 0 }}>Done</span>}
         </div>
-        <div style={{ maxHeight: 560, overflowY: "auto" }}>
-          {eligibleStudents.map(s => {
-            const c = getEffectiveCourse(s);
-            const cInfo = COURSES.find(co => co.value === c);
-            const CIcon = cInfo?.icon;
-            const catInfo = CATEGORIES.find(cat => cat.value === s.category);
-            return (
-              <button key={s.uid} onClick={() => setSelectedId(s.uid)}
-                style={{ width: "100%", padding: "12px 14px", borderBottom: `1px solid ${C.border}`, background: selectedId === s.uid ? C.indigoLight : "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
-                <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>{s.name}</p>
-                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
-                  {CIcon && <CIcon style={{ width: 11, height: 11 }} />} {cInfo?.label} · {catInfo?.label || s.category}
-                </p>
-              </button>
-            );
-          })}
+      ))}
+    </div>
+  );
+}
+
+// Student detail page — shown after clicking a student's square box in the
+// Students tab. Shows student details plus their full curriculum (modules
+// closed by default, each lesson in its own large div with banner).
+function TutorStudentDetailPage({ student, onBack, onOpenProgress, isMobile }) {
+  const effCourse = getEffectiveCourse(student);
+  const isTiered = effCourse === "coding" || effCourse === "math";
+  const courseInfo = COURSES.find(c => c.value === effCourse);
+  const tierInfo = CATEGORIES.find(c => c.value === student.category);
+  const categoryLabel = !courseInfo
+    ? "Uncategorized"
+    : effCourse === "academic_tuition"
+    ? courseInfo.label
+    : (tierInfo ? `${courseInfo.label} \u2022 ${tierInfo.label}` : courseInfo.label);
+  const catInfo = catLabel[student.category];
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+      <button onClick={onBack}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.textSecondary, fontWeight: 700, fontSize: 13, marginBottom: 18, padding: "8px 4px" }}>
+        <ChevronLeft style={{ width: 16, height: 16 }} /> Back to Students
+      </button>
+
+      {/* Student header card */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 22, boxShadow: C.shadowCard, marginBottom: 22, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16 }}>
+        <Avatar url={student.photoURL} name={student.name} size={64} fontSize={26} />
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <p style={{ fontWeight: 800, fontSize: 18, color: C.textPrimary }}>{student.name}</p>
+          <p style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{student.customId} &middot; Class {student.classLevel || student.grade || "\u2014"}</p>
         </div>
+        <span style={{ padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: catInfo?.bg || C.indigoLight, color: catInfo?.color || C.indigo, flexShrink: 0 }}>
+          {categoryLabel}
+        </span>
+        <button onClick={onOpenProgress}
+          style={{ padding: "10px 16px", borderRadius: 12, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <BookOpen style={{ width: 15, height: 15 }} /> Curriculum &amp; Progress
+        </button>
       </div>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16 }}>
-        {!selected ? (
-          <p style={{ textAlign: "center", color: C.textMuted, padding: 40 }}>Select a student</p>
+      {/* Subjects */}
+      {(student.assignments || []).length > 0 && (
+        <div style={{ marginBottom: 22 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Subjects</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {(student.assignments || []).map((a, i) => (
+              <span key={i} style={{ padding: "6px 14px", borderRadius: 20, background: C.bg, border: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.textSecondary }}>{a.subject}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Curriculum */}
+      <div>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary, display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <BookOpen style={{ width: 16, height: 16, color: C.emerald }} /> Curriculum
+        </h3>
+        {isTiered && student.category ? (
+          <TutorStudentCurriculumModules course={effCourse} category={student.category} isMobile={isMobile} />
+        ) : effCourse === "academic_tuition" ? (
+          <TutorStudentChapterListReadOnly studentUid={student.uid} />
         ) : (
-          <>
-            <div style={{ marginBottom: 14 }}>
-              <p style={{ fontWeight: 800, fontSize: 15, color: C.textPrimary }}>{selected.name}'s Curriculum</p>
-              <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
-                {selCourseInfo?.icon && <selCourseInfo.icon style={{ width: 12, height: 12 }} />} {selCourseInfo?.label} · {CATEGORIES.find(c => c.value === selected.category)?.label}
-              </p>
-            </div>
-            <TutorStudentCurriculumModules course={selCourse} category={selected.category} />
-          </>
+          <p style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "20px 0" }}>No curriculum available &mdash; this student has no category assigned yet.</p>
         )}
       </div>
     </motion.div>
@@ -1053,6 +1134,7 @@ export default function TutorDashboard() {
   const [selProgress, setSelProgress]       = useState(null);
   const [isMobile, setIsMobile]             = useState(false);
   const [sidebarOpen, setSidebarOpen]       = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -1179,14 +1261,13 @@ export default function TutorDashboard() {
   const tabs = [
     { id: "overview",      label: "Overview",         icon: Home },
     { id: "students",      label: "My Students",      icon: Users,      count: students.length },
-    { id: "curriculum",    label: "Student Curriculum", icon: BookOpen },
     { id: "activeClasses", label: "Active Classes",   icon: Calendar,   count: activeClasses.length },
     { id: "history",       label: "Class History",    icon: BarChart2 },
     { id: "progress",      label: "Progress Tracker", icon: TrendingUp },
     { id: "notes",         label: "Notes",            icon: FileText },
   ];
 
-  const handleTabChange = (tabId) => { setActiveTab(tabId); setSidebarOpen(false); };
+  const handleTabChange = (tabId) => { setActiveTab(tabId); setSidebarOpen(false); setSelectedStudentId(null); };
 
   const SidebarContent = () => (
     <>
@@ -1364,7 +1445,7 @@ export default function TutorDashboard() {
                             return (
                               <div key={s.uid} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, background: C.bg, cursor: "pointer" }}
                                 onClick={() => { setSelProgress({ student: s }); setShowProgress(true); }}>
-                                <div style={{ width: 36, height: 36, borderRadius: 10, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{s.name?.charAt(0)}</div>
+                                <Avatar url={s.photoURL} name={s.name} size={36} fontSize={14} />
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <p style={{ fontWeight: 700, fontSize: 13, color: C.textPrimary }}>{s.name}</p>
                                   <p style={{ fontSize: 11, color: catInfo?.color || C.textMuted }}>{catInfo ? catInfo.label : `Grade ${s.classLevel}`}</p>
@@ -1387,96 +1468,51 @@ export default function TutorDashboard() {
             {activeTab === "notes" && <TutorNotesSection />}
 
             {activeTab === "students" && (
-              <motion.div key="st" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 16 }}>
-                {loadingStudents
-                  ? <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", padding: 60 }}><Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
-                  : studentsWP.length === 0 ? <div style={{ gridColumn: "1/-1" }}><Empty icon={Users} msg="No students assigned yet" /></div>
-                  : studentsWP.map(s => {
-                    const lp = s.progress || {};
-                    const allLessons = Object.values(lp).flatMap(p => p.lessonProgress || []);
-                    const totalCompleted = allLessons.filter(l => l.lessonStatus === "completed").length;
-                    const totalOngoing   = allLessons.filter(l => l.lessonStatus === "ongoing").length;
-                    const catInfo = catLabel[s.category];
-                    return (
-                      <motion.div key={s.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -3, boxShadow: C.shadowHover }}
-                        style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: 20, boxShadow: C.shadowCard, display: "flex", flexDirection: "column" }}>
-
-                        {/* Header */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                          <div style={{ width: 46, height: 46, borderRadius: 14, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 19, flexShrink: 0 }}>
-                            {s.name?.charAt(0)}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</p>
-                            <p style={{ fontSize: 12, color: C.textMuted }}>{s.customId} · Grade {s.classLevel || s.grade}</p>
-                          </div>
-                        </div>
-
-                        {/* Category badge */}
-                        {catInfo && (
-                          <div style={{ marginBottom: 12 }}>
-                            <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: catInfo.bg, color: catInfo.color }}>
-                              {catInfo.label}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Progress summary pills */}
-                        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                          <div style={{ flex: 1, padding: "8px 6px", borderRadius: 10, background: C.emeraldLight, textAlign: "center" }}>
-                            <p style={{ fontSize: 18, fontWeight: 800, color: C.emerald, lineHeight: 1 }}>{totalCompleted}</p>
-                            <p style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>Completed</p>
-                          </div>
-                          <div style={{ flex: 1, padding: "8px 6px", borderRadius: 10, background: C.amberLight, textAlign: "center" }}>
-                            <p style={{ fontSize: 18, fontWeight: 800, color: C.amber, lineHeight: 1 }}>{totalOngoing}</p>
-                            <p style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>Ongoing</p>
-                          </div>
-                          <div style={{ flex: 1, padding: "8px 6px", borderRadius: 10, background: C.indigoLight, textAlign: "center" }}>
-                            <p style={{ fontSize: 18, fontWeight: 800, color: C.indigo, lineHeight: 1 }}>{(s.assignments || []).length}</p>
-                            <p style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>Subjects</p>
-                          </div>
-                        </div>
-
-                        {/* Subjects list */}
-                        {(s.assignments || []).length > 0 && (
-                          <div style={{ marginBottom: 14 }}>
-                            <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Subjects</p>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                              {(s.assignments || []).map((a, i) => {
-                                const subLessons = lp[a.subject]?.lessonProgress || [];
-                                const subDone    = subLessons.filter(l => l.lessonStatus === "completed").length;
-                                const subOngoing = subLessons.filter(l => l.lessonStatus === "ongoing").length;
-                                return (
-                                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, background: C.bg, border: `1px solid ${C.border}` }}>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: C.textSecondary }}>{a.subject}</span>
-                                    {subDone > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.emerald }}>{"\u2713"}{subDone}</span>}
-                                    {subOngoing > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: C.amber }}>{"\u23f3"}{subOngoing}</span>}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* View Curriculum & Progress button */}
-                        <button
-                          onClick={() => { setSelProgress({ student: s }); setShowProgress(true); }}
-                          style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: "1.5px solid " + C.indigo + "30", background: C.indigoLight, color: C.indigo, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.15s", marginTop: "auto" }}
-                          onMouseEnter={e => { e.currentTarget.style.background = C.indigo; e.currentTarget.style.color = "#fff"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = C.indigoLight; e.currentTarget.style.color = C.indigo; }}>
-                          <BookOpen style={{ width: 15, height: 15 }} />
-                          View Curriculum &amp; Progress
-                        </button>
-                      </motion.div>
+              <motion.div key="st" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                {selectedStudentId ? (
+                  (() => {
+                    const student = studentsWP.find(s => s.uid === selectedStudentId) || students.find(s => s.uid === selectedStudentId);
+                    return !student ? (
+                      <Empty icon={Users} msg="Student not found" />
+                    ) : (
+                      <TutorStudentDetailPage
+                        student={student}
+                        onBack={() => setSelectedStudentId(null)}
+                        onOpenProgress={() => { setSelProgress({ student }); setShowProgress(true); }}
+                        isMobile={isMobile}
+                      />
                     );
-                  })
-                }
+                  })()
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 18 }}>
+                    {loadingStudents
+                      ? <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", padding: 60 }}><Loader2 style={{ width: 28, height: 28, color: C.emerald, animation: "spin 1s linear infinite" }} /></div>
+                      : students.length === 0 ? <div style={{ gridColumn: "1/-1" }}><Empty icon={Users} msg="No students assigned yet" /></div>
+                      : students.map(s => {
+                        const effCourse = getEffectiveCourse(s);
+                        const courseInfo = COURSES.find(c => c.value === effCourse);
+                        const tierInfo = CATEGORIES.find(c => c.value === s.category);
+                        const categoryLabel = !courseInfo
+                          ? "Uncategorized"
+                          : effCourse === "academic_tuition"
+                          ? courseInfo.label
+                          : (tierInfo ? `${courseInfo.label} \u2022 ${tierInfo.label}` : courseInfo.label);
+                        return (
+                          <motion.button key={s.uid} onClick={() => setSelectedStudentId(s.uid)}
+                            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                            whileHover={{ y: -4, boxShadow: C.shadowHover }} whileTap={{ scale: 0.98 }}
+                            style={{ aspectRatio: "1 / 1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 20, cursor: "pointer", textAlign: "center", boxShadow: C.shadowCard, fontFamily: "inherit" }}>
+                            <Avatar url={s.photoURL} name={s.name} size={56} fontSize={22} />
+                            <p style={{ fontWeight: 800, fontSize: 15, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{s.name}</p>
+                            <p style={{ fontSize: 12, color: C.textMuted }}>Class {s.classLevel || s.grade || "\u2014"}</p>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20, background: C.indigoLight, color: C.indigo, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{categoryLabel}</span>
+                          </motion.button>
+                        );
+                      })
+                    }
+                  </div>
+                )}
               </motion.div>
-            )}
-
-            {activeTab === "curriculum" && (
-              <TutorStudentCurriculumView students={students} />
             )}
 
             {activeTab === "activeClasses" && (
@@ -1522,7 +1558,7 @@ export default function TutorDashboard() {
                         style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, boxShadow: C.shadowCard }}>
                         {/* Student header */}
                         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                          <div style={{ width: 38, height: 38, borderRadius: 12, background: C.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16 }}>{s.name?.charAt(0)}</div>
+                          <Avatar url={s.photoURL} name={s.name} size={38} fontSize={16} />
                           <div style={{ flex: 1 }}>
                             <p style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary }}>{s.name}</p>
                             <p style={{ fontSize: 11, color: C.textMuted }}>Grade {s.classLevel || s.grade}</p>

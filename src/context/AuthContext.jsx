@@ -151,6 +151,7 @@ export const AuthProvider = ({ children }) => {
           category: form.category || "",
           grade: form.grade || form.classLevel || "",
           tutorTypes: form.tutorTypes || [],
+          photoURL: form.photoURL || "",
         })
       });
 

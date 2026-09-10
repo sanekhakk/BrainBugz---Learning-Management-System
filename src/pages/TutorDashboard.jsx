@@ -12,7 +12,7 @@ import {
   Home, BarChart2, Bell, Award, Phone, BookOpen, ChevronDown, ChevronRight,
   GraduationCap, Play, PlayCircle, Zap, FileText, Check, AlertTriangle,
   RefreshCw, CheckCircle2, Link as LinkIcon, Image as ImageIcon, ClipboardCheck,
-  ChevronLeft,
+  ChevronLeft, Sparkles,
 } from "lucide-react";
 import { getProgressRef } from "../utils/paths";
 import { getDisplayTime } from "../utils/timeUtils";
@@ -34,6 +34,7 @@ const C = {
   gradEmerald: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
   gradIndigo: "linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)",
   gradRed: "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)",
+  gradViolet: "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)",
   gradAmber: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
   shadowCard: "0 1px 4px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.04)",
   shadowHover: "0 8px 24px rgba(15,23,42,0.1)",
@@ -718,7 +719,8 @@ const ProgressUpdateModal = ({ student, onClose }) => {
 
 //  Class Card 
 const ClassCard = ({ cls, onMark, studentLinkMap, timezone, nextLesson }) => {
-  const due = isClassDue(cls);
+  const isDemo = !!cls.isDemo;
+  const due = !isDemo && isClassDue(cls);
   const time = getDisplayTime(cls.classDate, cls.classTime, timezone);
   const timeParts = time.split(" ");
   const timeNum = timeParts[0];
@@ -731,12 +733,13 @@ const ClassCard = ({ cls, onMark, studentLinkMap, timezone, nextLesson }) => {
   const isTomorrow = dateObj ? (() => { const t = new Date(); t.setDate(t.getDate()+1); return dateObj.toDateString() === t.toDateString(); })() : false;
   const dayLabel = isToday ? "Today" : isTomorrow ? "Tomorrow" : dayName;
 
-  const classLink = studentLinkMap[cls.studentId] || "";
+  // Demo classes carry their own meetLink (no registered student to look up).
+  const classLink = isDemo ? (cls.meetLink || "") : (studentLinkMap[cls.studentId] || "");
 
   // Colors
-  const accentColor = due ? C.red : C.indigo;
-  const accentGrad  = due ? C.gradRed : C.gradIndigo;
-  const accentLight = due ? C.redLight : C.indigoLight;
+  const accentColor = isDemo ? C.violet : due ? C.red : C.indigo;
+  const accentGrad  = isDemo ? C.gradViolet : due ? C.gradRed : C.gradIndigo;
+  const accentLight = isDemo ? C.violetLight : due ? C.redLight : C.indigoLight;
 
   return (
     <motion.div
@@ -744,8 +747,8 @@ const ClassCard = ({ cls, onMark, studentLinkMap, timezone, nextLesson }) => {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -3, boxShadow: "0 16px 40px rgba(15,23,42,0.12)" }}
       style={{
-        background: C.card,
-        border: `1px solid ${due ? C.red + "45" : C.border}`,
+        background: isDemo ? C.violetLight + "55" : C.card,
+        border: `1px solid ${isDemo ? C.violet + "50" : due ? C.red + "45" : C.border}`,
         borderRadius: 20,
         overflow: "hidden",
         boxShadow: C.shadowCard,
@@ -757,13 +760,19 @@ const ClassCard = ({ cls, onMark, studentLinkMap, timezone, nextLesson }) => {
 
       {/* Badges */}
       <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 6, zIndex: 2 }}>
-        {due && (
+        {isDemo && (
+          <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }}
+            style={{ background: C.gradViolet, color: "#fff", fontSize: 10, fontWeight: 800, padding: "4px 10px", borderRadius: 20, letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
+            <Sparkles style={{ width: 10, height: 10 }} /> DEMO CLASS
+          </motion.div>
+        )}
+        {due && !isDemo && (
           <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }}
             style={{ background: C.red, color: "#fff", fontSize: 10, fontWeight: 800, padding: "4px 10px", borderRadius: 20, letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
             <Zap style={{ width: 10, height: 10 }} /> ATTENDANCE DUE
           </motion.div>
         )}
-        {cls.isRescheduled && !due && (
+        {cls.isRescheduled && !due && !isDemo && (
           <div style={{ background: C.amberLight, color: C.amber, fontSize: 10, fontWeight: 800, padding: "4px 10px", borderRadius: 20 }}>
             RESCHEDULED
           </div>
@@ -790,9 +799,18 @@ const ClassCard = ({ cls, onMark, studentLinkMap, timezone, nextLesson }) => {
               </div>
               <div>
                 <p style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary, lineHeight: 1 }}>{cls.studentName}</p>
-                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Student</p>
+                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>
+                  {isDemo ? `Demo Student${cls.studentClass ? ` · Grade ${cls.studentClass}` : ""}` : "Student"}
+                </p>
               </div>
             </div>
+
+            {/* Additional info — demo classes only */}
+            {isDemo && cls.additionalInfo && (
+              <div style={{ padding: "8px 12px", borderRadius: 10, background: "#fff", border: `1px solid ${C.violet}25`, marginBottom: 12 }}>
+                <p style={{ fontSize: 11, color: C.textSecondary, lineHeight: 1.4 }}>{cls.additionalInfo}</p>
+              </div>
+            )}
 
             {/* Next lesson chip — only for coding students */}
             {nextLesson && (
@@ -833,13 +851,15 @@ const ClassCard = ({ cls, onMark, studentLinkMap, timezone, nextLesson }) => {
             ) : (
               <span style={{ padding: "9px 12px", borderRadius: 12, background: C.redLight, color: C.red, fontSize: 12, fontWeight: 600 }}>No Link</span>
             )}
-            <button onClick={() => onMark(cls)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12, border: `1px solid ${due ? C.red + "40" : C.border}`, background: due ? C.redLight : C.bg, color: due ? C.red : C.indigo, fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all 0.15s" }}
-              onMouseEnter={e => { e.currentTarget.style.background = due ? C.red : C.indigo; e.currentTarget.style.color = "#fff"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = due ? C.redLight : C.bg; e.currentTarget.style.color = due ? C.red : C.indigo; }}>
-              {due && <Zap style={{ width: 12, height: 12 }} />}
-              {due ? "Mark Now" : "Mark Attendance"}
-            </button>
+            {!isDemo && (
+              <button onClick={() => onMark(cls)}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12, border: `1px solid ${due ? C.red + "40" : C.border}`, background: due ? C.redLight : C.bg, color: due ? C.red : C.indigo, fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.background = due ? C.red : C.indigo; e.currentTarget.style.color = "#fff"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = due ? C.redLight : C.bg; e.currentTarget.style.color = due ? C.red : C.indigo; }}>
+                {due && <Zap style={{ width: 12, height: 12 }} />}
+                {due ? "Mark Now" : "Mark Attendance"}
+              </button>
+            )}
           </div>
         </div>
 
@@ -1407,21 +1427,25 @@ export default function TutorDashboard() {
                           {activeClasses.slice(0, 4).map(cls => {
                             const time = getDisplayTime(cls.classDate, cls.classTime, tutorData?.timezone);
                             const timeParts = time.split(" ");
-                            const due = isClassDue(cls);
+                            const due = !cls.isDemo && isClassDue(cls);
                             const isToday = cls.classDate ? new Date(cls.classDate).toDateString() === new Date().toDateString() : false;
+                            const rowAccent = cls.isDemo ? C.violet : due ? C.red : C.indigo;
+                            const rowGrad = cls.isDemo ? C.gradViolet : due ? C.gradRed : C.gradIndigo;
+                            const rowBg = cls.isDemo ? C.violetLight : due ? C.redLight : C.bg;
                             return (
-                              <div key={cls.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, background: due ? C.redLight : C.bg, border: `1px solid ${due ? C.red + "30" : C.border}`, overflow: "hidden", position: "relative" }}>
-                                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: due ? C.gradRed : C.gradIndigo, borderRadius: "0 2px 2px 0" }} />
+                              <div key={cls.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, background: rowBg, border: `1px solid ${cls.isDemo ? C.violet + "30" : due ? C.red + "30" : C.border}`, overflow: "hidden", position: "relative" }}>
+                                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: rowGrad, borderRadius: "0 2px 2px 0" }} />
                                 <div style={{ flex: 1, minWidth: 0, paddingLeft: 4 }}>
                                   <p style={{ fontWeight: 800, fontSize: 13, color: C.textPrimary, marginBottom: 2 }}>{cls.subject}</p>
-                                  <p style={{ fontSize: 12, fontWeight: 600, color: due ? C.red : C.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cls.studentName}</p>
-                                  {isToday && <span style={{ fontSize: 9, fontWeight: 800, color: due ? C.red : C.indigo, letterSpacing: "0.05em" }}>TODAY</span>}
+                                  <p style={{ fontSize: 12, fontWeight: 600, color: rowAccent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cls.studentName}</p>
+                                  {isToday && <span style={{ fontSize: 9, fontWeight: 800, color: rowAccent, letterSpacing: "0.05em" }}>TODAY</span>}
                                 </div>
                                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                  <p style={{ fontSize: 18, fontWeight: 900, color: due ? C.red : C.indigo, lineHeight: 1, letterSpacing: "-0.02em" }}>{timeParts[0]}</p>
-                                  <p style={{ fontSize: 11, fontWeight: 700, color: due ? C.red : C.indigo, opacity: 0.8 }}>{timeParts[1] || ""}</p>
+                                  <p style={{ fontSize: 18, fontWeight: 900, color: rowAccent, lineHeight: 1, letterSpacing: "-0.02em" }}>{timeParts[0]}</p>
+                                  <p style={{ fontSize: 11, fontWeight: 700, color: rowAccent, opacity: 0.8 }}>{timeParts[1] || ""}</p>
                                 </div>
-                                {due && <span style={{ background: C.red, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 20, flexShrink: 0, letterSpacing: "0.04em" }}>DUE</span>}
+                                {cls.isDemo && <span style={{ background: C.gradViolet, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 20, flexShrink: 0, letterSpacing: "0.04em" }}>DEMO</span>}
+                                {due && !cls.isDemo && <span style={{ background: C.red, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 20, flexShrink: 0, letterSpacing: "0.04em" }}>DUE</span>}
                               </div>
                             );
                           })}

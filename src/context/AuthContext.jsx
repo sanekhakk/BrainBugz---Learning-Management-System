@@ -440,6 +440,31 @@ const tutorUpdateChapterProgress = async (studentId, subject, chapter) => {
     }
   };
 
+  const adminScheduleDemoClass = async (demoData) => {
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/schedule-demo-class`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(demoData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: result.error || "Failed to schedule demo class" };
+      }
+
+      return result;
+    } catch (error) {
+      console.error("adminScheduleDemoClass error:", error);
+      return { success: false, error: error.message || "Network error" };
+    }
+  };
+
 
     const value = {
       userId,
@@ -461,6 +486,7 @@ const tutorUpdateChapterProgress = async (studentId, subject, chapter) => {
       tutorDeleteChapterProgress, 
       tutorSaveLessonProgress,    
       adminScheduleClass,
+      adminScheduleDemoClass,
 
     };
 

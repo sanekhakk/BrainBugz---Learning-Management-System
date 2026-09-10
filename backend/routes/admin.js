@@ -368,4 +368,75 @@ router.post("/schedule-class", verifyIdToken, requireAdmin, async (req, res) => 
   }
 });
 
+// POST /admin/schedule-demo-class
+// Schedules a demo class for a prospective (unregistered) student. Written to
+// the same "classes" collection as regular classes so it shows up in the
+// tutor's class queries automatically, but flagged with isDemo: true and
+// carries demo-specific fields instead of a real studentId.
+router.post("/schedule-demo-class", verifyIdToken, requireAdmin, async (req, res) => {
+  try {
+    const {
+      studentName,
+      studentClass,
+      demoCategory,   // "coding" | "math" | "academic_tuition" | "courses"
+      courseDetails,  // required text when demoCategory === "courses"
+      tutorId,
+      tutorName,
+      classDate,
+      classTime,
+      meetLink,
+      additionalInfo,
+    } = req.body;
+
+    if (!studentName || !studentClass || !demoCategory || !tutorId || !classDate || !classTime || !meetLink) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields: studentName, studentClass, demoCategory, tutorId, classDate, classTime, meetLink",
+      });
+    }
+
+    const validCategories = ['coding', 'math', 'academic_tuition', 'courses'];
+    if (!validCategories.includes(demoCategory)) {
+      return res.status(400).json({ success: false, error: "Invalid demo category" });
+    }
+
+    if (demoCategory === 'courses' && !courseDetails) {
+      return res.status(400).json({ success: false, error: "Course details are required when demo category is 'courses'" });
+    }
+
+    const classData = {
+      isDemo: true,
+      studentId: null,
+      studentName,
+      studentClass,
+      demoCategory,
+      courseDetails: demoCategory === 'courses' ? courseDetails : "",
+      // Reuse the "subject" field so existing class-card rendering (which
+      // already reads cls.subject) shows something sensible without changes.
+      subject: demoCategory === 'courses' ? courseDetails : demoCategory,
+      tutorId,
+      tutorName,
+      classDate,
+      classTime,
+      meetLink,
+      additionalInfo: additionalInfo || "",
+      status: "scheduled",
+      isRescheduled: false,
+      originalClassDate: "",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const docRef = await firestore.collection("classes").add(classData);
+
+    return res.status(200).json({
+      success: true,
+      message: `Demo class scheduled successfully for ${studentName}`,
+      classId: docRef.id,
+    });
+  } catch (err) {
+    console.error("schedule-demo-class error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Server error" });
+  }
+});
+
 module.exports = router;

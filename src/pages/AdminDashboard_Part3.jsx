@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Clock, X, Search, ChevronRight, Loader2, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
+import { Calendar, Clock, X, Search, ChevronRight, Loader2, CheckCircle, AlertCircle, ArrowLeft, Sparkles, Link as LinkIcon, GraduationCap } from "lucide-react";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -12,7 +12,9 @@ const C = {
   indigo: "#6366F1", indigoLight: "#EEF2FF",
   red: "#EF4444", redLight: "#FEF2F2",
   amber: "#F59E0B", amberLight: "#FFFBEB",
+  violet: "#8B5CF6", violetLight: "#F5F3FF",
   gradPrimary: "linear-gradient(135deg, #0EA5E9 0%, #10B981 100%)",
+  gradViolet: "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)",
   shadowCard: "0 1px 4px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.04)",
   shadowHover: "0 8px 24px rgba(15,23,42,0.1)",
 };
@@ -32,7 +34,7 @@ const LabeledField = ({ label, required, children }) => (
   </div>
 );
 // STUDENT SELECTION VIEW
-export function StudentSelectionView({ students, onSelectStudent, setActiveView }) {
+export function StudentSelectionView({ students, onSelectStudent, setActiveView, onScheduleDemo }) {
   const [search, setSearch] = useState("");
 
   const filtered = students.filter(s => {
@@ -44,15 +46,23 @@ export function StudentSelectionView({ students, onSelectStudent, setActiveView 
   return (
     <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: C.shadowCard }}>
       {/* Header */}
-      <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div>
           <h2 style={{ fontSize: 17, fontWeight: 800, color: C.textPrimary }}>Select Student</h2>
           <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Choose a student to schedule a class session</p>
         </div>
-        <motion.button onClick={() => setActiveView("list")} whileHover={{ scale: 1.05 }}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, color: C.textMuted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-          <ArrowLeft style={{ width: 14, height: 14 }} />Back
-        </motion.button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {onScheduleDemo && (
+            <motion.button onClick={onScheduleDemo} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10, border: "none", background: C.gradViolet, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              <Sparkles style={{ width: 14, height: 14 }} />Schedule Demo Class
+            </motion.button>
+          )}
+          <motion.button onClick={() => setActiveView("list")} whileHover={{ scale: 1.05 }}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, color: C.textMuted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            <ArrowLeft style={{ width: 14, height: 14 }} />Back
+          </motion.button>
+        </div>
       </div>
 
       {/* Search */}
@@ -276,6 +286,248 @@ export function ClassSchedulingForm({ selectedStudent, onBack, adminScheduleClas
             <motion.button type="submit" disabled={!isFormValid() || isLoading} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
               style={{ padding: "14px", borderRadius: 14, border: "none", background: C.gradPrimary, color: "#fff", fontWeight: 700, fontSize: 14, cursor: isFormValid() && !isLoading ? "pointer" : "not-allowed", opacity: !isFormValid() || isLoading ? 0.5 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
               {isLoading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : <><Calendar style={{ width: 16, height: 16 }} />Schedule Class</>}
+            </motion.button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// TUTOR SEARCH SELECT
+// Small searchable dropdown used to pick a teacher for a demo class.
+function TutorSearchSelect({ tutors, selectedTutor, onSelect }) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  const filtered = (tutors || []).filter(t => {
+    if (!query) return true;
+    const q = query.toLowerCase();
+    return (t.name || "").toLowerCase().includes(q) ||
+      (t.tutorTypes || []).some(tt => tt.toLowerCase().includes(q));
+  });
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative" }}>
+      <div style={{ position: "relative" }}>
+        <Search style={{ width: 15, height: 15, color: C.textMuted, position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+        <input
+          value={selectedTutor ? selectedTutor.name : query}
+          onChange={e => { onSelect(null); setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder="Search teacher by name..."
+          style={{ ...fieldStyle, paddingLeft: 36 }}
+          onFocusCapture={e => e.target.style.borderColor = C.violet}
+          onBlurCapture={e => e.target.style.borderColor = C.border}
+        />
+        {selectedTutor && (
+          <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => { onSelect(null); setQuery(""); }}
+            style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", display: "flex" }}>
+            <X style={{ width: 14, height: 14, color: C.textMuted }} />
+          </button>
+        )}
+      </div>
+      {open && !selectedTutor && (
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, maxHeight: 220, overflowY: "auto", background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: C.shadowHover, zIndex: 20 }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding: 14, fontSize: 12, color: C.textMuted, textAlign: "center" }}>No teachers found</div>
+          ) : filtered.map(t => (
+            <div key={t.uid} onMouseDown={e => e.preventDefault()} onClick={() => { onSelect(t); setQuery(""); setOpen(false); }}
+              style={{ padding: "10px 14px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: C.textPrimary, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}
+              onMouseEnter={e => e.currentTarget.style.background = C.bg}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <span>{t.name}</span>
+              {(t.tutorTypes || []).length > 0 && (
+                <span style={{ fontSize: 10, color: C.violet, background: C.violetLight, padding: "2px 8px", borderRadius: 20, fontWeight: 700, flexShrink: 0 }}>
+                  {t.tutorTypes.join(", ")}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// DEMO CLASS SCHEDULING FORM
+// For prospective/unregistered students. No studentId exists yet, so this
+// posts straight to /admin/schedule-demo-class which writes a "classes" doc
+// flagged isDemo:true — it shows up in the assigned tutor's dashboard like
+// any other class, but clearly marked as a demo.
+const demoCategoryOptions = [
+  { value: "coding", label: "Coding" },
+  { value: "math", label: "Maths" },
+  { value: "academic_tuition", label: "Academic Tuition" },
+  { value: "courses", label: "Courses" },
+];
+
+export function DemoClassSchedulingForm({ tutors, onBack, adminScheduleDemoClass, setActiveView }) {
+  const [form, setForm] = useState({
+    studentName: "", studentClass: "", demoCategory: "", courseDetails: "",
+    classDate: "", classTime: "", meetLink: "", additionalInfo: "",
+  });
+  const [selectedTutor, setSelectedTutor] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState(null);
+
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const isFormValid = () => {
+    if (!form.studentName.trim() || !form.studentClass.trim() || !form.demoCategory) return false;
+    if (form.demoCategory === "courses" && !form.courseDetails.trim()) return false;
+    if (!form.classDate || !form.classTime || !form.meetLink.trim() || !selectedTutor) return false;
+    return true;
+  };
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    if (!isFormValid()) return;
+    setIsLoading(true);
+    setStatus(null);
+
+    const demoData = {
+      studentName: form.studentName.trim(),
+      studentClass: form.studentClass.trim(),
+      demoCategory: form.demoCategory,
+      courseDetails: form.demoCategory === "courses" ? form.courseDetails.trim() : "",
+      tutorId: selectedTutor.uid,
+      tutorName: selectedTutor.name,
+      classDate: form.classDate,
+      classTime: form.classTime,
+      meetLink: form.meetLink.trim(),
+      additionalInfo: form.additionalInfo.trim(),
+    };
+
+    try {
+      const result = await adminScheduleDemoClass(demoData);
+      setIsLoading(false);
+      if (result?.success) {
+        setStatus({ ok: true, msg: result.message || "Demo class scheduled successfully!" });
+        setTimeout(() => setActiveView("classes-list"), 1500);
+      } else {
+        setStatus({ ok: false, msg: result?.error || "Failed to schedule demo class" });
+      }
+    } catch (err) {
+      setIsLoading(false);
+      setStatus({ ok: false, msg: err?.message || "Server error" });
+    }
+  };
+
+  return (
+    <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: C.shadowCard }}>
+      {/* Header */}
+      <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: C.violetLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Sparkles style={{ width: 17, height: 17, color: C.violet }} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: 17, fontWeight: 800, color: C.textPrimary }}>Schedule Demo Class</h2>
+            <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>For a prospective student — no account required</p>
+          </div>
+        </div>
+        <motion.button onClick={onBack} whileHover={{ scale: 1.05 }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, color: C.textMuted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          <ArrowLeft style={{ width: 14, height: 14 }} />Back
+        </motion.button>
+      </div>
+
+      <div style={{ padding: 24 }}>
+        <AnimatePresence>
+          {status && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              style={{ padding: "12px 16px", borderRadius: 12, marginBottom: 16, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8,
+                background: status.ok ? C.emeraldLight : C.redLight,
+                color: status.ok ? C.emerald : C.red,
+                border: `1px solid ${status.ok ? C.emerald : C.red}25` }}>
+              {status.ok ? <CheckCircle style={{ width: 15, height: 15 }} /> : <AlertCircle style={{ width: 15, height: 15 }} />}
+              {status.msg}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Student name + class */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <LabeledField label="Student Name" required>
+                <input type="text" name="studentName" value={form.studentName} onChange={handleChange} placeholder="e.g. Aarav Sharma" required style={fieldStyle}
+                  onFocus={e => e.target.style.borderColor = C.violet} onBlur={e => e.target.style.borderColor = C.border} />
+              </LabeledField>
+              <LabeledField label="Student Class / Grade" required>
+                <input type="text" name="studentClass" value={form.studentClass} onChange={handleChange} placeholder="e.g. Grade 6" required style={fieldStyle}
+                  onFocus={e => e.target.style.borderColor = C.violet} onBlur={e => e.target.style.borderColor = C.border} />
+              </LabeledField>
+            </div>
+
+            {/* Demo category */}
+            <LabeledField label="Demo Category" required>
+              <select name="demoCategory" value={form.demoCategory} onChange={handleChange} style={{ ...fieldStyle, appearance: "none" }} required
+                onFocus={e => e.target.style.borderColor = C.violet} onBlur={e => e.target.style.borderColor = C.border}>
+                <option value="" disabled>Select category</option>
+                {demoCategoryOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+              </select>
+            </LabeledField>
+
+            {/* Course details — only for "courses" */}
+            {form.demoCategory === "courses" && (
+              <LabeledField label="Course Details" required>
+                <input type="text" name="courseDetails" value={form.courseDetails} onChange={handleChange}
+                  placeholder="e.g. Python for Data Science, Web Development Bootcamp" required style={fieldStyle}
+                  onFocus={e => e.target.style.borderColor = C.violet} onBlur={e => e.target.style.borderColor = C.border} />
+              </LabeledField>
+            )}
+
+            {/* Date and time */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <LabeledField label="Demo Date" required>
+                <input type="date" name="classDate" value={form.classDate} onChange={handleChange} required style={fieldStyle}
+                  onFocus={e => e.target.style.borderColor = C.violet} onBlur={e => e.target.style.borderColor = C.border} />
+              </LabeledField>
+              <LabeledField label="Demo Time (IST)" required>
+                <input type="time" name="classTime" value={form.classTime} onChange={handleChange} required style={fieldStyle}
+                  onFocus={e => e.target.style.borderColor = C.violet} onBlur={e => e.target.style.borderColor = C.border} />
+              </LabeledField>
+            </div>
+
+            {/* Meet link */}
+            <LabeledField label="Meet Link" required>
+              <div style={{ position: "relative" }}>
+                <LinkIcon style={{ width: 14, height: 14, color: C.textMuted, position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+                <input type="url" name="meetLink" value={form.meetLink} onChange={handleChange} placeholder="https://meet.google.com/xxx-xxxx-xxx" required
+                  style={{ ...fieldStyle, paddingLeft: 34 }}
+                  onFocus={e => e.target.style.borderColor = C.violet} onBlur={e => e.target.style.borderColor = C.border} />
+              </div>
+            </LabeledField>
+
+            {/* Select teacher */}
+            <LabeledField label="Select Teacher" required>
+              <TutorSearchSelect tutors={tutors} selectedTutor={selectedTutor} onSelect={setSelectedTutor} />
+            </LabeledField>
+            {selectedTutor && (
+              <div style={{ marginTop: -8, padding: "10px 14px", borderRadius: 12, background: C.violetLight, border: `1px solid ${C.violet}25`, display: "flex", alignItems: "center", gap: 8 }}>
+                <GraduationCap style={{ width: 15, height: 15, color: C.violet }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{selectedTutor.name}</span>
+              </div>
+            )}
+
+            {/* Additional info */}
+            <LabeledField label="Additional Info (optional)">
+              <textarea name="additionalInfo" value={form.additionalInfo} onChange={handleChange} rows={3}
+                placeholder="Anything the tutor should know before the demo..."
+                style={{ ...fieldStyle, resize: "vertical", fontFamily: "inherit" }}
+                onFocus={e => e.target.style.borderColor = C.violet} onBlur={e => e.target.style.borderColor = C.border} />
+            </LabeledField>
+
+            <motion.button type="submit" disabled={!isFormValid() || isLoading} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+              style={{ padding: "14px", borderRadius: 14, border: "none", background: C.gradViolet, color: "#fff", fontWeight: 700, fontSize: 14, cursor: isFormValid() && !isLoading ? "pointer" : "not-allowed", opacity: !isFormValid() || isLoading ? 0.5 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              {isLoading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : <><Sparkles style={{ width: 16, height: 16 }} />Schedule Demo Class</>}
             </motion.button>
           </div>
         </form>

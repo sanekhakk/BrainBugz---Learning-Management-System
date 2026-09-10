@@ -11,7 +11,7 @@ import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 
 import { RegistrationPanel, EditUserPanel } from "./AdminDashboard_Part2";
-import { StudentSelectionView, ClassSchedulingForm } from "./AdminDashboard_Part3";
+import { StudentSelectionView, ClassSchedulingForm, DemoClassSchedulingForm } from "./AdminDashboard_Part3";
 import { CurriculumManager } from "./AdminDashboard_Part5";
 import { PaymentHistory } from "./AdminDashboard_Part6";
 import { ClassesOverview } from "./AdminDashboard_Part4";
@@ -347,7 +347,7 @@ function OverviewTab({ users, classes, setActiveView }) {
 
 // Main 
 export default function AdminDashboard() {
-  const { adminRegisterUser, adminDeleteUser, adminDeleteClass, adminUpdateUser, adminScheduleClass, logout, role, userId } = useAuth();
+  const { adminRegisterUser, adminDeleteUser, adminDeleteClass, adminUpdateUser, adminScheduleClass, adminScheduleDemoClass, logout, role, userId } = useAuth();
 
   const [allTutors, setAllTutors]                   = useState([]);
   const [selectedUserToEdit, setSelectedUserToEdit] = useState(null);
@@ -358,6 +358,7 @@ export default function AdminDashboard() {
   const [isLoadingUsers, setIsLoadingUsers]         = useState(true);
   const [userError, setUserError]                   = useState(null);
   const [selectedStudentToSchedule, setSelStudent]  = useState(null);
+  const [scheduleMode, setScheduleMode]             = useState("regular"); // "regular" | "demo"
 
   const initialFormState = {
   name: "", email: "", password: "", contactNumber: "", emergencyContact: "",
@@ -391,7 +392,7 @@ export default function AdminDashboard() {
   // Load tutors
   useEffect(() => {
     return onSnapshot(query(collection(db, "userSummaries"), where("role", "==", "tutor")), snap => {
-      setAllTutors(snap.docs.map(d => ({ uid: d.id, name: d.data().name, subjects: d.data().subjects || [] })));
+      setAllTutors(snap.docs.map(d => ({ uid: d.id, name: d.data().name, subjects: d.data().subjects || [], tutorTypes: d.data().tutorTypes || [] })));
     });
   }, []);
 
@@ -468,7 +469,7 @@ export default function AdminDashboard() {
           {tabs.map(tab => (
             <SideNavItem key={tab.id} tab={tab}
               active={activeView === tab.id || (activeView === "edit" && tab.id === "list")}
-              onClick={() => { setActiveView(tab.id); setSelStudent(null); }} />
+              onClick={() => { setActiveView(tab.id); setSelStudent(null); setScheduleMode("regular"); }} />
           ))}
         </nav>
 
@@ -545,18 +546,29 @@ export default function AdminDashboard() {
               </motion.div>
             )}
 
-            {activeView === "schedule" && !selectedStudentToSchedule && (
+            {activeView === "schedule" && scheduleMode === "regular" && !selectedStudentToSchedule && (
               <motion.div key="sched-sel" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <StudentSelectionView students={students} onSelectStudent={setSelStudent} setActiveView={setActiveView} />
+                <StudentSelectionView students={students} onSelectStudent={setSelStudent} setActiveView={setActiveView}
+                  onScheduleDemo={() => setScheduleMode("demo")} />
               </motion.div>
             )}
 
-            {activeView === "schedule" && selectedStudentToSchedule && (
+            {activeView === "schedule" && scheduleMode === "regular" && selectedStudentToSchedule && (
               <ClassSchedulingForm key="sched-form"
                 selectedStudent={selectedStudentToSchedule}
                 onBack={() => setSelStudent(null)}
                 adminScheduleClass={adminScheduleClass}
                 setActiveView={setActiveView} />
+            )}
+
+            {activeView === "schedule" && scheduleMode === "demo" && (
+              <motion.div key="sched-demo" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <DemoClassSchedulingForm
+                  tutors={allTutors}
+                  onBack={() => setScheduleMode("regular")}
+                  adminScheduleDemoClass={adminScheduleDemoClass}
+                  setActiveView={setActiveView} />
+              </motion.div>
             )}
              {activeView === "curriculum" && <CurriculumManager />}
              {activeView === "payments" && (

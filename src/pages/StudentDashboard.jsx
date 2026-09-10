@@ -697,11 +697,11 @@ export default function StudentDashboard() {
     { id: "overview",    label: "Overview",    icon: Home },
     { id: "upcoming",    label: "Upcoming",    icon: Calendar,    count: upcoming.length },
     { id: "progress",    label: "Progress",    icon: TrendingUp },
+    { id: "curriculum",  label: "My Curriculum", icon: BookOpen },
     { id: "notes", label: "Notes", icon: FileText },
-    { id: "receipts", label: "Fee Receipts", icon: Receipt },
     { id: "completed",   label: "Completed",   icon: CheckCircle, count: completed.length },
     { id: "missed",      label: "Missed",      icon: XCircle,     count: missed.length },
-    { id: "curriculum",  label: "My Curriculum", icon: BookOpen },
+    { id: "receipts", label: "Fee Receipts", icon: Receipt },
   ];
 
   const handleTabChange = (tabId) => {

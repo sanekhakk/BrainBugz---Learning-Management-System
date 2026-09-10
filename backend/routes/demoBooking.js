@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+const fs = require("fs");
+const path = require("path");
 const { google } = require("googleapis");
 const { GoogleAuth } = require("google-auth-library");
 const nodemailer = require("nodemailer");
@@ -9,28 +11,57 @@ const sheets = google.sheets("v4");
 
 let authClient;
 
+/**
+ * Resolves credentials the same way firebaseAdmin.js does, checked in order:
+ *   1. FIREBASE_SERVICE_ACCOUNT_KEY — full service-account JSON as a string.
+ *   2. GOOGLE_SERVICE_ACCOUNT_KEY_PATH / GOOGLE_APPLICATION_CREDENTIALS — a
+ *      path to the downloaded service-account .json key file (what this
+ *      project's .env actually sets).
+ *
+ * Returns GoogleAuth constructor options ({ credentials } or { keyFile }).
+ *
+ * NOTE: whichever service account this resolves to must be shared as an
+ * Editor on the target Google Sheet (GOOGLE_SHEETS_SPREADSHEET_ID) via the
+ * Sheet's "Share" dialog, using the service account's client_email — a
+ * Firebase Admin key alone doesn't grant Sheets access, that's a separate,
+ * explicit grant in Google Sheets itself.
+ */
+function loadGoogleAuthOptions() {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+    }
+    return { credentials: serviceAccount };
+  }
+
+  const keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (keyPath) {
+    const resolved = path.resolve(keyPath);
+    if (!fs.existsSync(resolved)) {
+      throw new Error(
+        `Service account key file not found at "${resolved}" (from ${
+          process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH ? "GOOGLE_SERVICE_ACCOUNT_KEY_PATH" : "GOOGLE_APPLICATION_CREDENTIALS"
+        } in .env).`
+      );
+    }
+    return { keyFile: resolved };
+  }
+
+  throw new Error(
+    "No Google credentials found. Set FIREBASE_SERVICE_ACCOUNT_KEY (full JSON string) or " +
+    "GOOGLE_SERVICE_ACCOUNT_KEY_PATH / GOOGLE_APPLICATION_CREDENTIALS (path to the key file) in .env."
+  );
+}
+
 // Initialize Google Auth
 async function initializeAuth() {
   try {
-    // Check if env variable exists
-    if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-      throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is missing");
-    }
-
-    // Parse service account JSON
-    const serviceAccount = JSON.parse(
-      process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-    );
-
-    // Fix private key formatting for Render/Vercel
-    if (serviceAccount.private_key) {
-      serviceAccount.private_key =
-        serviceAccount.private_key.replace(/\\n/g, "\n");
-    }
+    const authOptions = loadGoogleAuthOptions();
 
     // Create auth client
     const auth = new GoogleAuth({
-      credentials: serviceAccount,
+      ...authOptions,
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
     });
 
@@ -42,13 +73,14 @@ async function initializeAuth() {
       "❌ Failed to initialize Google Sheets auth:",
       err.message
     );
-
-    throw new Error("Google Sheets authentication failed");
+    // Deliberately not re-thrown here — a broken Sheets integration
+    // shouldn't crash the whole server. authClient stays undefined, and
+    // the routes below fail fast (instead of hanging) if that happens.
   }
 }
 
 // Initialize on startup
-initializeAuth().catch((err) => console.error(err));
+initializeAuth();
 
 // Human-readable labels for the programInterest value sent from the modal
 const PROGRAM_INTEREST_LABELS = {
@@ -68,6 +100,13 @@ const transporter = nodemailer.createTransport({
 // POST /api/submit-demo-booking
 router.post("/submit-demo-booking", async (req, res) => {
   try {
+    if (!authClient) {
+      return res.status(503).json({
+        success: false,
+        error: "Google Sheets is not configured on the server right now. Check the server logs for the Sheets auth error.",
+      });
+    }
+
     const {
       source,
       programInterest,
@@ -240,6 +279,13 @@ router.post("/submit-demo-booking", async (req, res) => {
 // GET /api/demo-bookings
 router.get("/demo-bookings", async (req, res) => {
   try {
+    if (!authClient) {
+      return res.status(503).json({
+        success: false,
+        error: "Google Sheets is not configured on the server right now. Check the server logs for the Sheets auth error.",
+      });
+    }
+
     const spreadsheetId =
       process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 

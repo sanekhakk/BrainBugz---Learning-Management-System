@@ -4,7 +4,7 @@ import {
   Pencil, PlusCircle, Loader2, Search, Trash2, BookOpen,
   XCircle, CheckCircle, X, Calendar, ShieldCheck, LogOut,
   Users, Clock, AlertCircle, Home, BarChart2, TrendingUp,
-  Bell, ChevronRight,
+  Bell, ChevronRight, IndianRupee,
 } from "lucide-react";
 import { collection, onSnapshot, query, where, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { RegistrationPanel, EditUserPanel } from "./AdminDashboard_Part2";
 import { StudentSelectionView, ClassSchedulingForm } from "./AdminDashboard_Part3";
 import { CurriculumManager } from "./AdminDashboard_Part5";
+import { PaymentHistory } from "./AdminDashboard_Part6";
 import { ClassesOverview } from "./AdminDashboard_Part4";
 import { resolveAvatarUrl } from "../utils/defaultAvatars";
 import PearlxLogo from "../assets/flat_logo.webp";
@@ -410,6 +411,7 @@ export default function AdminDashboard() {
     { id: "register",      label: "Register User", icon: PlusCircle },
     { id: "schedule",      label: "Schedule Class",icon: Calendar },
      { id: "curriculum", label: "Curriculum", icon: BookOpen },
+     { id: "payments", label: "Payment History", icon: IndianRupee },
   ];
 
   if (role !== "admin") {
@@ -557,6 +559,11 @@ export default function AdminDashboard() {
                 setActiveView={setActiveView} />
             )}
              {activeView === "curriculum" && <CurriculumManager />}
+             {activeView === "payments" && (
+               <motion.div key="payments" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                 <PaymentHistory />
+               </motion.div>
+             )}
           </AnimatePresence>
         </div>
       </div>

@@ -22,6 +22,8 @@ const { verifyIdToken, requireAdmin } = require("../middleware/authMiddleware");
  *   totalAmount: number,
  *   classes: [{ id, subject, tutorName, classDate, classTime, isRescheduled }],
  *   status: "unpaid" | "paid",
+ *   statusUpdatedAt: Timestamp,  // set whenever an admin flips the status
+ *   statusUpdatedBy: string,     // admin uid who last changed status
  *   generatedAt: Timestamp,
  *   generatedBy: string,        // admin uid
  *   generatedByName: string,
@@ -157,6 +159,50 @@ router.get("/student", verifyIdToken, async (req, res) => {
     return res.status(200).json({ success: true, receipts });
   } catch (err) {
     console.error("get-student-receipts err:", err);
+    return res.status(500).json({ success: false, error: err.message || "Server error" });
+  }
+});
+
+// GET /receipts/admin — ALL receipts across every student, newest first.
+// Powers the admin "Payment History" view.
+router.get("/admin", verifyIdToken, requireAdmin, async (req, res) => {
+  try {
+    const snap = await firestore.collection("receipts")
+      .orderBy("generatedAt", "desc")
+      .get();
+    const receipts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return res.status(200).json({ success: true, receipts });
+  } catch (err) {
+    console.error("get-all-receipts err:", err);
+    return res.status(500).json({ success: false, error: err.message || "Server error" });
+  }
+});
+
+// PATCH /receipts/:id/status — admin manually marks a receipt paid/unpaid
+// (e.g. once a parent has paid outside the app). This is what flips the
+// badge shown in the student's own Fee Receipts view.
+router.patch("/:id/status", verifyIdToken, requireAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!["paid", "unpaid"].includes(status)) {
+      return res.status(400).json({ success: false, error: "status must be 'paid' or 'unpaid'" });
+    }
+
+    const ref = firestore.collection("receipts").doc(req.params.id);
+    const docSnap = await ref.get();
+    if (!docSnap.exists) {
+      return res.status(404).json({ success: false, error: "Receipt not found" });
+    }
+
+    await ref.update({
+      status,
+      statusUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      statusUpdatedBy: req.uid,
+    });
+
+    return res.status(200).json({ success: true, message: `Receipt marked as ${status}` });
+  } catch (err) {
+    console.error("update-receipt-status err:", err);
     return res.status(500).json({ success: false, error: err.message || "Server error" });
   }
 });

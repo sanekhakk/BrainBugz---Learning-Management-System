@@ -55,7 +55,7 @@ if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
-  console.log("Firebase Admin Initialized");
+  console.log(`Firebase Admin Initialized (project: ${serviceAccount.project_id})`);
 }
 
 const firestore = admin.firestore();
